@@ -1,0 +1,20 @@
+{
+  "file_format": "HDF5",
+  "halo_finder": "SUBFIND",
+  "tree_tool": "Gadget-4 Tree Builder",
+  "simulation_aliases": ["custom-gadget4"],
+  "field_mappings": {
+    "Mvir": { "source": "SubhaloMass", "scale": 1.0, "units": "10^10 Msun/h" },
+    "Pos": { "source": "SubhaloPos", "units": "Mpc/h" },
+    "Vel": { "source": "SubhaloVel", "units": "km/s" },
+    "Vmax": { "source": "SubhaloVmax", "units": "km/s" },
+    "FirstProgenitor": { "source": "TreeFirstProgenitor", "pointer_type": "absolute_index" },
+    "Descendant": { "source": "TreeDescendant", "pointer_type": "absolute_index" },
+    "NextProgenitor": { "source": "TreeNextProgenitor", "pointer_type": "absolute_index" },
+    "FirstHaloInFOFgroup": { "source": "TreeFirstHaloInFOFgroup", "pointer_type": "absolute_index" },
+    "NextHaloInFOFgroup": { "source": "TreeNextHaloInFOFgroup", "pointer_type": "absolute_index" }
+  },
+  "synthetic_logic": {
+    "Comment": "Gadget-4 pointers are absolute indices in TreeHalos. SAGE conversion must handle this mapping."
+  }
+}

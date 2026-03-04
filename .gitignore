@@ -1,0 +1,14 @@
+# OS Files
+.DS_Store
+
+# Workspace files
+.vscode/
+*.code-workspace
+
+# Directories
+input/
+output/
+
+# Python files
+__pycache__/
+*.pyc

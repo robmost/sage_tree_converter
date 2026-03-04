@@ -1,0 +1,29 @@
+{
+  "file_format": "HDF5",
+  "halo_finder": "SUBFIND",
+  "tree_tool": "SubLink",
+  "simulation_aliases": ["Illustris", "IllustrisTNG", "EAGLE"],
+  "field_mappings": {
+    "Mvir": {
+      "source": "SubhaloMass",
+      "default_units": "10^10 Msun/h",
+      "scale": 1e10
+    },
+    "Pos": {
+      "source": "SubhaloPos",
+      "units": "ckpc/h"
+    },
+    "Vel": {
+      "source": "SubhaloVel",
+      "units": "km/s"
+    },
+    "FirstProgenitor": {
+      "source": "FirstProgenitorID",
+      "pointer_type": "global_id"
+    }
+  },
+  "synthetic_logic": {
+    "FirstHaloInFOFgroup": "Match SubhaloGroupNr",
+    "NextHaloInFOFgroup": "Sequential subhalos in same GroupNr"
+  }
+}
