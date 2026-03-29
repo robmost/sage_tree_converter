@@ -12,13 +12,13 @@ The orchestrator of the conversion process. It performs:
 - **Driver Dispatch:** Loads the correct specialized driver based on detected tools.
 - **Glob Resolution:** Handles complex input patterns to group snapshots and link files.
 
-### Specialized Drivers (`*_driver.py`)
+### Specialised Drivers (`*_driver.py`)
 
 Each driver is a standalone module responsible for a specific tool-chain.
 
 - **Isolation:** Logic for AHF snapshot skipping is contained entirely within its driver, keeping the other drivers simple.
 - **Agnosticism:** Drivers do not contain simulation names; they focus on data structures (e.g., `Binary_Subfind_LHaloTree`).
-- **Standardized Output:** All drivers produce a unified SAGE-compatible HDF5 format.
+- **Standardised Output:** All drivers produce a unified SAGE-compatible HDF5 format.
 
 ### Format Database (`format-database/`)
 

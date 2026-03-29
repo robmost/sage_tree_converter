@@ -25,7 +25,7 @@ Ensures that SAGE can actually load and process the converted trees.
 
 * **Small Sample Test:** Always generate a small test sample (e.g., the 100 most massive halos) before full conversion.
 * **SAGE Dry Run:** If SAGE is available in the environment, attempt to run it on the test sample.
-* **Error Parsing:** If SAGE fails, analyze its error logs (e.g., `sage.log`) to identify missing fields or incorrect pointer structures.
+* **Error Parsing:** If SAGE fails, analyse its error logs (e.g., `sage.log`) to identify missing fields or incorrect pointer structures.
 * **Statistical Comparison:** If possible, compare the stellar mass function or halo mass function from a previous successful run with the results of the new conversion.
 
 ---

@@ -4,7 +4,7 @@ This guide provides comprehensive instructions for operating the SAGE Universal 
 
 ## 1. Data Preparation
 
-Regardless of your workflow, ensure your data is organized:
+Regardless of your workflow, ensure your data is organised:
 
 - **Directory Structure:** Place raw simulation files in the `input/` directory (or a subdirectory thereof).
 - **File Integrity:** Ensure all required files for a tool-chain are present (e.g., for AHF, both `.AHF_halos` and `_mtree` files).
@@ -12,7 +12,7 @@ Regardless of your workflow, ensure your data is organized:
 
 ## 2. AI-Assisted Workflow (Recommended)
 
-This repository is optimized for use with an LLM CLI (Gemini or Claude). The assistant is instructed to act as a research specialist.
+This repository is optimised for use with an LLM CLI (Gemini or Claude). The assistant is instructed to act as a research specialist.
 
 ### Standard Protocol
 

@@ -42,7 +42,7 @@ Avoid asking generic lists of questions. Instead, follow a tiered questioning ap
 
 ## 4. Master Converter Workflow
 
-When analyzing a new dataset, follow this mandatory procedure:
+When analysing a new dataset, follow this mandatory procedure:
 
 1. **Initial Identification:** Run `python3 conversion-engine/master_converter.py <file_path> --mode identify`.
 2. **Database Match Found:**

@@ -48,7 +48,7 @@ This converter is built around **tools**, not just simulation names. It supports
 
 ### 1. Snapshot Skipping (AHF)
 
-The AHF driver utilizes a **Global ID Mapping** strategy. It can resolve progenitor-descendant links across non-sequential snapshots, ensuring a continuous tree even if halos are "lost" for one or more snapshots.
+The AHF driver utilises a **Global ID Mapping** strategy. It can resolve progenitor-descendant links across non-sequential snapshots, ensuring a continuous tree even if halos are "lost" for one or more snapshots.
 
 ### 2. Data-Agnostic Design
 
