@@ -6,6 +6,7 @@
 I've found your AHF data in the `input/` directory. I'll check for completeness and temporal connectivity.
 
 **Completeness Check:**
+
 - **Snapshots Found:** `snap_014.AHF_halos`, `snap_015.AHF_halos`, `snap_016.AHF_halos`.
 - **Links Found:** `snap_015_mtree`, `snap_016_mtree`.
 - **Status:** **Ready.** I have confirmed that snapshots are present and MergerTree link files are available.
@@ -21,6 +22,7 @@ AHF files require specific unit scaling and complex pointer resolution across po
 | `_mtree` (Block Structure) | **Descendant** | Map IDs via Global ID Database |
 
 **Critical Observations:**
+
 1. **Unit Scaling:** AHF reports positions in $kpc/h$. I will divide by 1000 to match SAGE's $Mpc/h$ requirement.
 2. **Snapshot Skipping Support:** I have identified that your `MergerTree` files may contain links that skip snapshots (e.g., a halo in snap 16 linking directly to snap 14). I will use a **Global ID Map** across all snapshots to resolve these pointers correctly regardless of their temporal separation.
 3. **Temporal Links:** The `_mtree` files use a block format (DescID NumProg \n Progs...). I will parse these to build the forward `Descendant` and backward `FirstProgenitor` links.
@@ -34,6 +36,7 @@ I'll perform the conversion across all 3 snapshots into `output/ahf_test_trees.h
 Understood. Using the Global ID resolver to ensure no links are lost. Running `ascii_ahf_mergertree_driver.py`...
 
 **Conversion Results:**
+
 - **Output:** `output/ahf_test_trees.hdf5`
 - **Validation Plot:** `output/ahf_test_trees_validation.png`
 - **Stats:** 3 snapshots, 485,210 total halos, 215,400 links established (including resolved skipped links).

@@ -6,6 +6,7 @@
 I've found your Gadget-4 HDF5 file. I'll run the identification logic.
 
 **Identification Result:**
+
 ```json
 {
   "file_format": "HDF5",
@@ -26,6 +27,7 @@ The file uses Gadget-4's native tree format, which stores halos in the `TreeHalo
 | `TreeDescendant` | **Descendant** | Absolute Index (in TreeHalos) |
 
 **Critical Observations & Decision Points:**
+
 1. **Absolute Pointers:** Gadget-4 uses absolute indices within the file. SAGE (binary mode) normally expects file-relative indices, but in HDF5 mode, these absolute indices are compatible as long as we store them correctly.
 2. **Snapshot Units:** I see your Gadget-4 parameters use `HubbleParam = 0.67` and standard comoving units. I will ensure no rescaling of positions is needed.
 
@@ -38,6 +40,7 @@ I'll convert the first 10 trees into `output/custom_gadget4_test_trees.hdf5` and
 Understood. Running `hdf5_gadget4_driver.py`...
 
 **Conversion Results:**
+
 - **Output:** `output/custom_gadget4_test_trees.hdf5`
 - **Validation Plot:** `output/custom_gadget4_test_trees_validation.png`
 - **Stats:** 10 trees, 2,450,264 halos.

@@ -6,6 +6,7 @@
 I've found the files in `input/mini-millenium/`. I'll run the identification logic to confirm the format and tooling.
 
 **Identification Result:**
+
 ```json
 {
   "file_format": "Binary",
@@ -26,6 +27,7 @@ The files use the **LHaloTree** binary format. This is the native format SAGE wa
 | **Pointers** | `FirstProgenitor`, etc. | int32 | Relative Index |
 
 **Critical Observations:**
+
 1. **Endianness Check:** Millennium trees are typically Little-Endian. I will verify this during the test conversion.
 2. **Relative Pointers:** These trees use array indices relative to the start of the file. No global ID transformation is required.
 
@@ -38,6 +40,7 @@ I'll convert the first 10 trees from `trees_063.0` into a SAGE-compatible HDF5 f
 Understood. Running `binary_subfind_lhalotree_driver.py`...
 
 **Conversion Results:**
+
 - **Output:** `output/mini-millenium_test_trees.hdf5`
 - **Validation Plot:** `output/mini-millenium_test_trees_validation.png`
 - **Stats:** 10 trees, 25,526 halos.
