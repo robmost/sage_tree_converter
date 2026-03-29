@@ -12,3 +12,7 @@ output/
 # Python files
 __pycache__/
 *.pyc
+
+# Environment API keys
+.env
+

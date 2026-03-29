@@ -1,0 +1,16 @@
+services:
+  converter:
+    build: .
+    volumes:
+      # Map the whole codebase read-write for the LLM to inspect and edit
+      - .:/app
+    environment:
+      # Pass through the API keys explicitly
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      # Set writable cache directories for the unprivileged host user
+      - HOME=/tmp
+      - MPLCONFIGDIR=/tmp/matplotlib
+    # Use host user IDs so that converted data isn't locked as 'root'
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /app

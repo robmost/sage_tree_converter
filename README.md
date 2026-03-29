@@ -19,9 +19,38 @@ This repository is specifically designed to be used with an **LLM CLI** (e.g., *
     * Generate validation plots.
     * Finalize the SAGE-compatible tree.
 
+## 🐳 Sandboxed Execution (Docker)
+
+To run your AI CLI and the converter in a highly secure, compartmentalised sandbox, follow this quick standard workflow:
+
+**Scenario:** You have downloaded this codebase to `~/sage_tree_converter` and your simulation files are located in a completely different folder, such as `~/Data/sim_run_data`.
+
+1. **Navigate to the Codebase:**
+
+   ```bash
+   cd ~/sage_tree_converter
+   ```
+
+2. **Add Your Keys:** Duplicate `.env.example` to `.env` and insert your API keys.
+3. **Launch & Mount your Data:** Start the sandboxed container while dynamically linking your external data folder to the container's isolated `input/` directory using the volume (`-v`) flag:
+
+   ```bash
+   docker compose run -v ~/Data/sim_run_data:/app/input --rm converter bash
+   ```
+
+4. **Invoke the AI:** You are now inside the sandbox! Launch your AI CLI safely:
+
+   ```bash
+   claude
+   # OR
+   gemini
+   ```
+
+5. **Prompt:** Simply tell the AI, *"I've placed my raw simulation files in the `input/` directory. Please analyse and convert them to the SAGE format."* The AI will parse the files, write the Python logic, and safely dump the final results into your host's `output/` directory!
+
 ## 🚀 Manual Quick Start (CLI)
 
-If you prefer to run the tools manually, use the **Master Converter**:
+If you prefer to run the tools manually without an AI or Docker, use the **Master Converter**:
 
 ## 📂 Repository Structure
 

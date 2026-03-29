@@ -49,5 +49,5 @@ Any new format added to the database must eventually map to these mandatory SAGE
 | `Vel[3]` | Peculiar Velocity | $km/s$ |
 | `Vmax` | Max Circular Velocity | $km/s$ |
 | `Descendant` | Forward Pointer | Index or ID |
-| `FirstProgenitor`| Main Progenitor Pointer | Index or ID |
+| `FirstProgenitor` | Main Progenitor Pointer | Index or ID |
 | `SnapNum` | Snapshot Number | Integer |
