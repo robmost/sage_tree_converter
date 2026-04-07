@@ -31,11 +31,11 @@ To run your AI CLI and the converter in a highly secure, compartmentalised sandb
    cd ~/sage_tree_converter
    ```
 
-2. **Add Your Keys:** Duplicate `.env.example` to `.env` and insert your API keys.
-3. **Launch & Mount your Data:** Start the sandboxed container while dynamically linking your external data folder to the container's isolated `input/` directory using the volume (`-v`) flag:
+2. **Setup Environment:** Duplicate `.env.example` to `.env` and insert your API keys. You can also define optional `INPUT_DIR` and `OUTPUT_DIR` paths in `.env` to permanently mount your external data and output folders.
+3. **Launch & Mount your Data:** Start the sandboxed container. Docker Compose will automatically link your external folders if defined in `.env`, or default to the local `input/` and `output/` directories:
 
    ```bash
-   docker compose run -v ~/Data/sim_run_data:/app/input --rm converter bash
+   docker compose run --rm converter bash
    ```
 
 4. **Invoke the AI:** You are now inside the sandbox! Launch your AI CLI safely:
