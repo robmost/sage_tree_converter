@@ -8,6 +8,7 @@
 # Directories
 input/
 output/
+assets/cli-scripts/
 
 # Python files
 __pycache__/

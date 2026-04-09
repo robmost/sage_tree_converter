@@ -40,7 +40,7 @@ class MasterConverter:
 
         return "Unknown"
 
-    def run(self, input_pattern, output_path):
+    def run(self, input_pattern, output_path, n_trees=None):
         files = glob.glob(input_pattern)
         if not files:
             print(f"Error: No files found matching {input_pattern}")
@@ -56,7 +56,7 @@ class MasterConverter:
         elif fmt_tag == "ASCII_Rockstar_ConsistentTrees":
             ascii_rockstar_consistenttrees_driver.convert(files[0], output_path)
         elif fmt_tag == "Binary_Subfind_LHaloTree":
-            binary_subfind_lhalotree_driver.convert(files[0], output_path)
+            binary_subfind_lhalotree_driver.convert(files, output_path, n_trees=n_trees)
         elif fmt_tag == "HDF5_Gadget4":
             hdf5_gadget4_driver.convert(files[0], output_path)
         else:
@@ -66,6 +66,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SAGE Universal Merger Tree Converter")
     parser.add_argument("--input", required=True, help="Glob pattern for input files")
     parser.add_argument("--output", required=True, help="Output HDF5 path")
+    parser.add_argument("--n_trees", type=int, default=None, help="Number of trees to convert (for testing)")
     args = parser.parse_args()
-    
-    MasterConverter().run(args.input, args.output)
+
+    MasterConverter().run(args.input, args.output, n_trees=args.n_trees)
