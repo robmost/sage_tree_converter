@@ -14,6 +14,11 @@ services:
       # Set writable cache directories for the unprivileged host user
       - HOME=/tmp
       - MPLCONFIGDIR=/tmp/matplotlib
+      # Force 256-color terminal support to prevent UI rendering errors
+      - TERM=xterm-256color
+    # Attach standard input and allocate a pseudo-TTY for interactive CLI usage
+    stdin_open: true
+    tty: true
     # Use host user IDs so that converted data isn't locked as 'root'
     user: "${UID:-1000}:${GID:-1000}"
     working_dir: /app

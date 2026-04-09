@@ -4,12 +4,23 @@ FROM python:3.13-slim
 RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
+    hdf5-tools \
+    git \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Pre-pack the AI CLIs natively into the sandbox
 RUN npm install -g @anthropic-ai/claude-code @google/gemini-cli
+
+# Fix Git dubious ownership errors in mounted Docker volumes which lock up AI CLI background watchers
+RUN git config --system --add safe.directory '*'
+
+# Create dummy users for common host UID mappings (Mac/Linux) so Node.js os.userInfo() doesn't crash with ENOENT
+RUN useradd -u 501 -d /tmp -s /bin/bash macuser1 && \
+    useradd -u 502 -d /tmp -s /bin/bash macuser2 && \
+    useradd -u 1000 -d /tmp -s /bin/bash linuxuser1 && \
+    useradd -u 1001 -d /tmp -s /bin/bash linuxuser2
 
 # Install python dependencies
 WORKDIR /app
