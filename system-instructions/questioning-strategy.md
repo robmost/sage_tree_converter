@@ -1,56 +1,27 @@
-# Questioning Strategy: Effective Format Analysis
+# Agent Directives: Analytical Questioning Strategy
 
-The goal of this strategy is to move from initial ambiguity to a definitive mapping through structured, context-aware dialogue. As an AI assistant, you must be proactive in your research while keeping the user informed of critical decisions.
+Your primary goal during **STATE 1 (Discovery)** and **STATE 2 (Analysis Report)** is to move from initial file ambiguity to a definitive mapping structure using context-aware dialogue.
 
-## 1. Initial Engagement
+## 1. Dialogue Architecture (STATE 1 -> STATE 2 transition)
 
-Upon receiving a user's prompt, you must:
+1. **Acknowledge:** Confirm file targeting and parse paths.
+2. **Database Lookup:** Check `format-database/` for previously saved JSON mappings using inferred Primitive aliases (e.g., "Rockstar").
+3. **Execution Phase Constraint:** During your analysis, use brief tabular summaries. Do NOT use sprawling conversational prose.
+4. **The Gate Rule (CRITICAL):** You MUST NOT proceed past STATE 2 (writing conversion mapping scripts) without explicit, affirmative `user_approval` of your schema and validation checklist.
 
-1. **Acknowledge and Validate:** Confirm receipt of the request and existence of the files.
-2. **Primitive Identification:** Perform a quick inspection to identify the primitives:
-    * *File Format:* HDF5? ASCII? Binary?
-    * *Halo Finder (Look for headers/tags):* AHF? Rockstar? SUBFIND?
-    * *Merger Tree Tool:* Is it a cross-match list or a pointer-based tree?
-3. **Database Check:** Search `format-database/` for JSON mappings that match this combination of primitives.
-4. **Simulation Search:** If a simulation name is provided (e.g., "The300"), search the web to identify its typical tool combination (e.g., AHF + MergerTree).
-5. **Initial Hypothesis:** Present your understanding of the tools involved and the corresponding mapping strategy.
+## 2. The Resolution Matrix
 
-## 2. Progressive Refinement
+When inspecting source fields against SAGE destination targets, you MUST execute questioning based on the following logic matrix to resolve uncertainty. Do NOT ask generic "What does this mean?" questions.
 
-Avoid asking generic lists of questions. Instead, follow a tiered questioning approach:
+| Ambiguity Scenario (Trigger) | Mandatory LLM Action | Questioning Archetype (Use this format) |
+| :--- | :--- | :--- |
+| **Unit Scaling Parity** (e.g., $10^{10} M_\odot/h$ vs $M_\odot$) | Confirm scalar multiplier before writing code. | *"I see `SubhaloMass` in $10^{10} M_\odot$. Shall I treat this directly as the virial mass for SAGE without scaling?"* |
+| **Multiple Candidates** (e.g., `Vel` vs `VelDisp` lists) | Evaluate array shapes; query user for semantic definition. | *"I found `Vel` and `VelDisp`. As SAGE requires bulk velocity, I will map `Vel`. Is this correct?"* |
+| **Inverse Coordinate Logic** (e.g., Snapshots 100 -> 0) | Propose reversal mathematics to match SAGE 0 -> N. | *"Snapshot vectors descend (100 -> 0). I will reverse this sequence to align with SAGE architecture. Any objections?"* |
+| **Pointer Synthesisation** (e.g., missing `NextProgenitor`) | Propose tree-stitching traversal map relying on host IDs. | *"The data is forward-linked only. I will synthesize `FirstProgenitor` and `NextProgenitor` arrays by traversing the host IDs. Do you approve this schema?"* |
 
-### Tier 1: Fundamental Mapping
+## 3. Communication Constraints
 
-* "I see a field `SubhaloMass` in units of $10^{10} M_\odot/h$. Does this correspond directly to the virial mass SAGE expects, or should I use `SubhaloMassInRad`?"
-* "Your tree uses forward-linking (`NextSnapshotID`). I will need to generate the `FirstProgenitor` and `NextProgenitor` pointers SAGE requires. Does that sound correct?"
-
-### Tier 2: Ambiguity Resolution
-
-* "I found two potential fields for velocity: `Vel` and `VelDisp`. SAGE needs both. Is `Vel` the bulk velocity of the subhalo?"
-* "The snapshot numbering in these files goes from 100 down to 0. Should I reverse this to match SAGE's 0-to-N convention?"
-
-### Tier 3: Decision Confirmation
-
-* "I have mapped `SubfindID` to SAGE's `SubhaloIndex`. I'll also generate unique 64-bit IDs for `MostBoundID`. Any objections?"
-
-## 3. Communication Guidelines
-
-* **Conciseness:** Keep reports brief and use tables for mapping summaries.
-* **Confidence Scoring:** If you're unsure about a mapping, state your confidence and provide your reasoning.
-* **Action-Oriented:** Always end an analysis report with a clear "Next Steps" section.
-* **No Jargon:** Use clear physical terms (e.g., "virial mass", "comoving distance") rather than just code variables where possible.
-
-## 4. Master Converter Workflow
-
-When analysing a new dataset, follow this mandatory procedure:
-
-1. **Initial Identification:** Run `python3 conversion-engine/master_converter.py <file_path> --mode identify`.
-2. **Database Match Found:**
-    * Present the inferred schema and simulation aliases to the user.
-    * **Mandatory Verification:** Ask the user: "The database suggests this is a [Tool Name] format from [Simulation]. Does this match your knowledge of the dataset?"
-    * Perform a quick web search to see if the simulation has multiple versions (e.g., Bolshoi vs. Bolshoi-P) that might have different column indices.
-3. **No Match (Unknown Status):**
-    * Inform the user that the format is not in the database.
-    * Initiate "Primitive Identification" (Web search for simulation papers + File header inspection).
-    * Propose a new mapping and add it to the `format-database/` after user approval.
-4. **Verification Before Conversion:** Always show a small table of the proposed field mappings (Source -> Target) before executing a test conversion.
+* **Strict Confidence Scoring:** If your Primitive Knowledge lookup gives you low confidence in a mapping, you MUST declare your confidence level (e.g., *"Confidence: 40% - This structure is non-standard."*)
+* **Zero Jargon:** Use physical terminology (`virial radius`, `comoving offset`) instead of local code variables (`col_3`, `var_r`).
+* **Table Dependency:** Always package your hypothetical proposed Field Schema (Source -> Target) into a simple Markdown table before requesting the required STATE 2 user approval.

@@ -12,12 +12,11 @@ This repository is specifically designed to be used with an **LLM CLI** (e.g., *
 2. **Add your raw tree files** to the `input/` directory.
 3. **Invoke your LLM CLI** in the root folder.
 4. **Ask the Assistant** to convert your data (e.g., *"Convert the AHF files I just added"*).
-5. **The Assistant will:**
-    * Research the file format.
-    * Propose a mapping.
-    * Run test conversions.
-    * Generate validation plots.
-    * Finalize the SAGE-compatible tree.
+5. **The Assistant will autonomously advance through 4 States:**
+    * **STATE 1 (Discovery):** Research the file format and identify the required tool-chains.
+    * **STATE 2 (Analysis Report):** Propose a mapping schema and explicitly list the 7 validation steps. **(Requires your explicit approval to proceed).**
+    * **STATE 3 (Test Engine):** Extract a small sample subset to run rapid functional integrity checks.
+    * **STATE 4 (Full Suite):** Process the entire dataset, generate 7 mandatory 3-panel semantic validation plots, and produce the final SAGE-compatible tree.
 
 ## 🐳 Sandboxed Execution (Docker)
 
@@ -58,9 +57,13 @@ If you prefer to run the tools manually without an AI or Docker, use the **Maste
   * `master_converter.py`: The main entry point for automated format detection.
   * `*_driver.py`: Tool-specific drivers (e.g., `ascii_ahf_mergertree_driver.py`).
 * **`format-database/`**: JSON mapping files defining how raw simulation fields map to SAGE requirements.
+* **`output/`**: Destination for final validation plots, markdown logs, and converted SAGE tree HDF5s.
+  * **`intermediates/`**: Transient directory used by AI agents for extracting subsets and streaming volatile data without cluttering outputs.
+* **`assets/`**: Read-only styles and ad-hoc scripting environments.
+  * **`cli-scripts/`**: Sandboxed workspace where the LLMs write and execute testing logic without polluting the codebase.
 * **`docs/`**: Detailed documentation on usage, supported formats, and architectural design.
-* **`system-instructions/`**: Domain knowledge and validation protocols for the conversion process.
-* **`input/`**: Recommended directory for placing your raw simulation data.
+* **`system-instructions/`**: Domain knowledge and strict validation protocols that bind the AI's execution steps.
+* **`input/`**: Recommended directory for placing your raw sandbox simulation data.
 
 ## 🛠 Supported Tool-Chains
 
@@ -85,7 +88,7 @@ All scripts are designed to be agnostic of specific simulation filenames. Use gl
 
 ### 3. Automated Validation
 
-Every conversion generates a **Halo Mass Function (HMF)** plot (e.g., `output/trees_validation.png`). This allows you to immediately verify that the mass distribution and units are physically consistent.
+Every full conversion is strictly gated behind a mandatory suite of Syntactic, Semantic, and Functional tests. The CLI will systematically map raw data and generate **seven 3-panel comparative plots** (e.g., Mass Assembly History, Spin Evolution, Mass Functions) to mathematically verify unit scalings, coordinate origins, and pointer continuity. The results are logged rigorously in the `output/` directory.
 
 ## 📦 Requirements
 
