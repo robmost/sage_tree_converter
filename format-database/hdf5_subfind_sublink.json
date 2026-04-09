@@ -1,13 +1,24 @@
 {
-  "file_format": "HDF5",
-  "halo_finder": "SUBFIND",
-  "tree_tool": "SubLink",
-  "simulation_aliases": ["Illustris", "IllustrisTNG", "EAGLE"],
+  "primitive_categories": {
+    "file_format": "HDF5",
+    "halo_finder_type": "FOF-Based",
+    "tree_tool_type": "Pointer"
+  },
+  "tool_names": {
+    "halo_finder": "SUBFIND",
+    "tree_tool": "SubLink"
+  },
+  "simulation_aliases": [
+    "Illustris",
+    "IllustrisTNG",
+    "EAGLE"
+  ],
+  "format_schema": {},
   "field_mappings": {
     "Mvir": {
       "source": "SubhaloMass",
       "default_units": "10^10 Msun/h",
-      "scale": 1e10
+      "scale": 10000000000.0
     },
     "Pos": {
       "source": "SubhaloPos",
@@ -18,12 +29,13 @@
       "units": "km/s"
     },
     "FirstProgenitor": {
-      "source": "FirstProgenitorID",
-      "pointer_type": "global_id"
+      "source": "FirstProgenitorID"
     }
   },
   "synthetic_logic": {
     "FirstHaloInFOFgroup": "Match SubhaloGroupNr",
-    "NextHaloInFOFgroup": "Sequential subhalos in same GroupNr"
+    "NextHaloInFOFgroup": "Sequential subhalos in same GroupNr",
+    "SAGE_Mapping_Requirement": "Direct Map",
+    "Pointer_Logic": "Pointer Parity Map"
   }
 }

@@ -1,0 +1,27 @@
+{
+  "primitive_categories": {
+    "file_format": "<HDF5|ASCII|Binary>",
+    "halo_finder_type": "<SO-Based|FOF-Based>",
+    "tree_tool_type": "<Particle|Pointer>"
+  },
+  "tool_names": {
+    "halo_finder": "<Name of Halo Finder>",
+    "tree_tool": "<Name of Tree Tool>"
+  },
+  "simulation_aliases": [
+    "<Optional list of known aliases e.g., 'Bolshoi'>"
+  ],
+  "format_schema": {
+    "__comment": "Specify column indexing, struct definition, or leave empty if self-describing."
+  },
+  "field_mappings": {
+    "Mvir": {
+      "source": "<source field>",
+      "units": "<optional string>",
+      "scale": 1.0
+    }
+  },
+  "synthetic_logic": {
+    "__comment": "Specify any logic required to generate SAGE fields if they are missing."
+  }
+}

@@ -1,33 +1,61 @@
 {
-  "file_format": "Binary",
-  "halo_finder": "SUBFIND",
-  "tree_tool": "LHaloTree",
-  "simulation_aliases": ["Millennium", "mini-Millennium"],
-  "struct_definition": {
-    "Descendant": "int32",
-    "FirstProgenitor": "int32",
-    "NextProgenitor": "int32",
-    "FirstHaloInFOFgroup": "int32",
-    "NextHaloInFOFgroup": "int32",
-    "Len": "int32",
-    "M_Mean200": "float32",
-    "M_Crit200": "float32",
-    "M_TopHat": "float32",
-    "Pos": "float32[3]",
-    "Vel": "float32[3]",
-    "VelDisp": "float32",
-    "Vmax": "float32",
-    "Spin": "float32[3]",
-    "MostBoundID": "int64",
-    "SnapNum": "int32",
-    "FileNr": "int32",
-    "SubhaloIndex": "int32",
-    "SubHalfMass": "float32"
+  "primitive_categories": {
+    "file_format": "Binary",
+    "halo_finder_type": "FOF-Based",
+    "tree_tool_type": "Pointer"
+  },
+  "tool_names": {
+    "halo_finder": "SUBFIND",
+    "tree_tool": "LHaloTree"
+  },
+  "simulation_aliases": [
+    "Millennium",
+    "mini-Millennium"
+  ],
+  "format_schema": {
+    "struct_definition": {
+      "Descendant": "int32",
+      "FirstProgenitor": "int32",
+      "NextProgenitor": "int32",
+      "FirstHaloInFOFgroup": "int32",
+      "NextHaloInFOFgroup": "int32",
+      "Len": "int32",
+      "M_Mean200": "float32",
+      "M_Crit200": "float32",
+      "M_TopHat": "float32",
+      "Pos": "float32[3]",
+      "Vel": "float32[3]",
+      "VelDisp": "float32",
+      "Vmax": "float32",
+      "Spin": "float32[3]",
+      "MostBoundID": "int64",
+      "SnapNum": "int32",
+      "FileNr": "int32",
+      "SubhaloIndex": "int32",
+      "SubHalfMass": "float32"
+    }
   },
   "field_mappings": {
-    "Mvir": { "source": "M_TopHat", "scale": 1e10, "units": "Msun/h" },
-    "Pos": { "source": "Pos", "units": "Mpc/h" },
-    "Vel": { "source": "Vel", "units": "km/s" },
-    "Vmax": { "source": "Vmax", "units": "km/s" }
+    "Mvir": {
+      "source": "M_TopHat",
+      "scale": 10000000000.0,
+      "units": "Msun/h"
+    },
+    "Pos": {
+      "source": "Pos",
+      "units": "Mpc/h"
+    },
+    "Vel": {
+      "source": "Vel",
+      "units": "km/s"
+    },
+    "Vmax": {
+      "source": "Vmax",
+      "units": "km/s"
+    }
+  },
+  "synthetic_logic": {
+    "SAGE_Mapping_Requirement": "Direct Map",
+    "Pointer_Logic": "Pointer Parity Map"
   }
 }

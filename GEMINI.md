@@ -30,6 +30,7 @@ All file interactions MUST strictly adhere to the following routing table. Do no
 2. **SAGE Compatibility First:** When mapping disparate halo fields, implement the synthetic strategies defined in `system-instructions/core-knowledge.md` to ensure SAGE-compliant output.
 3. **Validation Enforcement:** You are bound unconditionally by the rules in `system-instructions/validation-protocols.md`. All Syntactic, Semantic, and Functional validation plots and checks MUST be executed during every full conversion suite.
 4. **Log Enshrinement:** You MUST systematically record the results of every check performed using `assets/validation_log_style.md`. The created log must be named `0_validation_log_<dataset>.md` and saved to `output/`. Point the user to this file upon completion.
+5. **Format-Database Standardisation:** When creating new mapping schemas in `format-database/`, you MUST use `assets/format_database_template.json` as the strict blueprint to ensure all primitive categories and schema definitions are uniform.
 
 ## 4. Codebase Architecture Laws
 

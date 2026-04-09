@@ -5,39 +5,30 @@
     "tree_tool_type": "Particle"
   },
   "tool_names": {
-    "halo_finder": "Rockstar",
-    "tree_tool": "ConsistentTrees"
+    "halo_finder": "AHF",
+    "tree_tool": "MergerTree"
   },
   "simulation_aliases": [
-    "Bolshoi",
-    "Bolshoi-P"
+    "custom-ahf"
   ],
   "format_schema": {
     "columns": {
-      "scale": 0,
-      "id": 1,
-      "desc_id": 3,
-      "num_prog": 4,
-      "pid": 5,
-      "upid": 6,
-      "mvir": 10,
-      "rvir": 11,
-      "vrms": 13,
-      "vmax": 16,
-      "x": 17,
-      "y": 18,
-      "z": 19,
-      "vx": 20,
-      "vy": 21,
-      "vz": 22,
-      "snap_num": 31,
-      "depth_first_id": 28
+      "id": 0,
+      "mvir": 3,
+      "x": 5,
+      "y": 6,
+      "z": 7,
+      "vx": 8,
+      "vy": 9,
+      "vz": 10,
+      "vmax": 16
     }
   },
   "field_mappings": {
     "Mvir": {
       "source": "mvir",
-      "units": "Msun/h"
+      "scale": 1e-10,
+      "units": "10^10 Msun/h"
     },
     "Pos": {
       "source": [
@@ -45,6 +36,7 @@
         "y",
         "z"
       ],
+      "scale": 0.001,
       "units": "Mpc/h"
     },
     "Vel": {
@@ -54,10 +46,13 @@
         "vz"
       ],
       "units": "km/s"
+    },
+    "Vmax": {
+      "source": "vmax",
+      "units": "km/s"
     }
   },
   "synthetic_logic": {
-    "FOF_Group": "Defined by upid. If upid == -1, it is the host.",
     "SAGE_Mapping_Requirement": "Synthetic FOF Requirement"
   }
 }

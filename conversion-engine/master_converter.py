@@ -8,6 +8,7 @@ import argparse
 from ascii_ahf_mergertree_driver import AHFDriver as ASCII_AHF_MergerTree_Driver
 import binary_subfind_lhalotree_driver
 import hdf5_gadget4_driver
+import hdf5_subfind_sublink_driver
 import ascii_rockstar_consistenttrees_driver
 
 class MasterConverter:
@@ -19,6 +20,7 @@ class MasterConverter:
         try:
             with h5py.File(sample_file, 'r') as f:
                 if 'TreeHalos' in f: return "HDF5_Gadget4"
+                if 'SubhaloMass' in f or 'Subhalo' in f: return "HDF5_Subfind_Sublink"
                 if 'Tree0' in f: return "SAGE-HDF5"
         except: pass
 
@@ -59,6 +61,8 @@ class MasterConverter:
             binary_subfind_lhalotree_driver.convert(files, output_path, n_trees=n_trees)
         elif fmt_tag == "HDF5_Gadget4":
             hdf5_gadget4_driver.convert(files[0], output_path)
+        elif fmt_tag == "HDF5_Subfind_Sublink":
+            hdf5_subfind_sublink_driver.convert(files[0], output_path, n_trees=n_trees)
         else:
             print(f"Error: Format tag '{fmt_tag}' not supported or insufficient files.")
 

@@ -28,7 +28,7 @@ class AHFDriver:
 
     def read_ahf_halos(self, path):
         """Read AHF halo catalog into a dictionary."""
-        df = pd.read_csv(path, sep='\s+', comment='#', header=None)
+        df = pd.read_csv(path, sep=r'\s+', comment='#', header=None)
         # Mapping: 0:ID, 3:Mhalo, 5-7:Pos, 8-10:Vel, 16:Vmax
         data = {
             'id': df[0].values,

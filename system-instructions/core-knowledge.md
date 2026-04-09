@@ -1,6 +1,6 @@
 # Core Knowledge: Primitive Conversion Matrices
 
-This document defines the strict "primitives" of merger tree construction. The conversion agent MUST identify the combinations of **File Format**, **Halo Finder**, and **Merger Tree Tool** to deduce mapping strategies. 
+This document defines the strict "primitives" of merger tree construction. The conversion agent MUST identify the combinations of **File Format**, **Halo Finder**, and **Merger Tree Tool** to deduce mapping strategies.
 
 ## 1. The Primitive Knowledge Matrix
 
