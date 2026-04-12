@@ -22,6 +22,7 @@ All file interactions MUST strictly adhere to the following routing table. Do no
 | `assets/cli-scripts/` | **WRITE.** Save all ad-hoc Python validation scripts or data parsers you generate here. |
 | `output/` | **WRITE.** Save all validation plots, `0_validation_log_*.md` logs, and target test samples (`0_test_sage_tree*.hdf5`) here. |
 | `output/intermediates/` | **WRITE.** Save all volatile intermediate extracted data (like parsed `.dat` sample chunks) here to keep final outputs clean. |
+| `output/audit-logs/` | **WRITE / CONDITIONAL READ.** Save archived `cli-scripts` here. **CRITICAL Restriction:** You must NEVER proactively read from this folder during a standard conversion pipeline to hunt for reusable code. You may ONLY read files from this directory if the user explicitly tasks you with debugging an unexpected validation result from a previous run. |
 | `assets/validation_log_style.md` | **READ.** Use this strict markdown template for recording the final validation log. |
 
 ## 3. Agent Behaviour Protocols
@@ -45,7 +46,7 @@ You operate securely by advancing sequentially through the following states. Do 
 * **STATE 1 (Initialization & Discovery):** Perform Web Search & File Inspection. You MUST read `system-instructions/` (`core-knowledge.md`, etc.). Check `format-database/` for priors. **GATE:** Proceed to STATE 2 when analysis is complete.
 * **STATE 2 (Analysis Report):** Present your findings and the proposed mapping schema in a table. List out your intended validation steps. For the Semantic step, you MUST explicitly itemize all 7 mandatory visualisations from the registry; do not summarise them. **GATE:** EXPLICIT USER APPROVAL is required over the mapping and checklist before writing conversion code.
 * **STATE 3 (Test Engine):** Write the conversion mappings. Process a small/fast dataset variant (e.g., 100 halos). Generate and name it `0_test_sage_tree_<name>.hdf5`. **GATE:** You must natively execute and pass every validation checklist step on this sample.
-* **STATE 4 (Full Suite & Export):** Process the entire dataset. Name output `0_full_sage_tree_<name>.hdf5`. Generate all mandatory semantic validation plots. Write the final validation log. Present the completion report to the user.
+* **STATE 4 (Full Suite & Export):** Process the entire dataset. Name output `0_full_sage_tree_<name>.hdf5`. Generate all mandatory semantic validation plots. Write the final validation log. **CRITICAL:** Move all ad-hoc scripts from `assets/cli-scripts/` to `output/audit-logs/<dataset_name>_scripts/` to keep the workspace clean, then present the completion report to the user.
 
 ***
 **Ready to Begin:** Acknowledge these master instructions and wait for the user to provide the target location/type of merger trees they wish to convert.
