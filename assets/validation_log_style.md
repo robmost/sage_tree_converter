@@ -1,8 +1,8 @@
 # SAGE Conversion Validation Log
 
-**Date:** {YYYY-MM-DD}  
-**Simulation Name:** {Simulation Name}  
-**Original Format/Halo Finder:** {e.g., L-HaloTree / Bpstat}  
+**Date:** {YYYY-MM-DD}
+**Simulation Name:** {Simulation Name}
+**Original Format/Halo Finder:** {e.g., L-HaloTree / Bpstat}
 
 ## 1. Syntactic Validation
 

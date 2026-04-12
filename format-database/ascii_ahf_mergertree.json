@@ -9,11 +9,13 @@
     "tree_tool": "MergerTree"
   },
   "simulation_aliases": [
-    "custom-ahf"
+    "custom-ahf",
+    "custom_gizmo_ahf-mergertree"
   ],
   "format_schema": {
     "columns": {
       "id": 0,
+      "hostHalo": 1,
       "mvir": 3,
       "x": 5,
       "y": 6,
@@ -21,7 +23,9 @@
       "vx": 8,
       "vy": 9,
       "vz": 10,
-      "vmax": 16
+      "vmax": 16,
+      "sigV": 18,
+      "lambda": 19
     }
   },
   "field_mappings": {
@@ -45,14 +49,28 @@
         "vy",
         "vz"
       ],
+      "scale": 1.0,
       "units": "km/s"
     },
     "Vmax": {
       "source": "vmax",
+      "scale": 1.0,
       "units": "km/s"
+    },
+    "VelDisp": {
+      "source": "sigV",
+      "scale": 1.0,
+      "units": "km/s"
+    },
+    "Spin": {
+      "source": "lambda",
+      "scale": 1.0,
+      "units": "Bullock parameter (scalar mapped to X-component)"
     }
   },
   "synthetic_logic": {
-    "SAGE_Mapping_Requirement": "Synthetic FOF Requirement"
+    "FOF_Requirement": "Synthesize FirstHaloInFOFgroup and NextHaloInFOFgroup using hostHalo column. Subhalos link to host; missing hosts map subhalos to self.",
+    "Mass_Approximations": "SAGE requires M_Mean200 and M_TopHat. Synthesized as direct clones of Mvir.",
+    "Pointer_Logic": "Temporal NextProgenitor pointers synthesized by parsing parallel temporal linkages in _mtree files."
   }
 }

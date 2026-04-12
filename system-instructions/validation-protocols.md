@@ -32,9 +32,9 @@ Every visualisation MUST be structured as a side-by-side comparison:
 
 **Sub-Architecture Rules:**
 
-* **Evolution Lineplots:** 3x3 Grid (Rows: 5 most massive, 5 average mass, 5 least massive). Mass ranges are calculated/selected at the lowest available snapshot. Use a distinct colour for each mass group. Plot lines, NOT distributions. The relative difference MUST be calculated for each halo individually and then averaged over the sample of halos.
-* **Distribution Histograms:** 1x3 Grid. Use ALL halo data. Ensure adequate bins. Plot as **lineplots** (midpoints on x-axis, counts on y-axis) rather than bars/steps. Rel. Diff MUST be calculated for each bin individually. Evaluate distributions at the lowest available snapshot.
-* **Spatial Integrity (Scatter):** 1x3 Grid for a specific 2D projection (e.g. x-y). Rel. Diff is based on the halo's radial distance from the simulation box center ($\sqrt{(x_h - x_c)^2 + (y_h - y_c)^2}$). X-axis of Rel. Diff plot is the radial distance; Y-axis is the relative difference. Use very small marker sizes/alpha transparency.
+* **Evolution Lineplots:** 3x3 Grid (Rows: 5 most massive, 5 average mass, 5 least massive). Mass ranges are calculated/selected at the lowest available redshift. Use a distinct colour for each mass group. Plot lines, NOT distributions. The relative difference MUST be calculated for each halo individually and then averaged over the sample of halos.
+* **Distribution Histograms:** 1x3 Grid. Use ALL halo data. Ensure adequate bins. Plot as **lineplots** (midpoints on x-axis, counts on y-axis) rather than bars/steps. Rel. Diff MUST be calculated for each bin individually. Evaluate distributions at the lowest available redshift. **CRITICAL FOR LIFESPAN:** Even though `lifespan` requires temporal branch tracing (like Evolution plots), it is a Histogram. You MUST calculate the branch depth for ALL root halos at the lowest redshift, NOT just the 15 sub-sampled halos.
+* **Spatial Integrity (Hexbin):** 1x3 Grid. Col 1 & 2: Plot $X$ vs $Y$ positions using a Hexbin density map with logarithmic colour scaling (`bins='log'`). Col 3 (Rel. Diff): Plot a Hexbin where the X-axis is the halo's radial distance from the simulation box center, and the Y-axis is the Relative Difference of that radial distance. Ensure `bins='log'` is applied to prevent saturation.
 
 ### Required Visualisations Registry
 
@@ -46,7 +46,7 @@ Every visualisation MUST be structured as a side-by-side comparison:
 | `velocity` | Histogram | Velocity {Units} | Halo Count | Log y-axis |
 | `lifespan` | Histogram | Lifespan {Snapshots} | Halo Count | Log y-axis |
 | `hmf` | Histogram | Mass {Units} | Halo Count | Log x-axis and Log y-axis |
-| `spatial` | Scatter | X position {Units} | Y position {Units} | Small alpha/marker |
+| `spatial` | Hexbin | X position {Units} | Y position {Units} | Logarithmic (`bins='log'`) |
 
 ## 3. Functional Validation (SAGE Compatibility)
 

@@ -3,6 +3,7 @@ import glob
 import h5py
 import numpy as np
 import argparse
+import psutil
 
 # Modular Drivers (Named by Format + Tooling)
 from ascii_ahf_mergertree_driver import AHFDriver as ASCII_AHF_MergerTree_Driver
@@ -13,6 +14,49 @@ import ascii_rockstar_consistenttrees_driver
 
 class MasterConverter:
     """Universal entry point for merger tree conversion to SAGE HDF5."""
+
+    def get_available_memory(self):
+        """Returns available memory in bytes, respecting cgroups if present, fallback to psutil."""
+        try:
+            # cgroup v2
+            if os.path.exists('/sys/fs/cgroup/memory.max'):
+                with open('/sys/fs/cgroup/memory.max', 'r') as f:
+                    val = f.read().strip()
+                    if val != 'max':
+                        limit = int(val)
+                        with open('/sys/fs/cgroup/memory.current', 'r') as f:
+                            current = int(f.read().strip())
+                        return limit - current
+        except Exception:
+            pass
+        
+        try:
+            # cgroup v1
+            if os.path.exists('/sys/fs/cgroup/memory/memory.limit_in_bytes'):
+                with open('/sys/fs/cgroup/memory/memory.limit_in_bytes', 'r') as f:
+                    limit = int(f.read().strip())
+                    if limit < 9223372036854771712: 
+                        with open('/sys/fs/cgroup/memory/memory.usage_in_bytes', 'r') as f:
+                            current = int(f.read().strip())
+                        return limit - current
+        except Exception:
+            pass
+
+        return psutil.virtual_memory().available
+
+    def check_resources(self, files):
+        multiplier = float(os.environ.get('SAGE_MEMORY_MULTIPLIER', '3.0'))
+        
+        total_size = sum(os.path.getsize(f) for f in files if os.path.isfile(f))
+        required_memory = total_size * multiplier
+        available_memory = self.get_available_memory()
+        
+        if required_memory > available_memory:
+            msg = (f"\n[WARNING] Insufficient resources detected. "
+                   f"Required: ~{required_memory / 1e9:.2f} GB (Multiplier: {multiplier}x), "
+                   f"Available: {available_memory / 1e9:.2f} GB. "
+                   "The conversion might fail due to lack of memory/space.\n")
+            print(msg)
 
     def identify_format_and_tools(self, sample_file):
         """Identify simulation format based on file content and headers."""
@@ -48,19 +92,21 @@ class MasterConverter:
             print(f"Error: No files found matching {input_pattern}")
             return
 
+        self.check_resources(files)
+
         fmt_tag = self.identify_format_and_tools(files[0])
         print(f"Detected Format/Tooling: {fmt_tag}")
 
         if fmt_tag == "ASCII_AHF_MergerTree":
             halos = [f for f in files if '.AHF_halos' in f]
             links = [f for f in files if '_mtree' in f and all(x not in f for x in ['idx', 'croco'])]
-            ASCII_AHF_MergerTree_Driver(halos, links).convert(output_path)
+            ASCII_AHF_MergerTree_Driver(halos, links).convert(output_path, n_trees=n_trees)
         elif fmt_tag == "ASCII_Rockstar_ConsistentTrees":
-            ascii_rockstar_consistenttrees_driver.convert(files[0], output_path)
+            ascii_rockstar_consistenttrees_driver.convert(files[0], output_path, n_trees=n_trees)
         elif fmt_tag == "Binary_Subfind_LHaloTree":
             binary_subfind_lhalotree_driver.convert(files, output_path, n_trees=n_trees)
         elif fmt_tag == "HDF5_Gadget4":
-            hdf5_gadget4_driver.convert(files[0], output_path)
+            hdf5_gadget4_driver.convert(files[0], output_path, n_trees=n_trees)
         elif fmt_tag == "HDF5_Subfind_Sublink":
             hdf5_subfind_sublink_driver.convert(files[0], output_path, n_trees=n_trees)
         else:

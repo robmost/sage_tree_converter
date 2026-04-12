@@ -20,15 +20,31 @@
     },
     "Pos": {
       "source": "SubhaloPos",
+      "scale": 1.0,
       "units": "Mpc/h"
     },
     "Vel": {
       "source": "SubhaloVel",
+      "scale": 1.0,
       "units": "km/s"
     },
     "Vmax": {
       "source": "SubhaloVmax",
+      "scale": 1.0,
       "units": "km/s"
+    },
+    "Spin": {
+      "source": "SubhaloSpin",
+      "scale": 1.0,
+      "units": "(km/s)*(Mpc/h)"
+    },
+    "VelDisp": {
+      "source": "SubhaloVelDisp",
+      "scale": 1.0,
+      "units": "km/s"
+    },
+    "SnapNum": {
+      "source": "SnapNum"
     },
     "FirstProgenitor": {
       "source": "TreeFirstProgenitor"
@@ -48,6 +64,6 @@
   },
   "synthetic_logic": {
     "SAGE_Mapping_Requirement": "Direct Map",
-    "Pointer_Logic": "Pointer Parity Map (Gadget-4 pointers are absolute indices in TreeHalos)"
+    "Pointer_Logic": "Pointer Parity Map (Gadget-4 absolute indices preserved)"
   }
 }
