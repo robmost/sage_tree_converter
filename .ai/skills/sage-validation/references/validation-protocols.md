@@ -4,9 +4,10 @@ The conversion of merger trees from any simulation format to SAGE's requirements
 
 ## 1. Syntactic Validation (Structural Correctness)
 
-Ensures the output file is a correctly formatted SAGE tree (Binary or HDF5).
+Ensures the output file is a correctly formatted SAGE tree (Binary or HDF5) according to the strict rules in `references/sage_hdf5_schema.md`.
 
 * **File Integrity:** Check that the generated file can be opened by standard tools (e.g., `h5dump` for HDF5). If `h5dump` is unavailable natively, fall back to using Python's `h5py` library to recursively dump and inspect the HDF5 structure.
+* **Schema Compliance:** Verify that all output HDF5 data explicitly maps to the datasets listed in `references/sage_hdf5_schema.md` using the LHaloTree naming convention, and that the root attributes (`Ntrees`, `TotNHalos`) and groups (`/Tree<X>/`) are properly defined.
 * **Pointer Integrity:** Verify that all `FirstProgenitor`, `NextProgenitor`, and `Descendant` pointers point to valid halos within the same tree or snapshot.
 * **Snapshot Consistency:** Ensure all halos have valid snapshot numbers within the expected range (e.g., 0 to $N$).
 
@@ -17,10 +18,11 @@ Ensures the data values are physically meaningful and follow expected trends.
 > [!CAUTION]
 > **STRICT EXECUTION PROTOCOL:**
 >
-> 1. **Mandatory Scope:** ALL seven visualisations listed below MUST be generated during the full validation suite. Omission is forbidden. Generate placeholder plots if data is missing, and log the failure.
-> 2. **File Naming & Locality:** `1_validation_<plot_identifier>_<name_of_the_dataset>.png`. Save ALL plots to the `output/` directory. Do NOT generate these plots for the small sample test run.
-> 3. **Global Aesthetics:** All plots MUST include a descriptive title (e.g. `<plot_id>_<dataset_name>`), explicit x/y labels with units, and a legend. **CRITICAL:** For multi-panel grids (like 1x3 or 3x3), you MUST explicitly apply `.set_xlabel()` and `.set_ylabel()` to *every individual subplot axis* within loops. Do not assume figure-level labels are sufficient.
-> 4. **Scaling Rules:** Any `logscale` requirement implicitly mandates safe zero-value handling (e.g., via `symlog` or masking). Use log/symlog scale where appropriate for Rel. Diff plots if the span is large.
+> 1. **Mandatory Scope:** ALL seven visualisations listed below MUST be generated during the full validation suite (STATE 4). Omission is forbidden. Generate placeholder plots if data is missing, and log the failure.
+> 2. **File Naming & Locality:** `1_validation_<plot_identifier>_<name_of_the_dataset>.png`. Save ALL plots to the `output/` directory.
+> 3. **Test Sample Plotting Prohibition:** You MUST NOT generate any semantic plots for the small sample test run (STATE 3). Semantic validation requires the full temporal depth of the entire dataset. Attempting to plot the test sample will result in degeneracies (like a static lifespan).
+> 4. **Global Aesthetics:** All plots MUST include a descriptive title (e.g. `<plot_id>_<dataset_name>`), explicit x/y labels with units, and a legend. **CRITICAL:** For multi-panel grids (like 1x3 or 3x3), you MUST explicitly apply `.set_xlabel()` and `.set_ylabel()` to *every individual subplot axis* within loops. Do not assume figure-level labels are sufficient.
+> 5. **Scaling Rules:** Any `logscale` requirement implicitly mandates safe zero-value handling (e.g., via `symlog` or masking). Use log/symlog scale where appropriate for Rel. Diff plots if the span is large.
 
 ### The 3-Panel Architecture Protocol
 

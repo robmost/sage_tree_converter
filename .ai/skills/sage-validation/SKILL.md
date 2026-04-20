@@ -14,6 +14,7 @@ When you are tasked with validating a converted SAGE merger tree, you MUST adher
 You have access to the following resources in this skill's directory to ensure reproducibility:
 
 - **`references/validation-protocols.md`**: The master ruleset detailing the exact checks, 3-panel plotting architecture, and execution protocol. **READ THIS FILE FIRST** before attempting validation.
+- **`references/sage_hdf5_schema.md`**: The definitive structural template dictating HDF5 and Binary SAGE layout and required field definitions. Always enforce this format schema.
 - **`assets/sage_validation.mplstyle`**: The mandatory Matplotlib stylesheet for all generated validation plots.
 - **`assets/validation_log_style.md`**: The strict markdown template for recording the final validation log.
 
@@ -29,5 +30,6 @@ To guarantee reproducibility across all runs and environments, you MUST follow t
 
 Activate this skill when:
 
-- The `conversion-workflow` enters **STATE 3 (Test Engine)** or **STATE 4 (Full Suite)**.
+- The `conversion-workflow` enters **STATE 3 (Test Engine)**: Perform **Syntactic** and **Functional** validation only.
+- The `conversion-workflow` enters **STATE 4 (Full Suite)**: Perform the **Full Validation Suite**, including all **Semantic** plots.
 - The user explicitly asks to "validate" or "plot" merger tree data.

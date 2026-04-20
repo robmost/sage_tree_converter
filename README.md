@@ -15,8 +15,8 @@ This repository is specifically designed to be used with an **LLM CLI** (e.g., *
 5. **The Assistant will autonomously advance through 4 States:**
     * **STATE 1 (Discovery):** Research the file format and identify the required tool-chains.
     * **STATE 2 (Analysis Report):** Propose a mapping schema and explicitly list the 7 validation steps. **(Requires your explicit approval to proceed).**
-    * **STATE 3 (Test Engine):** Extract a small sample subset to run rapid functional integrity checks.
-    * **STATE 4 (Full Suite):** Process the entire dataset, generate 7 mandatory 3-panel semantic validation plots, and produce the final SAGE-compatible tree.
+    * **STATE 3 (Test Engine):** Extract a small sample subset to run rapid **Syntactic** and **Functional** integrity checks (no semantic plotting).
+    * **STATE 4 (Full Suite):** Process the entire dataset, generate the 7 mandatory 3-panel **Semantic** validation plots, and produce the final SAGE-compatible tree.
 
 ## 🐳 Sandboxed Execution (Docker)
 
