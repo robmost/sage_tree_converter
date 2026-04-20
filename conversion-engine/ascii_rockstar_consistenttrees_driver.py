@@ -87,7 +87,7 @@ def convert(input_path, output_path, n_trees=None):
                         'Pos': np.array([h['pos'] for h in tree_halos], dtype='f4'),
                         'Vel': np.array([h['vel'] for h in tree_halos], dtype='f4'),
                         'SnapNum': np.array([h['snap'] for h in tree_halos], dtype='i4'),
-                        'Spin': np.array([[h['spin'], 0.0, 0.0] for h in tree_halos], dtype='f4'),
+                        'Spin': np.array([h['spin'] for h in tree_halos], dtype='f4'),
                         'OriginalID': np.array([h['id'] for h in tree_halos], dtype='i8')
                     }
                     
@@ -118,7 +118,7 @@ def convert(input_path, output_path, n_trees=None):
                             'vel': [float(parts[20]), float(parts[21]), float(parts[22])],
                             'snap': int(parts[31]),
                             'root_id': root_id,
-                            'spin': float(parts[26])
+                            'spin': [float(parts[23]), float(parts[24]), float(parts[25])]
                         })
                         
                         # Flush every 5000 trees to keep memory low

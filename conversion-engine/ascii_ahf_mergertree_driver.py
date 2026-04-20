@@ -30,10 +30,13 @@ class AHFDriver:
         print(f"Reading {path}...")
         df = pd.read_csv(path, sep=r'\s+', comment='#', header=None)
         
-        # 0:ID, 1:hostHalo, 3:Mhalo, 5-7:Pos, 8-10:Vel, 16:Vmax, 18:sigV, 19:lambda
+        # 0:ID, 1:hostHalo, 3:Mhalo, 5-7:Pos, 8-10:Vel, 16:Vmax, 18:sigV
         n_halos = len(df)
+        # AHF provides a dimensionless unit vector for the axis of rotation (Lx, Ly, Lz).
+        # SAGE requires a 3-component Specific Angular Momentum vector (j = L/M).
+        # Without Vvir and Rvir, we cannot safely reconstruct the full vector magnitude.
+        # Fallback to zero array.
         spin_array = np.zeros((n_halos, 3), dtype='f4')
-        spin_array[:, 0] = df[19].values
         
         data = {
             'id': df[0].values,

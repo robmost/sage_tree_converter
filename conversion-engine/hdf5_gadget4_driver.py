@@ -17,27 +17,10 @@ def convert(input_path, output_path, n_trees=None):
         for key in f_in['TreeHalos'].keys():
             halos[key] = f_in[f'TreeHalos/{key}'][:total_halos_to_read]
 
-        # Offset Gadget-4 tree-local pointers to absolute file indices
-        offsets = f_in['TreeTable/StartOffset'][:n_trees]
-        pointer_keys = ['TreeDescendant', 'TreeFirstProgenitor', 'TreeNextProgenitor', 
-                        'TreeFirstHaloInFOFgroup', 'TreeNextHaloInFOFgroup']
-        
-        # Build an offset array that matches the size of total_halos_to_read
-        # This expands the per-tree offset to a per-halo offset
-        halo_offsets = np.repeat(offsets, lengths[:n_trees])
-        
-        for ptr_key in pointer_keys:
-            if ptr_key in halos:
-                data = halos[ptr_key]
-                valid_mask = data != -1
-                data[valid_mask] += halo_offsets[valid_mask]
-                halos[ptr_key] = data
-
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with h5py.File(output_path, 'w') as f_out:
             f_out.attrs['Ntrees'] = n_trees
             f_out.attrs['TotNHalos'] = total_halos_to_read
-            group = f_out.create_group("Tree0")
 
             # Direct mapping from Gadget-4 to SAGE schema based on confirmed mapping
             mapping = {
@@ -47,9 +30,16 @@ def convert(input_path, output_path, n_trees=None):
                 'Pos': 'SubhaloPos', 'Vel': 'SubhaloVel', 'Vmax': 'SubhaloVmax',
                 'VelDisp': 'SubhaloVelDisp', 'SnapNum': 'SnapNum', 'Spin': 'SubhaloSpin'
             }
-            for sage_key, g4_key in mapping.items():
-                if g4_key in halos:
-                    group.create_dataset(sage_key, data=halos[g4_key])
+
+            offset = 0
+            for i, nhalos in enumerate(lengths[:n_trees]):
+                group = f_out.create_group(f"Tree{i}")
+                for sage_key, g4_key in mapping.items():
+                    if g4_key in halos:
+                        data = halos[g4_key][offset:offset+nhalos]
+                        group.create_dataset(sage_key, data=data)
+                offset += nhalos
+
             f_out.create_dataset("TreeNHalos", data=lengths[:n_trees])
 
     print(f"Successfully converted {n_trees} Gadget-4 trees to {output_path}")

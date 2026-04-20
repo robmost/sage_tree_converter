@@ -25,6 +25,9 @@ To guarantee reproducibility across all runs and environments, you MUST follow t
 1. **Asset Paths:** When writing Python validation scripts, always reference the mplstyle using its absolute path or relative path from the workspace root (e.g., `plt.style.use('.ai/skills/sage-validation/assets/sage_validation.mplstyle')`).
 2. **Programmatic Checkups:** Do NOT rely on visual inspection (OCR) of plot images. You MUST write scripts that programmatically assert that data arrays are physically plausible (e.g., no `NaN`s, no exact zeros in log-scale arrays) before saving any PNG files.
 3. **Log Enshrinement:** Always generate the `0_validation_log_<dataset>.md` strictly following the format in `assets/validation_log_style.md`. Do not improvise the log structure.
+4. **No Algorithmic Shortcuts:** You MUST fully implement complex data extraction (e.g., temporal branch-tracing via pointers) for validation plots if the underlying data and pointers exist in the source simulation. Do not invoke "missing data" placeholder fallbacks to avoid writing complex traversal logic.
+5. **The Two-Step Semantic Validation Protocol:** Before running *any* generated semantic validation script, you MUST explicitly halt, adopt the "Auditor" persona, and review the code against `references/audit_checklist.md`. You are strictly forbidden from executing the script until the Auditor formally approves the checklist with line-number citations.
+6. **Utility Library:** You MUST use the plotting functions in `assets/sage_validation_utils.py` for all 3-panel arrays. Do not recreate Matplotlib subplot logic.
 
 ## 3. Invocation Trigger
 

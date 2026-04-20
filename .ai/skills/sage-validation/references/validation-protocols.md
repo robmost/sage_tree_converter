@@ -18,25 +18,34 @@ Ensures the data values are physically meaningful and follow expected trends.
 > [!CAUTION]
 > **STRICT EXECUTION PROTOCOL:**
 >
-> 1. **Mandatory Scope:** ALL seven visualisations listed below MUST be generated during the full validation suite (STATE 4). Omission is forbidden. Generate placeholder plots if data is missing, and log the failure.
+> 1. **Mandatory Scope:** ALL seven visualisations listed below MUST be generated during the full validation suite (STATE 4). Omission is forbidden. Generate placeholder plots ONLY if the required physical data is truly absent from the source simulation (e.g., the simulation did not record spin). **CRITICAL ANTI-SHORTCUT RULE:** You MUST NOT generate placeholders simply because the data extraction (e.g., temporal branch-tracing via `FirstProgenitor` and `NextProgenitor` pointers for `mah`, `merger_rate`, `spin`, or `lifespan`) is algorithmically complex or computationally intensive. If the pointers and data exist, you MUST implement the full traversal logic. Script simplicity is never an excuse to bypass validation.
 > 2. **File Naming & Locality:** `1_validation_<plot_identifier>_<name_of_the_dataset>.png`. Save ALL plots to the `output/` directory.
 > 3. **Test Sample Plotting Prohibition:** You MUST NOT generate any semantic plots for the small sample test run (STATE 3). Semantic validation requires the full temporal depth of the entire dataset. Attempting to plot the test sample will result in degeneracies (like a static lifespan).
-> 4. **Global Aesthetics:** All plots MUST include a descriptive title (e.g. `<plot_id>_<dataset_name>`), explicit x/y labels with units, and a legend. **CRITICAL:** For multi-panel grids (like 1x3 or 3x3), you MUST explicitly apply `.set_xlabel()` and `.set_ylabel()` to *every individual subplot axis* within loops. Do not assume figure-level labels are sufficient.
-> 5. **Scaling Rules:** Any `logscale` requirement implicitly mandates safe zero-value handling (e.g., via `symlog` or masking). Use log/symlog scale where appropriate for Rel. Diff plots if the span is large.
+> 4. **Global Aesthetics & Utility Library:** All plots MUST include a descriptive title, explicit labels, and a legend. **CRITICAL:** You MUST use the `sage_validation_utils.py` library located in `.ai/skills/sage-validation/assets/` to generate all 3-panel plots (`plot_3x3_evolution`, `plot_1x3_histogram`, `plot_1x3_hexbin`). Do NOT write raw Matplotlib subplot code for the 3-panel grids yourself.
+> 5. **Scaling Rules:** Any `logscale` requirement implicitly mandates safe zero-value handling (e.g., via `symlog` or masking). The utility library handles this if passed `is_log_y=True`.
 
 ### The 3-Panel Architecture Protocol
 
 Every visualisation MUST be structured as a side-by-side comparison:
 
-* Col 1: **Input Data** (Raw unchanged fields from original parser)
-* Col 2: **Output SAGE Data** (Converted/Mapped data)
-* Col 3: **Relative Difference** (`(Output - Input) / Input`)
+* Col 1: **Input Data** (Raw unchanged fields parsed **INDEPENDENTLY** from the original non-SAGE files via `np.fromfile` or similar. NEVER reconstruct Input by reverse-mathing the Output SAGE arrays).
+* Col 2: **Output SAGE Data** (Converted/Mapped data extracted from the `0_full_sage_tree_*.hdf5` file).
+* Col 3: **Relative Difference** (`(Output - Input) / Input`, handled automatically by `sage_validation_utils.py`).
 
 **Sub-Architecture Rules:**
 
-* **Evolution Lineplots:** 3x3 Grid (Rows: 5 most massive, 5 average mass, 5 least massive). Mass ranges are calculated/selected at the lowest available redshift. Use a distinct colour for each mass group. Plot lines, NOT distributions. The relative difference MUST be calculated for each halo individually and then averaged over the sample of halos.
-* **Distribution Histograms:** 1x3 Grid. Use ALL halo data. Ensure adequate bins. Plot as **lineplots** (midpoints on x-axis, counts on y-axis) rather than bars/steps. Rel. Diff MUST be calculated for each bin individually. Evaluate distributions at the lowest available redshift. **CRITICAL FOR LIFESPAN:** Even though `lifespan` requires temporal branch tracing (like Evolution plots), it is a Histogram. You MUST calculate the branch depth for ALL root halos at the lowest redshift, NOT just the 15 sub-sampled halos.
-* **Spatial Integrity (Hexbin):** 1x3 Grid. Col 1 & 2: Plot $X$ vs $Y$ positions using a Hexbin density map with logarithmic colour scaling (`bins='log'`). Col 3 (Rel. Diff): Plot a Hexbin where the X-axis is the halo's radial distance from the simulation box center, and the Y-axis is the Relative Difference of that radial distance. Ensure `bins='log'` is applied to prevent saturation.
+* **Evolution Lineplots:** 3x3 Grid (Rows: 5 most massive, 5 average mass, 5 least massive). Mass ranges are calculated/selected at the lowest available redshift. **CRITICAL:** For "least massive", you MUST explicitly filter out halos with mass $\le 0$ before selection. You MUST extract a unique ID (e.g., original `SubhaloIndex` or array position) for every plotted halo to populate the legends. If using array positions as a fallback, format the string clearly (e.g., `"Idx: 1542"`) so the user knows it is an index and not a native simulation ID. Use `sage_validation_utils.plot_3x3_evolution()` and pass these unique identifiers via the `halo_ids` argument.
+* **Distribution Histograms:** 1x3 Grid. Use ALL halo data. Evaluate distributions strictly at the lowest available redshift. **CRITICAL FOR LIFESPAN:** Even though `lifespan` requires temporal branch tracing, it is a Histogram. You MUST calculate the branch depth for ALL root halos at the lowest redshift. Use `sage_validation_utils.plot_1x3_histogram()`.
+* **Spatial Integrity (Hexbin):** 1x3 Grid. Col 1 & 2: Plot $X$ vs $Y$ positions. Col 3 (Rel. Diff): Radial distance diff. Use `sage_validation_utils.plot_1x3_hexbin()`.
+
+### Data Parity Constraints
+
+When writing the validation scripts, you must ensure perfect parity between the raw Input and SAGE Output:
+
+* **Unit Scaling:** If SAGE requires a specific unit (e.g. Mass $\times 10^{10} M_{\odot}/h$), you MUST mathematically scale the SAGE output back to the raw input units before calculating the relative difference.
+* **Physical Definitions (Spin):** The SAGE `Spin` array is mathematically a **3-component Specific Angular Momentum vector** ($j = L/M$), NOT the scalar dimensionless Bullock Spin parameter. When validating `spin`, you MUST calculate the magnitude of the $j$ vector. If the input format lacks angular momentum, do not attempt to compare it against a dimensionless parameter; issue a warning and use a zero array fallback.
+* **Temporal Padding:** When plotting evolution branches (e.g. `mah`, `merger_rate`), if the output branch is missing snapshots compared to the input branch, you MUST pad the missing indices with `np.nan`, NEVER `0.0`.
+* **Topological Confinement:** Always restrict topological branch tracing to a specific tree root ID (`Tree_root_ID` or equivalent). Do not traverse globally across the entire dataset.
 
 ### Required Visualisations Registry
 
@@ -44,7 +53,7 @@ Every visualisation MUST be structured as a side-by-side comparison:
 | :--- | :--- | :--- | :--- | :--- |
 | `mah` | Evolution | Snapshot | Mass {Units} | Log y-axis |
 | `merger_rate` | Evolution | Snapshot | Progenitor Count | Linear |
-| `spin` | Evolution | Snapshot | Spin Magnitude {Units} | Log y-axis |
+| `spin` | Evolution | Snapshot | Specific Angular Momentum Magnitude ($|j|$) | Log y-axis |
 | `velocity` | Histogram | Velocity Modulus (sqrt(vx^2+vy^2+vz^2), NOT Vmax) {Units} | Halo Count | Log y-axis |
 | `lifespan` | Histogram | Lifespan {Snapshots} | Halo Count | Log y-axis |
 | `hmf` | Histogram | Mass {Units} | Halo Count | Log x-axis and Log y-axis |
@@ -56,12 +65,15 @@ Ensures that SAGE can actually load and process the converted trees.
 
 * **Small Sample Test:** Always generate a small test sample (e.g., the 100 most massive halos) before full conversion. **MEMORY CRITICAL:** When parsing huge raw inputs (especially `.dat` or `.txt` files) to extract this sample, you MUST use memory-efficient two-pass reading or iterators. Do NOT append massive string payloads into Python lists, as this will trigger an out-of-memory (OOM) freeze. The test conversion should be named `0_test_sage_tree_<name_of_the_dataset>.hdf5`.
 * **SAGE Dry Run:** If SAGE is available in the environment, attempt to run it on the test sample. The test run should be named `0_test_sage_run_<name_of_the_dataset>.hdf5`.
+* **Full Dataset Conversion:** Once the test sample is successfully validated, execute the conversion on the full dataset. The final output file MUST strictly be named `0_full_sage_tree_<name_of_the_dataset>.hdf5`.
 * **Error Parsing:** If SAGE fails, analyse its error logs (e.g., `sage.log`) to identify missing fields or incorrect pointer structures.
 * **Statistical Comparison:** If possible, compare the stellar mass function or halo mass function from a previous successful run with the results of the new conversion.
 
 ## 4. Automation Steps for the LLM
 
-1. **Generate Validation Script:** Create a Python script that reads the converted tree and checks pointer integrity and physical bounds. When generating plotting validation scripts, you MUST strictly apply the global aesthetic style by including `plt.style.use('./assets/sage_validation.mplstyle')`. **CRITICAL PARITY RULE:** The plotting script MUST NOT simply dump raw input arrays against the converter's output. You MUST ensure the validation script applies *all* mathematical and structural normalisations (e.g., local-to-global pointer offsets, unit conversions, coordinate origin translations, sorting, and mass threshold filtering) that the master converter uses. The "Input Data" shown in the 3-panel plots MUST represent the physically and structurally normalised input data so that the Relative Difference accurately reflects conversion anomalies rather than raw formatting differences.
-2. **Report Validation Results:** Present a summary of any warnings or errors found during the syntactic and semantic checks.
-3. **Programmatic Data Checkup (CRITICAL):** DO NOT rely on visual OCR inspection of generated plot images. You MUST programmatically validate the data arrays *during* the execution of the semantic validation scripts, before saving the figures. This includes: asserting `np.any(np.isnan(data))` is false, ensuring log-scale arrays do not contain exact zeros (which indicates unhandled invalid halos), and checking that data bounds (min/max) are physically plausible. If an anomaly is detected, flag it, inform the user, and **EXPLICITLY ask** if they want you to action the anomaly. If authorized, investigate the root cause, create any auxiliary diagnostic files in `output/intermediates/`, fix the mapping/code, regenerate the validation, and document all debugging steps taken in the validation log.
-4. **Propose Fixes:** If validation fails, use the findings to adjust the mapping and rerun the test conversion.
+1. **Generate Validation Script:** Create a Python script that reads the converted tree and checks pointer integrity and physical bounds. When generating plotting validation scripts, you MUST strictly apply the global aesthetic style by including `plt.style.use('.ai/skills/sage-validation/assets/sage_validation.mplstyle')` and use the plotting functions from `.ai/skills/sage-validation/assets/sage_validation_utils.py`.
+2. **The Persona-Shift Audit (CRITICAL):** Before executing any semantic validation script, you MUST halt and adopt the "Auditor" persona. Read `.ai/skills/sage-validation/references/audit_checklist.md` and explicitly review your generated script against it. If the audit fails, discard the script and write it again.
+3. **Report Validation Results:** Present a summary of any warnings or errors found during the syntactic and semantic checks.
+4. **Programmatic Data Checkup (CRITICAL):** DO NOT rely on visual OCR inspection of generated plot images. You MUST programmatically validate the data arrays *during* the execution of the semantic validation scripts, before saving the figures. This includes: asserting `np.any(np.isnan(data))` is false, ensuring log-scale arrays do not contain exact zeros (which indicates unhandled invalid halos), and checking that data bounds (min/max) are physically plausible. If an anomaly is detected, flag it, inform the user, and **EXPLICITLY ask** if they want you to action the anomaly. If authorized, investigate the root cause, create any auxiliary diagnostic files in `output/intermediates/`, fix the mapping/code, regenerate the validation, and document all debugging steps taken in the validation log.
+5. **Resource & Runtime Warnings:** If you detect (e.g., via existing memory checks, file size analysis, or total tree count) that the conversion or semantic validation process will be exceptionally time-consuming or memory-intensive, you MUST warn the user *before* proceeding with the execution. Present the estimated scale of the operation and explicitly ask for their authorization to proceed with the full dataset.
+6. **Propose Fixes:** If validation fails, use the findings to adjust the mapping and rerun the test conversion.

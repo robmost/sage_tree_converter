@@ -18,6 +18,10 @@
       "id": 1,
       "desc_id": 3,
       "num_prog": 4,
+      "Jx": 23,
+      "Jy": 24,
+      "Jz": 25,
+      "spin": 26,
       "pid": 5,
       "upid": 6,
       "mvir": 10,
@@ -54,6 +58,14 @@
         "vz"
       ],
       "units": "km/s"
+    },
+    "Spin": {
+      "source": [
+        "Jx",
+        "Jy",
+        "Jz"
+      ],
+      "units": "kpc/h km/s (Specific Angular Momentum)"
     }
   },
   "synthetic_logic": {

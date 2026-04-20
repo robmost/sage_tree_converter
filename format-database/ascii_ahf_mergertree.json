@@ -63,9 +63,9 @@
       "units": "km/s"
     },
     "Spin": {
-      "source": "lambda",
+      "source": "None",
       "scale": 1.0,
-      "units": "Bullock parameter (scalar mapped to X-component)"
+      "units": "Fallback to [0.0, 0.0, 0.0] as specific angular momentum cannot be reconstructed from unit vector without Rvir and Vvir."
     }
   },
   "synthetic_logic": {

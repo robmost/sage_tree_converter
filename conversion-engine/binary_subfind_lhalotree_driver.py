@@ -52,24 +52,10 @@ def convert(input_paths, output_path, n_trees=None):
     combined_halos = np.concatenate(all_halos)
     combined_tree_nhalos = np.concatenate(all_tree_nhalos)
     
-    # LHaloTree pointers are internal to each tree.
-    # To store them in a single flat HDF5 dataset, they must be offset globally.
-    tree_offsets = np.concatenate([[0], np.cumsum(combined_tree_nhalos)[:-1]])
-    
-    # We must apply this offset to all halos, but ONLY if the pointer != -1
-    # We can do this by constructing an array of offsets the same length as combined_halos
-    halo_offsets = np.repeat(tree_offsets, combined_tree_nhalos)
-    
-    pointer_fields = ['Descendant', 'FirstProgenitor', 'NextProgenitor', 'FirstHaloInFOFgroup', 'NextHaloInFOFgroup']
-    for field in pointer_fields:
-        mask = combined_halos[field] != -1
-        combined_halos[field][mask] += halo_offsets[mask]
-
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with h5py.File(output_path, 'w') as hf:
         hf.attrs['Ntrees'] = total_trees_read
         hf.attrs['TotNHalos'] = len(combined_halos)
-        group = hf.create_group("Tree0")
 
         # Field mapping based on SAGE standards
         mapping = {
@@ -94,12 +80,17 @@ def convert(input_paths, output_path, n_trees=None):
             'SubHalfMass': 'SubHalfMass'
         }
 
-        for old_field, new_field in mapping.items():
-            if old_field in combined_halos.dtype.names:
-                if new_field == 'Mvir':
-                    group.create_dataset(new_field, data=combined_halos[old_field] * 1e10)
-                else:
-                    group.create_dataset(new_field, data=combined_halos[old_field])
+        offset = 0
+        for i, nhalos in enumerate(combined_tree_nhalos):
+            group = hf.create_group(f"Tree{i}")
+            for old_field, new_field in mapping.items():
+                if old_field in combined_halos.dtype.names:
+                    data = combined_halos[old_field][offset:offset+nhalos]
+                    if new_field == 'Mvir':
+                        group.create_dataset(new_field, data=data * 1e10)
+                    else:
+                        group.create_dataset(new_field, data=data)
+            offset += nhalos
 
         hf.create_dataset("TreeNHalos", data=combined_tree_nhalos)
 
