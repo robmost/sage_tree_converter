@@ -5,7 +5,7 @@
 **Assistant:**
 I've found your Gadget-4 HDF5 file. I'll execute the initial discovery steps.
 
-### STATE 1: Initialization & Discovery
+## STATE 1: Initialization & Discovery
 
 - **Files Found:** `input/custom_gadget4/trees.hdf5`.
 - **Database Match:** Checked `format-database/` and found match for Gadget-4.
@@ -23,7 +23,7 @@ I've found your Gadget-4 HDF5 file. I'll execute the initial discovery steps.
 
 Moving to Analysis.
 
-### STATE 2: Analysis Report
+## STATE 2: Analysis Report
 
 The file uses Gadget-4's native tree format, storing halos in the `TreeHalos` group and tree offsets in `TreeTable`.
 
@@ -53,7 +53,7 @@ I need your **EXPLICIT APPROVAL** over this mapping and checklist. If approved, 
 **Assistant:**
 Understood. Moving to State 3.
 
-### STATE 3: Test Engine
+## STATE 3: Test Engine
 
 I am generating the required parsing scripts and running the test conversion on the first set of trees.
 
@@ -65,7 +65,7 @@ I am generating the required parsing scripts and running the test conversion on 
 
 Moving to State 4.
 
-### STATE 4: Full Suite & Export
+## STATE 4: Full Suite & Export
 
 Processing all 2.45 million halos natively.
 

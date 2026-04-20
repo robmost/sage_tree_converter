@@ -5,7 +5,7 @@
 **Assistant:**
 Reviewing the `.hdf5` groups in the payload.
 
-### STATE 1: Initialization & Discovery
+## STATE 1: Initialization & Discovery
 
 - **Files Found:** Valid TNG output chunks.
 - **Database Match:** Located exact specification in `format-database/hdf5_subfind_sublink.json`.
@@ -13,7 +13,7 @@ Reviewing the `.hdf5` groups in the payload.
 **Completeness Check:**
 The `Subhalo` and `Group` subtrees have been structurally verified.
 
-### STATE 2: Analysis Report
+## STATE 2: Analysis Report
 
 TNG utilizes FOF-based Halo Finder methodologies coupled with Pointer-based linking logic in SubLink.
 
@@ -45,7 +45,7 @@ Do I have your **EXPLICIT APPROVAL** on this mapping methodology and full valida
 **Assistant:**
 Understood. Progressing to State 3.
 
-### STATE 3: Test Engine
+## STATE 3: Test Engine
 
 Executing sequential bounds check targeting a small volume sample.
 
@@ -57,7 +57,7 @@ Executing sequential bounds check targeting a small volume sample.
 
 Transitioning to State 4.
 
-### STATE 4: Full Suite & Export
+## STATE 4: Full Suite & Export
 
 Conducting batch conversion across all HDF5 volume chunks.
 

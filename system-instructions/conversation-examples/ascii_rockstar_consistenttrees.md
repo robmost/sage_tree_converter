@@ -5,7 +5,7 @@
 **Assistant:**
 I see the dataset.
 
-### STATE 1: Initialization & Discovery
+## STATE 1: Initialization & Discovery
 
 - **Files Found:** `out_*.list` scattered ASCII outputs.
 - **Database Match:** Matched `format-database/ascii_rockstar_consistenttrees.json`.
@@ -13,7 +13,7 @@ I see the dataset.
 **Completeness Check:**
 The required positional and physics columns are present across the `.list` headers.
 
-### STATE 2: Analysis Report
+## STATE 2: Analysis Report
 
 Rockstar stores Host and Subhalo properties via FOFS group linkages based on the `upid` field.
 
@@ -43,7 +43,7 @@ I require your **EXPLICIT APPROVAL** of this mapping and validation layout. Upon
 **Assistant:**
 Understood. Moving to State 3.
 
-### STATE 3: Test Engine
+## STATE 3: Test Engine
 
 Extracting the first 100 halos iteratively so memory limits are respected.
 
@@ -55,7 +55,7 @@ Extracting the first 100 halos iteratively so memory limits are respected.
 
 Moving to State 4.
 
-### STATE 4: Full Suite & Export
+## STATE 4: Full Suite & Export
 
 Processing the full Rockstar list.
 

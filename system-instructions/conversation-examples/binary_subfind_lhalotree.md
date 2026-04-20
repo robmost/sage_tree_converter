@@ -5,7 +5,7 @@
 **Assistant:**
 I've found the files in `input/mini-millenium/`.
 
-### STATE 1: Initialization & Discovery
+## STATE 1: Initialization & Discovery
 
 - **Files Found:** Multiple files starting with `trees_063`.
 - **Database Match:** Checked `format-database/binary_subfind_lhalotree.json`.
@@ -23,7 +23,7 @@ I've found the files in `input/mini-millenium/`.
 
 Moving to Analysis.
 
-### STATE 2: Analysis Report
+## STATE 2: Analysis Report
 
 The files use the **LHaloTree** binary format. This is the native format SAGE was originally designed for, so the mapping is direct.
 
@@ -53,7 +53,7 @@ I need your **EXPLICIT APPROVAL** to proceed with this mapping and perform the n
 **Assistant:**
 Understood. Moving to State 3.
 
-### STATE 3: Test Engine
+## STATE 3: Test Engine
 
 I am generating the binary structure map and running the conversion on the first 10 trees from `trees_063.0`.
 
@@ -68,7 +68,7 @@ I am generating the binary structure map and running the conversion on the first
 
 Moving to State 4.
 
-### STATE 4: Full Suite & Export
+## STATE 4: Full Suite & Export
 
 Processing the entire mini-millennium dataset.
 

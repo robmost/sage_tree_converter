@@ -4,7 +4,7 @@ A modular, data-agnostic toolkit for converting N-body simulation merger trees f
 
 ## 🤖 AI-Powered Workflow
 
-This repository is specifically designed to be used with an **LLM CLI** (e.g., **Gemini CLI** or **Claude Code**). By invoking your preferred AI assistant in this directory, it will automatically follow the structured workflows defined in `GEMINI.md` or `CLAUDE.md` to guide you through the conversion process.
+This repository is specifically designed to be used with an **LLM CLI** (e.g., **Gemini CLI** or **Claude Code**). By invoking your preferred AI assistant in this directory, it will automatically follow the structured workflows defined in `AGENTS.md` and the `.ai/skills/` directory to guide you through the conversion process.
 
 ### How to use with an AI Assistant
 
@@ -51,6 +51,12 @@ To run your AI CLI and the converter in a highly secure, compartmentalised sandb
 
 If you prefer to run the tools manually without an AI or Docker, use the **Master Converter**:
 
+```bash
+python3 conversion-engine/master_converter.py \
+    --input "input/custom_gizmo_ahf-mergertree/*" \
+    --output "output/gizmo_trees.hdf5"
+```
+
 ## 📂 Repository Structure
 
 * **`conversion-engine/`**: Contains the core logic and specialized drivers.
@@ -61,8 +67,7 @@ If you prefer to run the tools manually without an AI or Docker, use the **Maste
   * **`intermediates/`**: Transient directory used by AI agents for extracting subsets and streaming volatile data without cluttering outputs.
 * **`assets/`**: Read-only styles and ad-hoc scripting environments.
   * **`cli-scripts/`**: Sandboxed workspace where the LLMs write and execute testing logic without polluting the codebase.
-* **`docs/`**: Detailed documentation on usage, supported formats, and architectural design.
-* **`system-instructions/`**: Domain knowledge and strict validation protocols that bind the AI's execution steps.
+* **`.ai/skills/`**: Centralised repository of AI skills (e.g., validation protocols, mapping strategies, and workflow state machines) that strictly govern the AI's autonomous actions.
 * **`input/`**: Recommended directory for placing your raw sandbox simulation data.
 
 ## 🛠 Supported Tool-Chains

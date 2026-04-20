@@ -43,7 +43,7 @@ Every visualisation MUST be structured as a side-by-side comparison:
 | `mah` | Evolution | Snapshot | Mass {Units} | Log y-axis |
 | `merger_rate` | Evolution | Snapshot | Progenitor Count | Linear |
 | `spin` | Evolution | Snapshot | Spin Magnitude {Units} | Log y-axis |
-| `velocity` | Histogram | Velocity {Units} | Halo Count | Log y-axis |
+| `velocity` | Histogram | Velocity Modulus (sqrt(vx^2+vy^2+vz^2), NOT Vmax) {Units} | Halo Count | Log y-axis |
 | `lifespan` | Histogram | Lifespan {Snapshots} | Halo Count | Log y-axis |
 | `hmf` | Histogram | Mass {Units} | Halo Count | Log x-axis and Log y-axis |
 | `spatial` | Hexbin | X position {Units} | Y position {Units} | Logarithmic (`bins='log'`) |
@@ -61,4 +61,5 @@ Ensures that SAGE can actually load and process the converted trees.
 
 1. **Generate Validation Script:** Create a Python script that reads the converted tree and checks pointer integrity and physical bounds. When generating plotting validation scripts, you MUST strictly apply the global aesthetic style by including `plt.style.use('./assets/sage_validation.mplstyle')`. **CRITICAL PARITY RULE:** The plotting script MUST NOT simply dump raw input arrays against the converter's output. You MUST ensure the validation script applies *all* mathematical and structural normalisations (e.g., local-to-global pointer offsets, unit conversions, coordinate origin translations, sorting, and mass threshold filtering) that the master converter uses. The "Input Data" shown in the 3-panel plots MUST represent the physically and structurally normalised input data so that the Relative Difference accurately reflects conversion anomalies rather than raw formatting differences.
 2. **Report Validation Results:** Present a summary of any warnings or errors found during the syntactic and semantic checks.
-3. **Propose Fixes:** If validation fails, use the findings to adjust the mapping and rerun the test conversion.
+3. **Programmatic Data Checkup (CRITICAL):** DO NOT rely on visual OCR inspection of generated plot images. You MUST programmatically validate the data arrays *during* the execution of the semantic validation scripts, before saving the figures. This includes: asserting `np.any(np.isnan(data))` is false, ensuring log-scale arrays do not contain exact zeros (which indicates unhandled invalid halos), and checking that data bounds (min/max) are physically plausible. If an anomaly is detected, flag it, inform the user, and **EXPLICITLY ask** if they want you to action the anomaly. If authorized, investigate the root cause, create any auxiliary diagnostic files in `output/intermediates/`, fix the mapping/code, regenerate the validation, and document all debugging steps taken in the validation log.
+4. **Propose Fixes:** If validation fails, use the findings to adjust the mapping and rerun the test conversion.

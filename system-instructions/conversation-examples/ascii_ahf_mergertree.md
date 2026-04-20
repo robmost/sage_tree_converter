@@ -5,7 +5,7 @@
 **Assistant:**
 I've found your AHF data in the `input/` directory.
 
-### STATE 1: Initialization & Discovery
+## STATE 1: Initialization & Discovery
 
 - **Files Found:** `snap_014.AHF_halos`, `snap_015.AHF_halos`, `snap_016.AHF_halos`, and `snap_015_mtree`, `snap_016_mtree`.
 - **Database Match:** Checked `format-database/ascii_ahf_mergertree.json`. The primitives map correctly.
@@ -13,7 +13,7 @@ I've found your AHF data in the `input/` directory.
 **Completeness Check:**
 The snapshots and temporal link files are available. I will proceed with formulating the analysis report.
 
-### STATE 2: Analysis Report
+## STATE 2: Analysis Report
 
 AHF files require specific unit scaling and complex pointer resolution across potentially non-sequential snapshots.
 
@@ -43,7 +43,7 @@ I need your **EXPLICIT APPROVAL** over this mapping and checklist before writing
 **Assistant:**
 Understood. Moving to State 3.
 
-### STATE 3: Test Engine
+## STATE 3: Test Engine
 
 I am generating `assets/cli-scripts/ahf_test_conversion.py` and running the test conversion on a subset of the dataset.
 
@@ -58,7 +58,7 @@ I am generating `assets/cli-scripts/ahf_test_conversion.py` and running the test
 
 Moving to State 4 for full suite execution.
 
-### STATE 4: Full Suite & Export
+## STATE 4: Full Suite & Export
 
 Processing the entire 3 snapshot dataset.
 
