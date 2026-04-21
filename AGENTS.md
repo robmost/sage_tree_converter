@@ -33,6 +33,7 @@ Your behaviour is governed by dedicated skills that provide context and protocol
 ### Key Directories
 
 * `.ai/skills/`: The centralized repository of AI skills for this workspace.
+* `.claude/` & `.gemini/`: Tool-specific configuration directories (containing symlinks to `AGENTS.md`).
 * `format-database/`: Check for existing simulation mappings. Save successful JSON mappings here.
 * `assets/cli-scripts/`: Save ad-hoc Python validation scripts or data parsers here.
 * `output/`: Save all validation plots, validation logs, and target test samples here.

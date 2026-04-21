@@ -4,7 +4,7 @@ A modular, data-agnostic toolkit for converting N-body simulation merger trees f
 
 ## 🤖 AI-Powered Workflow
 
-This repository is specifically designed to be used with an **LLM CLI** (e.g., **Gemini CLI** or **Claude Code**). By invoking your preferred AI assistant in this directory, it will automatically follow the structured workflows defined in `AGENTS.md` and the `.ai/skills/` directory to guide you through the conversion process.
+This repository is specifically designed to be used with an **LLM CLI** (e.g., **Gemini CLI** or **Claude Code**). By invoking your preferred AI assistant in this directory, it will automatically follow the structured workflows defined in `AGENTS.md` and the `.ai/skills/` directory to guide you through the conversion process with a focus on **performance**, **scalability**, and **budgeted data discovery**.
 
 ### How to use with an AI Assistant
 
@@ -59,15 +59,18 @@ python3 conversion-engine/master_converter.py \
 
 ## 📂 Repository Structure
 
+* **`AGENTS.md`**: The single source of truth for AI instructions, symlinked for Claude and Gemini.
+* **`.ai/skills/`**: Centralised repository of AI skills (e.g., validation protocols, mapping strategies, and workflow state machines) that strictly govern the AI's autonomous actions.
+* **`.claude/` & `.gemini/`**: Tool-specific configuration directories containing symlinked instructions.
 * **`conversion-engine/`**: Contains the core logic and specialized drivers.
   * `master_converter.py`: The main entry point for automated format detection.
   * `*_driver.py`: Tool-specific drivers (e.g., `ascii_ahf_mergertree_driver.py`).
 * **`format-database/`**: JSON mapping files defining how raw simulation fields map to SAGE requirements.
 * **`output/`**: Destination for final validation plots, markdown logs, and converted SAGE tree HDF5s.
-  * **`intermediates/`**: Transient directory used by AI agents for extracting subsets and streaming volatile data without cluttering outputs.
+  * **`intermediates/`**: Transient directory used by AI agents for extracting subsets and streaming volatile data.
+  * **`audit-logs/`**: Archived history of CLI-generated scripts and validation traces.
 * **`assets/`**: Read-only styles and ad-hoc scripting environments.
   * **`cli-scripts/`**: Sandboxed workspace where the LLMs write and execute testing logic without polluting the codebase.
-* **`.ai/skills/`**: Centralised repository of AI skills (e.g., validation protocols, mapping strategies, and workflow state machines) that strictly govern the AI's autonomous actions.
 * **`input/`**: Recommended directory for placing your raw sandbox simulation data.
 
 ## 🛠 Supported Tool-Chains
@@ -91,9 +94,22 @@ The AHF driver utilises a **Global ID Mapping** strategy. It can resolve progeni
 
 All scripts are designed to be agnostic of specific simulation filenames. Use glob patterns (e.g., `*.AHF_halos`) to provide your data, and the engine handles the rest.
 
-### 3. Automated Validation
+### 3. Budgeted Discovery & Performance Scaling
 
-Every full conversion is strictly gated behind a mandatory suite of Syntactic, Semantic, and Functional tests. The CLI will systematically map raw data and generate **seven 3-panel comparative plots** (e.g., Mass Assembly History, Spin Evolution, Mass Functions) to mathematically verify unit scalings, coordinate origins, and pointer continuity. The results are logged rigorously in the `output/` directory.
+The AI workflow is governed by a **Budgeted Discovery Protocol** that mandates:
+
+* **Bounded Reads:** No monolithic file loading; all data inspection uses strictly capped line/byte reads.
+* **Size-Before-Read:** Proactive auditing of file sizes (via `ls -lh`, `stat`) before any I/O occurs.
+* **Background Processing:** Long-running conversions are executed in the background to prevent timeouts.
+* **Multiprocessing:** Automated identification of parallelizable file structures to speed up ingestion.
+
+### 4. Automated Validation (Auditor Protocol)
+
+Every full conversion is strictly gated behind a mandatory suite of Syntactic, Semantic, and Functional tests. During the final phase, the AI adopts a specialized **"Auditor"** persona to:
+
+* Generate **seven 3-panel comparative plots** (e.g., Mass Assembly History, Spin Evolution, Mass Functions).
+* Mathematically verify unit scalings, coordinate origins, and pointer continuity.
+* Log all findings and traces rigorously in the `output/` directory for human review.
 
 ## 📦 Requirements
 
