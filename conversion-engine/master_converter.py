@@ -58,9 +58,9 @@ class MasterConverter:
                    "The conversion might fail due to lack of memory/space.\n")
             print(msg)
 
-    def identify_format_and_tools(self, sample_file):
+    def identify_format_and_tools(self, sample_file, is_sibling_check=False):
         """Identify simulation format based on file content and headers."""
-        # 1. HDF5 Check
+        # 1. HDF5 Check (h5py only reads metadata, safe for discovery)
         try:
             with h5py.File(sample_file, 'r') as f:
                 if 'TreeHalos' in f: return "HDF5_Gadget4"
@@ -68,21 +68,39 @@ class MasterConverter:
                 if 'Tree0' in f: return "SAGE-HDF5"
         except: pass
 
-        # 2. ASCII Check
+        # 2. ASCII Check (Incremental "Peek" with a budget)
         try:
             with open(sample_file, 'r') as f:
-                line = f.readline()
-                if 'scale(0)' in line: return "ASCII_Rockstar_ConsistentTrees"
-                if '#ID(1)' in line or 'hostHalo' in line: return "ASCII_AHF_MergerTree"
+                # Read up to 1000 lines to find signature
+                for _ in range(1000):
+                    line = f.readline()
+                    if not line: break
+                    if 'scale(0)' in line or '#TreeRootID' in line: 
+                        return "ASCII_Rockstar_ConsistentTrees"
+                    if '#ID(1)' in line or 'hostHalo' in line: 
+                        return "ASCII_AHF_MergerTree"
         except: pass
 
-        # 3. Binary Check
+        # 3. Binary Check (Explicit byte budget)
         try:
             with open(sample_file, 'rb') as f:
                 header = np.fromfile(f, dtype='i4', count=2)
                 if len(header) == 2 and header[0] > 0 and header[1] > 0:
                     return "Binary_Subfind_LHaloTree"
         except: pass
+
+        # 4. Sibling-Aware Discovery (If ambiguous, peek at associated files)
+        if not is_sibling_check:
+            dir_path = os.path.dirname(sample_file) or '.'
+            try:
+                # Look for files with common data extensions in the same directory
+                for entry in os.scandir(dir_path):
+                    if entry.is_file() and entry.name.endswith(('.dat', '.tree', '.treebin', '.hdf5')):
+                        if entry.name != os.path.basename(sample_file):
+                            sibling_fmt = self.identify_format_and_tools(entry.path, is_sibling_check=True)
+                            if sibling_fmt != "Unknown":
+                                return sibling_fmt
+            except: pass
 
         return "Unknown"
 
