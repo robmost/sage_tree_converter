@@ -1,38 +1,40 @@
----
-name: sage-validation
-description:
-  This skill enforces the rigorous Syntactic, Semantic, and Functional validation protocols for SAGE merger tree conversions. It ensures programmatic data checkups and consistent plotting architectures.
----
 # SAGE Validation Protocol Skill
 
-## Skill Context
+## 1. Modular Reference Architecture
 
-When you are tasked with validating a converted SAGE merger tree, you MUST adhere strictly to the protocols defined in this skill.
+To prevent instruction drift, read ONLY the relevant rule files for your current workflow state:
 
-## 1. References & Assets
+- **STATE 3 (Syntactic/Functional):**
+  - Read `references/syntactic_functional_rules.md`
 
-You have access to the following resources in this skill's directory to ensure reproducibility:
+- **STATE 4 (Full Suite - Semantic Validation):**
+  - **First:** Read `references/global_semantic_rules.md` for the overarching constraints (3-Panel Architecture, Anti-Shortcut rules).
+  - **Second:** Read `references/semantic_evolution_rules.md` for MAH, Merger Rate, and Spin constraints.
+  - **Third:** Read `references/semantic_distribution_rules.md` for HMF, Velocity, Lifespan, and Spatial constraints.
+  - **Always Refer To:** `assets/format_specs.json` for physics formulas, the visualisations registry, unit scales, and plotting defaults.
 
-- **`references/validation-protocols.md`**: The master ruleset detailing the exact checks, 3-panel plotting architecture, and execution protocol. **READ THIS FILE FIRST** before attempting validation.
-- **`references/sage_hdf5_schema.md`**: The definitive structural template dictating HDF5 and Binary SAGE layout and required field definitions. Always enforce this format schema.
-- **`assets/sage_validation.mplstyle`**: The mandatory Matplotlib stylesheet for all generated validation plots.
-- **`assets/validation_log_style.md`**: The strict markdown template for recording the final validation log.
+## 2. Automation Steps & Programmatic Checkups (CRITICAL)
 
-## 2. Reproducibility & Execution Rules
+DO NOT rely on visual OCR inspection of generated plot images. You MUST programmatically validate the data arrays *during* the execution of the semantic validation scripts:
 
-To guarantee reproducibility across all runs and environments, you MUST follow these guidelines:
+- Assert `np.any(np.isnan(data))` is false.
+- Ensure log-scale arrays do not contain exact zeros (which indicates unhandled invalid halos).
+- Check that data bounds (min/max) are physically plausible.
+- If an anomaly is detected, flag it, inform the user, and **EXPLICITLY ask** if they want you to action the anomaly.
+- **Resource Warnings:** If you detect the dataset is exceptionally large, warn the user *before* processing and ask for authorization.
 
-1. **Asset Paths:** When writing Python validation scripts, always reference the mplstyle using its absolute path or relative path from the workspace root (e.g., `plt.style.use('.ai/skills/sage-validation/assets/sage_validation.mplstyle')`).
-2. **Programmatic Checkups:** Do NOT rely on visual inspection (OCR) of plot images. You MUST write scripts that programmatically assert that data arrays are physically plausible (e.g., no `NaN`s, no exact zeros in log-scale arrays) before saving any PNG files.
-3. **Log Enshrinement:** Always generate the `0_validation_log_<dataset>.md` strictly following the format in `assets/validation_log_style.md`. Do not improvise the log structure.
-4. **No Algorithmic Shortcuts:** You MUST fully implement complex data extraction (e.g., temporal branch-tracing via pointers) for validation plots if the underlying data and pointers exist in the source simulation. Do not invoke "missing data" placeholder fallbacks to avoid writing complex traversal logic.
-5. **The Two-Step Semantic Validation Protocol:** Before running *any* generated semantic validation script, you MUST explicitly halt, adopt the "Auditor" persona, and review the code against `references/audit_checklist.md`. You are strictly forbidden from executing the script until the Auditor formally approves the checklist with line-number citations. **Upon completing the audit, the Auditor MUST write its full findings directly into Section `## 2. Auditor Review` of the active `0_validation_log_<dataset>.md` file.** For each checklist item (2.1–2.8), populate the `Status`, `Citation`, and `Notes` fields with the audit results. Set the `Auditor Verdict` field to `APPROVED` or `REJECTED` and complete the `Auditor Summary`. The log is the authoritative record of the audit; inline reporting alone is insufficient.
-6. **Utility Library:** You MUST use the plotting functions in `assets/sage_validation_utils.py` for all 3-panel arrays. Do not recreate Matplotlib subplot logic.
+## 3. Post-Validation Workflow
 
-## 3. Invocation Trigger
+After executing the semantic validation scripts:
 
-Activate this skill when:
+1. **Report Results:** Present a summary of any warnings or errors found during the syntactic and semantic checks to the user.
+2. **Anomaly Follow-Through:** If a programmatic checkup (§2) detects an anomaly and the user authorises action: investigate the root cause, create any auxiliary diagnostic files in `output/intermediates/`, fix the mapping/code, regenerate the validation, and document all debugging steps taken in the `0_validation_log_<dataset>.md`.
+3. **Propose Fixes:** If validation fails, use the findings to adjust the mapping and rerun the test conversion. Do not wait for the user to diagnose the failure themselves.
 
-- The `conversion-workflow` enters **STATE 3 (Test Engine)**: Perform **Syntactic** and **Functional** validation only.
-- The `conversion-workflow` enters **STATE 4 (Full Suite)**: Perform the **Full Validation Suite**, including all **Semantic** plots.
-- The user explicitly asks to "validate" or "plot" merger tree data.
+## 4. Mandatory Auditor Persona (Two-Step Semantic Validation Protocol)
+
+Before executing ANY semantic validation script, you MUST halt and adopt the "Auditor" persona as part of the **Two-Step Semantic Validation Protocol** (Step 1: generate script → Step 2: Auditor reviews against `references/audit_checklist.md` → Step 3: execute only if approved). Explicitly document the audit against the generated code in `0_validation_log_<dataset>.md`.
+
+## 5. Tool Parity
+
+All plotting MUST use `assets/sage_validation_utils.py`. Direct `plt.savefig()` and `plt.close()` calls are strictly forbidden in generated scripts.

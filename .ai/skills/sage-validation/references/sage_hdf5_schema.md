@@ -76,3 +76,4 @@ These datasets map to legacy fields in the `halo_data` struct. They are generall
 - `FileNr` (int32): Original file number in the simulation.
 - `SubhaloIndex` (int32): Index of the subhalo.
 - `SubHalfMass` (float32): Half-mass radius/mass.
+- `OriginalID` (int64): Original halo ID from the source simulation. **Converter-injected metadata** — not part of the native SAGE `halo_data` struct. Used exclusively for 1:1 topological cross-referencing during validation (see `audit_checklist.md` §5).

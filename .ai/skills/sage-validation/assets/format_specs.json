@@ -1,0 +1,34 @@
+{
+  "physics_definitions": {
+    "spin": {
+      "type": "Specific Angular Momentum Magnitude",
+      "formula": "sqrt(jx^2 + jy^2 + jz^2)",
+      "parity_requirement": "3-component vector"
+    },
+    "velocity": {
+      "type": "Velocity Modulus",
+      "formula": "sqrt(vx^2 + vy^2 + vz^2)",
+      "field": "Vel"
+    }
+  },
+  "unit_scales": {
+    "mass": {
+      "target": "10^10 Msun/h",
+      "scaling_logic": "Multiply SAGE output by 1e10 to match raw input for relative difference"
+    }
+  },
+  "plot_defaults": {
+    "naming_convention": "1_validation_<plot_id>_<dataset>.png",
+    "directory": "output/",
+    "padding_value": "np.nan"
+  },
+  "visualisations_registry": [
+    { "id": "mah", "type": "Evolution", "x_axis": "Snapshot", "y_axis": "Mass {Units}", "scaling_rule": "Log y-axis" },
+    { "id": "merger_rate", "type": "Evolution", "x_axis": "Snapshot", "y_axis": "Progenitor Count", "scaling_rule": "Linear" },
+    { "id": "spin", "type": "Evolution", "x_axis": "Snapshot", "y_axis": "Specific Angular Momentum Magnitude (|j|)", "scaling_rule": "Log y-axis" },
+    { "id": "velocity", "type": "Histogram", "x_axis": "Velocity Modulus (sqrt(vx^2+vy^2+vz^2), NOT Vmax) {Units}", "y_axis": "Halo Count", "scaling_rule": "Log y-axis" },
+    { "id": "lifespan", "type": "Histogram", "x_axis": "Lifespan {Snapshots}", "y_axis": "Halo Count", "scaling_rule": "Log y-axis" },
+    { "id": "hmf", "type": "Histogram", "x_axis": "Mass {Units}", "y_axis": "Halo Count", "scaling_rule": "Log x-axis and Log y-axis" },
+    { "id": "spatial", "type": "Hexbin", "x_axis": "X position {Units}", "y_axis": "Y position {Units}", "scaling_rule": "Logarithmic (bins='log')" }
+  ]
+}

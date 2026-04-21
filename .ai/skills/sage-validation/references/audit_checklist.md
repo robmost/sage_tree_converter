@@ -1,5 +1,7 @@
 # The Semantic Validation Audit Checklist
 
+<!-- Sibling dependencies: global_semantic_rules.md, semantic_evolution_rules.md, semantic_distribution_rules.md -->
+
 > [!CAUTION]
 > **ANTI-SYCOPHANCY DIRECTIVE:**
 > When acting as the Auditor, you MUST assume the generated code is flawed. You are forbidden from simply answering "Yes" to these checklist items. For every item, you MUST explicitly cite the **exact line number(s)** and the **exact code snippet** that satisfies the requirement. If you cannot point to the exact line of code that explicitly performs the required action, the script **FAILS** the audit.
@@ -45,6 +47,11 @@ Before executing any semantic validation script, you must verify the following:
 - **Auditor Requirement:** Cite the lines padding missing branch snapshots with `np.nan`.
 - [ ] **Check:** Is topological branch tracing strictly confined by a root tree ID (e.g. `Tree_root_ID` or `TreeDescendant`), preventing the script from accidentally tracing globally across multiple independent trees?
 - **Auditor Requirement:** Cite the condition that restricts traversal to a specific tree structure.
+
+## 7. Redundant File Operations
+
+- [ ] **Check:** Does the script explicitly AVOID calling `plt.savefig()` or `plt.close()` after invoking functions from `sage_validation_utils.py`?
+- **Auditor Requirement:** Confirm that there are no `savefig` calls in the main script loop that would overwrite the utility's output, citing the lines immediately following the utility function calls to prove they are absent.
 
 ***
 
