@@ -48,25 +48,31 @@
 - **Citation:** Line(s) `{N}–{M}` — `{exact code snippet}`
 - **Notes:** {Auditor observation or reason for failure.}
 
-#### 2.5 Data Parity & Precision — Unit Scaling
+#### 2.5 Topological Match Enforcement & Performance
 
 - **Status:** `{Pass/Fail}`
 - **Citation:** Line(s) `{N}–{M}` — `{exact code snippet}`
 - **Notes:** {Auditor observation or reason for failure.}
 
-#### 2.6 Data Parity & Precision — Physical Definition (Spin)
+#### 2.6 Data Parity & Precision — Unit Scaling
 
 - **Status:** `{Pass/Fail}`
 - **Citation:** Line(s) `{N}–{M}` — `{exact code snippet}`
 - **Notes:** {Auditor observation or reason for failure.}
 
-#### 2.7 Data Parity & Precision — Temporal NaN Padding
+#### 2.7 Data Parity & Precision — Physical Definition (Spin)
 
 - **Status:** `{Pass/Fail}`
 - **Citation:** Line(s) `{N}–{M}` — `{exact code snippet}`
 - **Notes:** {Auditor observation or reason for failure.}
 
-#### 2.8 Data Parity & Precision — Topological Branch Confinement
+#### 2.8 Data Parity & Precision — Temporal NaN Padding
+
+- **Status:** `{Pass/Fail}`
+- **Citation:** Line(s) `{N}–{M}` — `{exact code snippet}`
+- **Notes:** {Auditor observation or reason for failure.}
+
+#### 2.9 Data Parity & Precision — Topological Branch Confinement
 
 - **Status:** `{Pass/Fail}`
 - **Citation:** Line(s) `{N}–{M}` — `{exact code snippet}`

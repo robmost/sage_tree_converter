@@ -59,6 +59,14 @@
       ],
       "units": "km/s"
     },
+    "Vmax": {
+      "source": "vmax",
+      "units": "km/s physical"
+    },
+    "VelDisp": {
+      "source": "vrms",
+      "units": "km/s physical"
+    },
     "Spin": {
       "source": [
         "Jx",

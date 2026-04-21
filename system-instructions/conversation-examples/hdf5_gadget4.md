@@ -7,8 +7,31 @@ I've found your Gadget-4 HDF5 file. I'll execute the initial discovery steps.
 
 ## STATE 1: Initialization & Discovery
 
-- **Files Found:** `input/custom_gadget4/trees.hdf5`.
-- **Database Match:** Checked `format-database/` and found match for Gadget-4.
+**Step 1 — Directory Scan & Size Audit:**
+
+```shell
+ls -lh input/custom_gadget4/
+# trees.hdf5  (14 GB)
+```
+
+File exceeds 100 MB — user will be warned before any full-dataset processing. All reads restricted to structural inspection only.
+
+**Step 2 — Bounded HDF5 Group/Attribute Peek (no array data loaded):**
+
+```python
+# Incremental: inspect only root attributes and top-level group names
+import h5py
+with h5py.File("input/custom_gadget4/trees.hdf5", "r") as f:
+    print(dict(f.attrs))           # {'NumTrees': 18432, 'CodeVersion': 'Gadget-4'}
+    print(list(f.keys()))          # ['TreeHalos', 'TreeTable', 'Parameters', 'Header']
+    print(list(f["TreeHalos"].keys())[:5])  # ['SubhaloMass', 'SubhaloPos', 'TreeFirstProgenitor', ...]
+# Gadget-4 native format confirmed from 'TreeHalos' / 'TreeTable' group signature.
+# Reading stopped — no array data was loaded.
+```
+
+**Step 3 — Database Lookup:**
+
+- **Database Match:** Checked `format-database/hdf5_gadget4.json` — exact match confirmed.
 
 **Identification Result:**
 
@@ -20,6 +43,9 @@ I've found your Gadget-4 HDF5 file. I'll execute the initial discovery steps.
   "status": "Match Found (hdf5_gadget4)"
 }
 ```
+
+> [!WARNING]
+> File is 14 GB. Full-dataset conversion and semantic validation will be memory-intensive. Chunked processing will be used. Explicit user authorization will be requested before STATE 4 execution.
 
 Moving to Analysis.
 

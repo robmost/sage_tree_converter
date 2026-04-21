@@ -7,11 +7,38 @@ I've found your AHF data in the `input/` directory.
 
 ## STATE 1: Initialization & Discovery
 
-- **Files Found:** `snap_014.AHF_halos`, `snap_015.AHF_halos`, `snap_016.AHF_halos`, and `snap_015_mtree`, `snap_016_mtree`.
-- **Database Match:** Checked `format-database/ascii_ahf_mergertree.json`. The primitives map correctly.
+**Step 1 — Directory Scan & Size Audit:**
+
+```shell
+ls -lh input/ahf/
+# snap_014.AHF_halos   (88 MB)
+# snap_015.AHF_halos   (91 MB)
+# snap_016.AHF_halos   (95 MB)
+# snap_015_mtree       (12 MB)
+# snap_016_mtree       (13 MB)
+```
+
+Files exceed 1 MB. All reads restricted to `head -n` bounded commands.
+
+**Step 2 — Bounded Header Peek (one halo catalogue, one mtree file):**
+
+```shell
+head -n 3 input/ahf/snap_016.AHF_halos
+# #ID(1) hostHalo(2) numSubStruct(3) Mhalo(4) ... Xc(6) Yc(7) Zc(8) VXc(9) ...
+
+head -n 3 input/ahf/snap_016_mtree
+# # progenitor_id(1)  merit(2)
+# 10000123456  0.923
+```
+
+AHF columnar format and mtree link structure confirmed from 3-line header peeks. **Reading stopped — no further file content was dumped.**
+
+**Step 3 — Database Lookup:**
+
+- **Database Match:** Checked `format-database/ascii_ahf_mergertree.json` — primitives map correctly.
 
 **Completeness Check:**
-The snapshots and temporal link files are available. I will proceed with formulating the analysis report.
+All three snapshot catalogues and both temporal link files are present. I will proceed with formulating the analysis report.
 
 ## STATE 2: Analysis Report
 

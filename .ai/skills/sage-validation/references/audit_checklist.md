@@ -26,7 +26,16 @@ Before executing any semantic validation script, you must verify the following:
 - [ ] **Check:** Does the script use the hardened plotting functions from `sage_validation_utils.py` (e.g., `plot_3x3_evolution()`, `plot_1x3_histogram()`) rather than attempting to write raw Matplotlib subplot code and calculating the relative differences manually?
 - **Auditor Requirement:** Cite the exact import statement and the exact line where the utility functions are called.
 
-## 5. Data Parity & Precision
+## 5. Topological Match Enforcement & Performance
+
+- [ ] **Check:** For massive datasets where a limited subset of the input was extracted for speed, does the script explicitly use `OriginalID` to filter the HDF5 output arrays so that ONLY identical physical structures are extracted?
+- **Auditor Requirement:** Cite the lines where `OriginalID` from the output is checked against the parsed input IDs (`if orig_id not in inp_z0_ids: continue`).
+- [ ] **Check:** Does the script rebuild the output arrays in the EXACT point-to-point order of the input array to prevent random misalignments when feeding data to the Hexbin or relative difference math?
+- **Auditor Requirement:** Cite the lines mapping the filtered output data back into the sequence of the `inp_z0` array.
+- [ ] **Check:** Does the script use performant extraction algorithms like `pandas` chunks or generator streams, and O(1) dictionary lookups (`desc_to_progs = defaultdict(list)`) rather than computationally crushing O(N^2) list comprehensions?
+- **Auditor Requirement:** Cite the line where the `desc_to_progs` dictionary (or equivalent O(1) mechanism) is built.
+
+## 6. Data Parity & Precision
 
 - [ ] **Check:** Does the script explicitly enforce **Unit Scaling Parity** (e.g., if SAGE expects masses in $10^{10} M_{\odot}/h$, does the validation script multiply the SAGE output back by $10^{10}$ before comparing against the raw input)?
 - **Auditor Requirement:** Cite the line where the output data array is scaled back to match input units.

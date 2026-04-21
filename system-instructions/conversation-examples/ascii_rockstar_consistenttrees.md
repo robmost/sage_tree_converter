@@ -7,11 +7,32 @@ I see the dataset.
 
 ## STATE 1: Initialization & Discovery
 
-- **Files Found:** `out_*.list` scattered ASCII outputs.
+**Step 1 — Directory Scan & Size Audit:**
+
+```shell
+ls -lh input/bolshoi/
+# out_0.list  (1.2 GB)
+# out_1.list  (980 MB)
+# ...
+```
+
+Files are large (> 100 MB each). All subsequent reads will use bounded commands only.
+
+**Step 2 — Bounded Header Peek (first file only):**
+
+```shell
+head -n 5 input/bolshoi/out_0.list
+# #scale(0) id(1) desc_scale(2) desc_id(3) ... mvir(10) ...
+```
+
+Format identified as Rockstar/ConsistentTrees from the `#scale` header signature. **Reading stopped — no further file content was dumped.**
+
+**Step 3 — Database Lookup:**
+
 - **Database Match:** Matched `format-database/ascii_rockstar_consistenttrees.json`.
 
 **Completeness Check:**
-The required positional and physics columns are present across the `.list` headers.
+The required positional and physics columns are confirmed present from the 5-line header peek.
 
 ## STATE 2: Analysis Report
 

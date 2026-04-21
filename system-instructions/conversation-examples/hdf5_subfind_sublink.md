@@ -7,11 +7,40 @@ Reviewing the `.hdf5` groups in the payload.
 
 ## STATE 1: Initialization & Discovery
 
-- **Files Found:** Valid TNG output chunks.
+**Step 1 — Directory Scan & Size Audit:**
+
+```shell
+ls -lh input/illustris_tng/
+# sublink_merger_tree_extended.0.hdf5   (8.3 GB)
+# sublink_merger_tree_extended.1.hdf5   (7.9 GB)
+# sublink_merger_tree_extended.2.hdf5   (8.1 GB)
+# ...
+```
+
+Files exceed 100 MB each — user will be warned before full-dataset processing. All reads restricted to structural inspection only.
+
+**Step 2 — Bounded HDF5 Group/Attribute Peek (no array data loaded):**
+
+```python
+# Incremental: inspect root attributes and top-level group names only
+import h5py
+with h5py.File("input/illustris_tng/sublink_merger_tree_extended.0.hdf5", "r") as f:
+    print(dict(f.attrs))        # {'NumTrees': 4096, 'Redshift': 0.0}
+    print(list(f.keys()))       # ['Subhalo', 'Group']
+    print(list(f["Subhalo"].keys())[:5])  # ['SubhaloMass', 'SubhaloPos', 'FirstProgenitorID', ...]
+# SubLink structure confirmed from 'Subhalo'/'Group' group names and 'FirstProgenitorID' dataset.
+# Reading stopped — no array data was loaded.
+```
+
+**Step 3 — Database Lookup:**
+
 - **Database Match:** Located exact specification in `format-database/hdf5_subfind_sublink.json`.
 
 **Completeness Check:**
-The `Subhalo` and `Group` subtrees have been structurally verified.
+The `Subhalo` and `Group` subtrees have been structurally verified from the key scan.
+
+> [!WARNING]
+> Multiple chunks totalling > 24 GB detected. Full-dataset conversion will require chunked streaming. Explicit user authorization will be requested before STATE 4 execution.
 
 ## STATE 2: Analysis Report
 
