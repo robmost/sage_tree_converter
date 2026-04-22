@@ -69,8 +69,14 @@
     }
   },
   "synthetic_logic": {
+    "SAGE_Mapping_Requirement": "Synthetic Map (Requires temporal and FOF synthesis)",
     "FOF_Requirement": "Synthesize FirstHaloInFOFgroup and NextHaloInFOFgroup using hostHalo column. Subhalos link to host; missing hosts map subhalos to self.",
     "Mass_Approximations": "SAGE requires M_Mean200 and M_TopHat. Synthesized as direct clones of Mvir.",
-    "Pointer_Logic": "Temporal NextProgenitor pointers synthesized by parsing parallel temporal linkages in _mtree files."
+    "Pointer_Logic": "Temporal NextProgenitor pointers synthesized by parsing parallel temporal linkages in _mtree files.",
+    "topology_warnings": [
+      "pointer_scope: SYNTHESIZED_PARTICLE_BASED",
+      "pointer_description: Pointers do not exist natively and must be synthesized from temporal ID linkages. High risk of cyclic or dangling pointers.",
+      "id_uniqueness: Halo IDs must be globally unique across snapshots for temporal linking to succeed."
+    ]
   }
 }

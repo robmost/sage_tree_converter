@@ -30,6 +30,7 @@ DO NOT rely on visual OCR inspection of generated plot images. You MUST programm
 - Assert `np.any(np.isnan(data))` is false.
 - Ensure log-scale arrays do not contain exact zeros (which indicates unhandled invalid halos).
 - Check that data bounds (min/max) are physically plausible.
+- **Topology Assertions (Fail-Fast):** All validation scripts MUST implement built-in assertions to explicitly verify any constraints listed in the `topology_warnings` array of the active format mapping (found in `format-database/`). If the `topology_warnings` array is empty or missing, no assertions are required. If the script violates these bounds, it must throw an error.
 - If an anomaly is detected, flag it, inform the user, and **EXPLICITLY ask** if they want you to action the anomaly.
 - **Resource Warnings:** If you detect the dataset is exceptionally large, warn the user *before* processing and ask for authorization.
 - **Completeness Check:** You MUST call `sage_validation_utils.verify_completeness(dataset_name)` at the absolute end of the validation script. This function will raise an AssertionError if any of the 7 mandatory plots are missing.
@@ -42,13 +43,13 @@ After executing the semantic validation scripts:
 2. **Anomaly Follow-Through:** If a programmatic checkup (§2) detects an anomaly and the user authorises action: investigate the root cause, create any auxiliary diagnostic files in `output/intermediates/`, fix the mapping/code, regenerate the validation, and document all debugging steps taken in the `0_validation_log_<dataset>.md`.
 3. **Propose Fixes:** If validation fails, use the findings to adjust the mapping and rerun the test conversion. Do not wait for the user to diagnose the failure themselves.
 
-## 4. Mandatory Auditor Persona (Two-Step Semantic Validation Protocol)
+## 4. Mandatory Sub-Agent Auditor Protocol (Two-Step Semantic Validation)
 
 Before generating and executing ANY semantic validation script, you MUST complete the following sequence:
 
 1. **Traversal Strategy Phase:** If the format uses pointers (e.g., L-HaloTree), explicitly explain your strategy for traversing the raw input pointers backward in time. You MUST NOT skip this traversal.
 2. **Generate Script:** Write the semantic validation script.
-3. **Auditor Review:** Halt and adopt the "Auditor" persona against `references/audit_checklist.md`. Explicitly document the audit in `0_validation_log_<dataset>.md`.
+3. **Sub-Agent Review:** Do NOT simulate the Auditor yourself. You MUST delegate the code review to a separate sub-agent (invoke `codebase-investigator` if using Gemini CLI, or `Explore` if using Claude Code). Provide the sub-agent with the generated script, `format_specs.json`, the `topology_warnings`, and `references/audit_checklist.md`. Explicitly document the sub-agent's findings in `0_validation_log_<dataset>.md`.
 4. **Execution:** Execute only if approved.
 
 ## 5. Tool Parity

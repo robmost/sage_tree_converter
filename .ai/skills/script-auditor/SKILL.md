@@ -21,7 +21,7 @@ To ensure the CLI environment remains reproducible without accumulating technica
 
 When this skill is triggered at the end of STATE 4, you MUST perform the following actions:
 
-1. Create a dataset-specific audit directory: `output/audit-logs/<dataset_name>_scripts/`.
+1. Create a dataset-specific, timestamped audit directory to ensure unique runs on the same dataset remain distinct: `output/audit-logs/<dataset_name>_<YYYYMMDD_HHMMSS>_scripts/`.
 2. Move all `.py` or auxiliary scripts generated during the current session from `assets/cli-scripts/` into the newly created audit directory.
 3. Leave `assets/cli-scripts/` completely empty, ready for the next conversion session.
 

@@ -64,6 +64,11 @@
   },
   "synthetic_logic": {
     "SAGE_Mapping_Requirement": "Direct Map",
-    "Pointer_Logic": "Pointer Parity Map (Gadget-4 absolute indices preserved)"
+    "Pointer_Logic": "Pointer Parity Map (Gadget-4 absolute indices preserved)",
+    "topology_warnings": [
+      "pointer_scope: GLOBAL",
+      "pointer_description: Gadget-4 pointers are typically absolute global indices. Ensure parity maps do not inadvertently apply offsets to already global pointers.",
+      "id_uniqueness: Subhalo IDs are generally globally unique in Gadget-4 tree structures."
+    ]
   }
 }

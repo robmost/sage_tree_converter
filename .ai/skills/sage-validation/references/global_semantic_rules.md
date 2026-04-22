@@ -12,6 +12,7 @@
 > 7. **Lowest Available Redshift:** All distribution plots and root halo selection for evolution plots MUST be evaluated strictly at the lowest available redshift (e.g., `SnapNum == max_snap`).
 > 8. **Float32 Parity:** SAGE stores all physics fields as `float32`. When computing relative differences, both input and output arrays MUST be cast to `float32` before comparison to avoid spurious micro-residuals from `float64` precision. The utility library enforces this automatically.
 > 9. **Completeness Enforcement:** At the very end of your script, you MUST call `sage_validation_utils.verify_completeness(dataset_name)`. This will raise an exception and fail the script if any of the 7 plots are missing.
+> 10. **Legitimate Data Parity:** If the physics variables are perfectly preserved between Input and Output (e.g., Direct Map with no unit scaling), the arrays will be identical. You MUST pass `allow_identical=True` to the `sage_validation_utils` plotting functions to prevent false-positive anti-cheating failures. You are **STRICTLY FORBIDDEN** from adding artificial noise (like machine epsilon) or dummy data to bypass these checks.
 
 ## The 3-Panel Architecture Protocol
 

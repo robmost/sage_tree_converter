@@ -78,6 +78,12 @@
   },
   "synthetic_logic": {
     "FOF_Group": "Defined by upid. If upid == -1, it is the host.",
-    "SAGE_Mapping_Requirement": "Synthetic FOF Requirement"
+    "SAGE_Mapping_Requirement": "Synthetic FOF Requirement",
+    "Pointer_Logic": "Map depth_first_id and desc_id to SAGE pointers",
+    "topology_warnings": [
+      "pointer_scope: DEPTH_FIRST_ID_BASED",
+      "pointer_description: ConsistentTrees provides global IDs (depth_first_id, desc_id). These must be mapped to zero-indexed array indices for SAGE.",
+      "id_uniqueness: Halo IDs are globally unique. Root halos often have desc_id = -1, which requires explicit bounds handling."
+    ]
   }
 }
