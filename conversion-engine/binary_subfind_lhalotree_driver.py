@@ -86,10 +86,7 @@ def convert(input_paths, output_path, n_trees=None):
             for old_field, new_field in mapping.items():
                 if old_field in combined_halos.dtype.names:
                     data = combined_halos[old_field][offset:offset+nhalos]
-                    if new_field == 'Mvir':
-                        group.create_dataset(new_field, data=data * 1e10)
-                    else:
-                        group.create_dataset(new_field, data=data)
+                    group.create_dataset(new_field, data=data)
             offset += nhalos
 
         hf.create_dataset("TreeNHalos", data=combined_tree_nhalos)
