@@ -1,7 +1,5 @@
 # Semantic Distribution Rules (HMF, Velocity, Lifespan, Spatial)
 
-<!-- Sibling dependencies: global_semantic_rules.md, semantic_evolution_rules.md, audit_checklist.md -->
-
 ## 1. Sub-Architecture Rules
 
 * **Distribution Histograms:** 1x3 Grid. Use ALL halo data. Evaluate distributions strictly at the lowest available redshift. **CRITICAL FOR LIFESPAN:** Even though `lifespan` requires temporal branch tracing, it is a Histogram. You MUST calculate the branch depth for ALL root halos at the lowest redshift. Use `sage_validation_utils.plot_1x3_histogram()`.

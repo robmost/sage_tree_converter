@@ -4,14 +4,24 @@
 
 To prevent instruction drift, read ONLY the relevant rule files for your current workflow state:
 
-- **STATE 3 (Syntactic/Functional):**
+- **When in STATE 3:**
   - Read `references/syntactic_functional_rules.md`
 
-- **STATE 4 (Full Suite - Semantic Validation):**
+- **When in STATE 4:**
+  - **MANDATORY CONTEXT RESET:** Before starting STATE 4, you MUST explicitly inform the user that you are clearing your internal "working memory" to ensure instruction fidelity.
   - **First:** Read `references/global_semantic_rules.md` for the overarching constraints (3-Panel Architecture, Anti-Shortcut rules).
   - **Second:** Read `references/semantic_evolution_rules.md` for MAH, Merger Rate, and Spin constraints.
   - **Third:** Read `references/semantic_distribution_rules.md` for HMF, Velocity, Lifespan, and Spatial constraints.
-  - **Always Refer To:** `assets/format_specs.json` for physics formulas, the visualisations registry, unit scales, and plotting defaults.
+  - **MANDATORY REGISTRY READ:** Read `assets/format_specs.json` for physics formulas and unit scales.
+  - **THE SEVEN MANDATORY PLOTS:** You MUST generate all 7 visualisations:
+    1. **mah** (Evolution: Mass growth)
+    2. **merger_rate** (Evolution: Progenitor count)
+    3. **spin** (Evolution: Specific angular momentum)
+    4. **velocity** (Histogram: Velocity modulus)
+    5. **lifespan** (Histogram: Branch depth)
+    6. **hmf** (Histogram: Mass function)
+    7. **spatial** (Hexbin: XY distribution)
+  - **GATE:** Before writing any semantic validation code, you MUST output a "Fact Summary" table mapping every one of these 7 plot IDs to its specific formula and axes. You MUST verify this list against the inlined list above.
 
 ## 2. Automation Steps & Programmatic Checkups (CRITICAL)
 
@@ -22,6 +32,7 @@ DO NOT rely on visual OCR inspection of generated plot images. You MUST programm
 - Check that data bounds (min/max) are physically plausible.
 - If an anomaly is detected, flag it, inform the user, and **EXPLICITLY ask** if they want you to action the anomaly.
 - **Resource Warnings:** If you detect the dataset is exceptionally large, warn the user *before* processing and ask for authorization.
+- **Completeness Check:** You MUST call `sage_validation_utils.verify_completeness(dataset_name)` at the absolute end of the validation script. This function will raise an AssertionError if any of the 7 mandatory plots are missing.
 
 ## 3. Post-Validation Workflow
 
@@ -33,7 +44,12 @@ After executing the semantic validation scripts:
 
 ## 4. Mandatory Auditor Persona (Two-Step Semantic Validation Protocol)
 
-Before executing ANY semantic validation script, you MUST halt and adopt the "Auditor" persona as part of the **Two-Step Semantic Validation Protocol** (Step 1: generate script → Step 2: Auditor reviews against `references/audit_checklist.md` → Step 3: execute only if approved). Explicitly document the audit against the generated code in `0_validation_log_<dataset>.md`.
+Before generating and executing ANY semantic validation script, you MUST complete the following sequence:
+
+1. **Traversal Strategy Phase:** If the format uses pointers (e.g., L-HaloTree), explicitly explain your strategy for traversing the raw input pointers backward in time. You MUST NOT skip this traversal.
+2. **Generate Script:** Write the semantic validation script.
+3. **Auditor Review:** Halt and adopt the "Auditor" persona against `references/audit_checklist.md`. Explicitly document the audit in `0_validation_log_<dataset>.md`.
+4. **Execution:** Execute only if approved.
 
 ## 5. Tool Parity
 

@@ -1,7 +1,5 @@
 # Syntactic & Functional Validation Rules
 
-<!-- Sibling dependencies: sage_hdf5_schema.md -->
-
 ## 1. Syntactic Validation (Structural Correctness)
 
 * **File Integrity:** Check that the generated file can be opened by standard tools (e.g., `h5dump` for HDF5). If `h5dump` is unavailable natively, fall back to using Python's `h5py` library to recursively dump and inspect the HDF5 structure.
