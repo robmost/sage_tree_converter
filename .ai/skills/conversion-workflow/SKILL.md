@@ -14,6 +14,7 @@ You MUST act as a secure state machine. You are not allowed to skip states or pe
 To maintain a reproducible environment, all file interactions MUST strictly adhere to this routing table:
 
 - `.ai/skills/`: **READ.** Contains all AI execution guidelines.
+- `conversation-examples/`: **READ.** Contains few-shot examples for the state machine execution.
 - `format-database/`: **READ/WRITE.** Check for existing simulation mappings. Save successful JSON mappings here.
 - `assets/cli-scripts/`: **WRITE.** Save all ad-hoc Python validation scripts or data parsers you generate here.
 - `output/`: **WRITE.** Save all validation plots, `0_validation_log_*.md` logs, and target test samples (`0_test_sage_tree*.hdf5`) here.
@@ -29,6 +30,37 @@ Advance sequentially through these states. Do NOT skip states.
 - **STATE 3 (Test Engine):** Write conversion mappings. Process a small/fast dataset variant. Generate `0_test_sage_tree_<name>.hdf5`. **GATE:** Natively execute and pass the **Syntactic** and **Functional** validation checklist steps on this sample. **DO NOT perform Semantic Validation (plotting) in this state.**
 - **STATE 4 (Full Suite, Data Checkup, & Export):** Process the entire dataset. Generate all mandatory **Semantic** plots. Perform the data checkup gate (via `sage-validation` skill). After full validation, write the final log and execute the `script-auditor` skill.
 
-## 3. Invocation Trigger
+## 3. Conversion Engine Entry Point
+
+The conversion engine lives in `conversion-engine/`. The **sole programmatic entry point** is `master_converter.py`, which auto-detects the input format and dispatches to the correct internal driver.
+
+- **Individual `*_driver.py` files are internal modules** — they have no `__main__` block and must NOT be executed directly.
+- **Programmatic invocation (preferred for CLI agents):**
+
+  ```python
+  import sys
+  sys.path.insert(0, "conversion-engine")
+  from master_converter import MasterConverter
+
+  # STATE 3 — Test gate: use n_trees to limit to a small sample
+  MasterConverter().run("input/my_data/*", "output/0_test_sage_tree_mydata.hdf5", n_trees=10)
+
+  # STATE 4 — Full conversion: omit n_trees (or pass None) to process ALL trees
+  MasterConverter().run("input/my_data/*", "output/0_full_sage_tree_mydata.hdf5")
+  ```
+
+- **Shell invocation (manual users):**
+
+  ```bash
+  # Test sample
+  python3 conversion-engine/master_converter.py \
+      --input "input/my_data/*" --output "output/0_test_sage_tree_mydata.hdf5" --n_trees 10
+
+  # Full conversion (omit --n_trees)
+  python3 conversion-engine/master_converter.py \
+      --input "input/my_data/*" --output "output/0_full_sage_tree_mydata.hdf5"
+  ```
+
+## 4. Invocation Trigger
 
 Activate this skill unconditionally at the start of any new conversion session to frame the workflow.
