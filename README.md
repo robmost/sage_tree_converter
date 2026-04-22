@@ -62,6 +62,7 @@ python3 conversion-engine/master_converter.py \
 * **`AGENTS.md`**: The single source of truth for AI instructions, symlinked for Claude and Gemini.
 * **`.ai/skills/`**: Centralised repository of AI skills (e.g., validation protocols, mapping strategies, and workflow state machines) that strictly govern the AI's autonomous actions.
 * **`.claude/` & `.gemini/`**: Tool-specific configuration directories containing symlinked instructions.
+* **`conversation-examples/`**: Contains few-shot conversation examples demonstrating the 4-state conversion workflow.
 * **`conversion-engine/`**: Contains the core logic and specialized drivers.
   * `master_converter.py`: The main entry point for automated format detection.
   * `*_driver.py`: Tool-specific drivers (e.g., `ascii_ahf_mergertree_driver.py`).
