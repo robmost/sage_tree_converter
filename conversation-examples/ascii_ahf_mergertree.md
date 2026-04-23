@@ -103,6 +103,18 @@ Processing the entire 3 snapshot dataset.
   - `output/1_validation_lifespan_ahf.png`
   - `output/1_validation_hmf_ahf.png`
   - `output/1_validation_spatial_ahf.png`
-- **Cleanup:** Unused CLI scripts have been archived to `output/audit-logs/ahf_scripts/`.
+- **Cleanup:** Unused CLI scripts have been archived to `output/audit-logs/ahf_20231027_101530_scripts/`.
 
 The conversion is complete. You can inspect the final dataset and validation log in the `output/` directory.
+
+## STATE 5: Post-Conversion Knowledge Base Update
+
+**Assistant:** "Was the conversion satisfactory?"
+
+**User:** "Yes, the physical bounds look correct."
+
+**Assistant:** "Would you like to update the format-database with hints for future conversions? \[y/N\]"
+
+**User:** "Yes, add a hint to double check pointer resolutions across non-sequential snapshots."
+
+**Assistant:** "I have updated the `topology_warnings` array in `format-database/ascii_ahf_mergertree.json` with your suggestion. Thank you."

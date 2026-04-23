@@ -109,6 +109,18 @@ Processing all 2.45 million halos natively.
   - `output/1_validation_lifespan_gadget4.png`
   - `output/1_validation_hmf_gadget4.png`
   - `output/1_validation_spatial_gadget4.png`
-- **Cleanup:** Transient CLI parsing scripts moved to `output/audit-logs/gadget4_scripts/`.
+- **Cleanup:** Transient CLI parsing scripts moved to `output/audit-logs/gadget4_20231027_101530_scripts/`.
 
 Conversion complete. The full dataset is ready.
+
+## STATE 5: Post-Conversion Knowledge Base Update
+
+**Assistant:** "Was the conversion satisfactory?"
+
+**User:** "Yes, thank you."
+
+**Assistant:** "Would you like to update the format-database with hints for future conversions? \[y/N\]"
+
+**User:** "Yes, note that Gadget-4 uses absolute indices in TreeHalos."
+
+**Assistant:** "I have updated the `testing_hints` array in `format-database/hdf5_gadget4.json` with this information. Thank you."

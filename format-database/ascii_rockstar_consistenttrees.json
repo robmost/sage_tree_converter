@@ -10,7 +10,8 @@
   },
   "simulation_aliases": [
     "Bolshoi",
-    "Bolshoi-P"
+    "Bolshoi-P",
+    "Shin-Uchuu"
   ],
   "format_schema": {
     "columns": {
@@ -18,6 +19,7 @@
       "id": 1,
       "desc_id": 3,
       "num_prog": 4,
+      "mmp": 14,
       "Jx": 23,
       "Jy": 24,
       "Jz": 25,
@@ -81,13 +83,15 @@
     "SAGE_Mapping_Requirement": "Synthetic FOF Requirement",
     "Pointer_Logic": "Map depth_first_id and desc_id to SAGE pointers",
     "topology_warnings": [
-      "pointer_scope: DEPTH_FIRST_ID_BASED",
-      "pointer_description: ConsistentTrees provides global IDs (depth_first_id, desc_id). These must be mapped to zero-indexed array indices for SAGE.",
-      "id_uniqueness: Halo IDs are globally unique. Root halos often have desc_id = -1, which requires explicit bounds handling."
+      "pointer_scope: DEPTH_FIRST_ID_BASED. Map global IDs to zero-indexed array indices.",
+      "jagged_input: Varying row lengths (32 to 61+ cols). Use robust/flexible ASCII parsers.",
+      "root_handling: Root halos use desc_id = -1. Ensure explicit bounds handling."
     ],
     "testing_hints": [
-      "Raw input masses must be compared against (SAGE_Mvir * 1e10).",
-      "Topological traces must extract 5 branches for Top, Average, and Lowest mass roots."
+      "Scale: Multiply SAGE Output Mvir by 1e10 for raw input parity.",
+      "Memory: Use two-pass chunked reading for topological tracing (Pass 1: Map, Pass 2: Extract).",
+      "Tracing: Use mmp? (col 14) to identify main-progenitor branches for lifespan/MAH parity.",
+      "Distributions: Evaluate strictly at max(SnapNum) to avoid count inflation."
     ]
   }
 }

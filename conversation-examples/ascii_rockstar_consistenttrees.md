@@ -94,6 +94,18 @@ Processing the full Rockstar list.
   - `output/1_validation_lifespan_bolshoi.png`
   - `output/1_validation_hmf_bolshoi.png`
   - `output/1_validation_spatial_bolshoi.png`
-- **Cleanup:** `assets/cli-scripts/` emptied, ad-hoc files moved to `output/audit-logs/bolshoi_scripts/`.
+- **Cleanup:** `assets/cli-scripts/` emptied, ad-hoc files moved to `output/audit-logs/bolshoi_20231027_101530_scripts/`.
 
 Conversion complete.
+
+## STATE 5: Post-Conversion Knowledge Base Update
+
+**Assistant:** "Was the conversion satisfactory?"
+
+**User:** "Yes, it looks good."
+
+**Assistant:** "Would you like to update the format-database with hints for future conversions? \[y/N\]"
+
+**User:** "Yes, add a hint about chunked processing for large ASCII files."
+
+**Assistant:** "I have updated the `testing_hints` array in `format-database/ascii_rockstar_consistenttrees.json` with your suggestion. Thank you."

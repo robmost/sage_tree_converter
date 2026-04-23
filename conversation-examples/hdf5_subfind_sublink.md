@@ -104,6 +104,22 @@ Conducting batch conversion across all HDF5 volume chunks.
   - `output/1_validation_lifespan_illustris.png`
   - `output/1_validation_hmf_illustris.png`
   - `output/1_validation_spatial_illustris.png`
-- **Cleanup:** H5py helper mapping scripts have been pushed from `cli-scripts` to `output/audit-logs/illustris_scripts/`.
+- **Cleanup:** H5py helper mapping scripts have been pushed from `cli-scripts` to `output/audit-logs/illustris_20231027_101530_scripts/`.
 
 Complete. Have a nice day.
+
+## STATE 5: Post-Conversion Knowledge Base Update
+
+**Assistant:** "Was the conversion satisfactory?"
+
+**User:** "No, the mass function seems off."
+
+**Assistant:** *(Proceeds to debug the scaling factor, reruns the test, and succeeds).* "Is the updated conversion satisfactory?"
+
+**User:** "Yes, looks good now."
+
+**Assistant:** "Would you like to update the format-database with hints for future conversions? \[y/N\]"
+
+**User:** "Yes, make sure to add a warning about the 10^10 mass scaling for SubLink."
+
+**Assistant:** "I have added this to the `topology_warnings` array in `format-database/hdf5_subfind_sublink.json`. Thank you."

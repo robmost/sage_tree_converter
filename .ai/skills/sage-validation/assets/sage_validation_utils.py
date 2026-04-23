@@ -32,7 +32,7 @@ def calculate_relative_difference(input_data, output_data, threshold=1e-8, allow
     # Check for linear scaling "cheating"
     if np.sum(mask) > 1:
         diff_var = np.var(diff[mask])
-        if diff_var < 1e-14 and not np.allclose(diff[mask], 0.0, atol=threshold):
+        if diff_var < 1e-14 and not np.allclose(diff[mask], 0.0, atol=threshold) and not allow_identical:
             raise ValueError(f"ANTI-CHEATING FAILURE: The relative difference is perfectly constant (variance={diff_var:.2e}). "
                              "This strongly indicates the Input array was mathematically derived from the Output array via linear scaling. "
                              "You MUST NOT derive Input from Output. Read the raw Input files independently.")

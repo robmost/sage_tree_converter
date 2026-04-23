@@ -55,3 +55,13 @@ Before generating and executing ANY semantic validation script, you MUST complet
 ## 5. Tool Parity
 
 **CRITICAL RESTRICTION**: You are FORBIDDEN from modifying `sage_validation_utils.py` or writing custom matplotlib plotting routines. You MUST import `plot_3x3_evolution`, `plot_1x3_histogram`, and `plot_1x3_hexbin` from `assets/sage_validation_utils.py`. You MUST read the raw simulation input file to serve as the ground-truth "Input" arrays for these functions. You must pre-process and format your raw parsed arrays to match its expected inputs, rather than changing the utility functions. Direct `plt.savefig()` and `plt.close()` calls are strictly forbidden in generated scripts.
+
+## 6. STATE 5: Post-Conversion Knowledge Base Update
+
+After a conversion and validation cycle is fully complete (State 4):
+
+1. **GATE (Wait for Yes):** Ask the user if the conversion was satisfactory `[y/N]`. **DO NOT PROCEED** until the user explicitly says "yes" or "looks good". If the user says "no", return to the debugging/execution states until the conversion is correct.
+2. **Prompt for Update:** Once the user confirms success, ask if they want to add any hints to the `format-database` for future conversions `[y/N]`.
+3. **AI Summarization:** If yes, take the user's raw feedback and distill it into concise, single-sentence directives for `topology_warnings` or `testing_hints`.
+4. **Cap Enforcement:** The hint arrays in the JSON file MUST be capped at a maximum of **5** entries each.
+   - If adding a new hint would exceed the cap of 5, you MUST offer the user two choices: (A) manually select which old hint to replace, or (B) let the AI propose an automated replacement. If the user chooses B, you must propose the change and wait for user confirmation before writing to the database.

@@ -26,6 +26,7 @@ To maintain the specialised functional nature of this tool, you must enforce the
     * Use `wc -l` to determine file length before deciding read depth.
     * If more than 50 lines of content are needed for analysis, write a targeted Python script to `assets/cli-scripts/` that extracts and summarises the relevant information programmatically, instead of dumping raw content to the terminal.
 8. **Validation Mandate:** Whenever performing SAGE format validation, NEVER evaluate the output in isolation. You MUST perform a 1:1 array comparison against the raw parsed input. You are FORBIDDEN from modifying `sage_validation_utils.py` or writing custom matplotlib routines. You MUST import and strictly use the existing functions in `sage_validation_utils.py`. You must pre-process and format your raw parsed arrays to match its expected inputs, rather than changing the utility functions.
+9. **Knowledge Base Update Mandate:** As part of the 5-state conversion workflow, after a conversion finishes, you MUST implement a GATE to ask the user if the conversion was satisfactory. Only upon receiving a positive confirmation ("yes") should you proceed to State 5 to prompt the user about updating the format-database with newly learned `topology_warnings` and `testing_hints`.
 
 ## 2. Workspace & Skills
 
@@ -35,7 +36,7 @@ Your behaviour is governed by dedicated skills that provide context and protocol
 
 * `.ai/skills/`: The centralized repository of AI skills for this workspace.
 * `.claude/` & `.gemini/`: Tool-specific configuration directories (containing symlinks to `AGENTS.md`).
-* `conversation-examples/`: Contains few-shot conversation examples demonstrating the 4-state conversion workflow. Reference these to align your behavior with the established protocol.
+* `conversation-examples/`: Contains few-shot conversation examples demonstrating the 5-state conversion workflow. Reference these to align your behavior with the established protocol.
 * `format-database/`: Check for existing simulation mappings. Save successful JSON mappings here.
 * `assets/cli-scripts/`: Save ad-hoc Python validation scripts or data parsers here.
 * `output/`: Save all validation plots, validation logs, and target test samples here.
