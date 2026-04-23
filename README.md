@@ -12,11 +12,21 @@ This repository is specifically designed to be used with an **LLM CLI** (e.g., *
 2. **Add your raw tree files** to the `input/` directory.
 3. **Invoke your LLM CLI** in the root folder.
 4. **Ask the Assistant** to convert your data (e.g., *"Convert the AHF files I just added"*).
-5. **The Assistant will autonomously advance through 4 States:**
-    * **STATE 1 (Discovery):** Research the file format and identify the required tool-chains.
-    * **STATE 2 (Analysis Report):** Propose a mapping schema and explicitly list the 7 validation steps. **(Requires your explicit approval to proceed).**
-    * **STATE 3 (Test Engine):** Extract a small sample subset to run rapid **Syntactic** and **Functional** integrity checks (no semantic plotting).
-    * **STATE 4 (Full Suite):** Process the entire dataset, generate the 7 mandatory 3-panel **Semantic** validation plots, and produce the final SAGE-compatible tree.
+5. **The Assistant will autonomously advance through 5 States:**
+
+```mermaid
+flowchart LR
+    S1[STATE 1<br>Discovery] --> S2[STATE 2<br>Analysis Report]
+    S2 -- Approval --> S3[STATE 3<br>Test Engine]
+    S3 --> S4[STATE 4<br>Full Suite]
+    S4 -- Confirmation --> S5[STATE 5<br>Knowledge Base Update]
+```
+
+* **STATE 1 (Discovery):** Research the file format and identify the required tool-chains.
+* **STATE 2 (Analysis Report):** Propose a mapping schema and explicitly list the 7 validation steps. **(Requires your explicit approval to proceed).**
+* **STATE 3 (Test Engine):** Extract a small sample subset to run rapid **Syntactic** and **Functional** integrity checks (no semantic plotting).
+* **STATE 4 (Full Suite):** Process the entire dataset, generate the 7 mandatory 3-panel **Semantic** validation plots, and produce the final SAGE-compatible tree.
+* **STATE 5 (Knowledge Base Update):** After a successful conversion, the Assistant prompts to update the `format-database` with new `topology_warnings` and `testing_hints`.
 
 ## 🐳 Sandboxed Execution (Docker)
 
@@ -54,15 +64,21 @@ If you prefer to run the tools manually without an AI or Docker, use the **Maste
 ```bash
 python3 conversion-engine/master_converter.py \
     --input "input/custom_gizmo_ahf-mergertree/*" \
-    --output "output/gizmo_trees.hdf5"
+    --output "output/gizmo_trees.hdf5" \
+    --n_trees 100
 ```
+
+**Available Options:**
+* `--input` (Required): Glob pattern for input raw simulation files.
+* `--output` (Required): Destination path for the converted SAGE HDF5 file.
+* `--n_trees` (Optional): Restricts the conversion to a specific number of trees. Useful for rapid testing and validation without processing the entire dataset.
 
 ## 📂 Repository Structure
 
 * **`AGENTS.md`**: The single source of truth for AI instructions, symlinked for Claude and Gemini.
 * **`.ai/skills/`**: Centralised repository of AI skills (e.g., validation protocols, mapping strategies, and workflow state machines) that strictly govern the AI's autonomous actions.
 * **`.claude/` & `.gemini/`**: Tool-specific configuration directories containing symlinked instructions.
-* **`conversation-examples/`**: Contains few-shot conversation examples demonstrating the 4-state conversion workflow.
+* **`conversation-examples/`**: Contains few-shot conversation examples demonstrating the 5-state conversion workflow.
 * **`conversion-engine/`**: Contains the core logic and specialized drivers.
   * `master_converter.py`: The main entry point for automated format detection.
   * `*_driver.py`: Tool-specific drivers (e.g., `ascii_ahf_mergertree_driver.py`).
@@ -87,30 +103,21 @@ This converter is built around **tools**, not just simulation names. It supports
 
 ## ✨ Key Features
 
-### 1. Snapshot Skipping (AHF)
+### 1. 5-State Autonomous Workflow
+A strictly governed state machine that guarantees reproducibility and prevents context bloat, advancing from initial discovery all the way to updating the format database with newly learned pointers and hints.
 
-The AHF driver utilises a **Global ID Mapping** strategy. It can resolve progenitor-descendant links across non-sequential snapshots, ensuring a continuous tree even if halos are "lost" for one or more snapshots.
-
-### 2. Data-Agnostic Design
-
-All scripts are designed to be agnostic of specific simulation filenames. Use glob patterns (e.g., `*.AHF_halos`) to provide your data, and the engine handles the rest.
-
-### 3. Budgeted Discovery & Performance Scaling
-
-The AI workflow is governed by a **Budgeted Discovery Protocol** that mandates:
-
-* **Bounded Reads:** No monolithic file loading; all data inspection uses strictly capped line/byte reads.
+### 2. Budgeted Discovery Protocol
+Designed for massive datasets. The AI mandates:
 * **Size-Before-Read:** Proactive auditing of file sizes (via `ls -lh`, `stat`) before any I/O occurs.
-* **Background Processing:** Long-running conversions are executed in the background to prevent timeouts.
-* **Multiprocessing:** Automated identification of parallelizable file structures to speed up ingestion.
+* **Bounded Reads:** No monolithic file loading; all data inspection uses strictly capped line/byte reads.
 
-### 4. Automated Validation (Auditor Protocol)
+### 3. Adversarial Validation (Auditor Protocol)
+Every full conversion is strictly gated behind a mandatory suite of Syntactic, Semantic, and Functional tests. The AI adopts an **"Auditor"** persona to:
+* Generate **seven 3-panel comparative plots** (e.g., Mass Assembly History, Spin Evolution).
+* Perform a **1:1 array comparison** against the raw parsed input to mathematically verify unit scalings and pointer continuity.
 
-Every full conversion is strictly gated behind a mandatory suite of Syntactic, Semantic, and Functional tests. During the final phase, the AI adopts a specialized **"Auditor"** persona to:
-
-* Generate **seven 3-panel comparative plots** (e.g., Mass Assembly History, Spin Evolution, Mass Functions).
-* Mathematically verify unit scalings, coordinate origins, and pointer continuity.
-* Log all findings and traces rigorously in the `output/` directory for human review.
+### 4. Continuous Knowledge Base Evolution
+Post-conversion, the system saves successful JSON mappings to `format-database/` and updates them with format-specific `topology_warnings` and `testing_hints`, making future conversions faster and more robust.
 
 ## 📦 Requirements
 
@@ -119,6 +126,8 @@ Every full conversion is strictly gated behind a mandatory suite of Syntactic, S
 * `h5py`
 * `pandas`
 * `matplotlib`
+* `psutil`
+* `tqdm`
 
 ---
 *Developed for use with the Semi-Analytic Galaxy Evolution (SAGE) model.*
