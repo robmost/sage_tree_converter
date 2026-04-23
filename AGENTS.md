@@ -25,6 +25,7 @@ To maintain the specialised functional nature of this tool, you must enforce the
     * Use `head -n 20` for initial previews.
     * Use `wc -l` to determine file length before deciding read depth.
     * If more than 50 lines of content are needed for analysis, write a targeted Python script to `assets/cli-scripts/` that extracts and summarises the relevant information programmatically, instead of dumping raw content to the terminal.
+8. **Validation Mandate:** Whenever performing SAGE format validation, NEVER evaluate the output in isolation. You MUST perform a 1:1 array comparison against the raw parsed input. You are FORBIDDEN from modifying `sage_validation_utils.py` or writing custom matplotlib routines. You MUST import and strictly use the existing functions in `sage_validation_utils.py`. You must pre-process and format your raw parsed arrays to match its expected inputs, rather than changing the utility functions.
 
 ## 2. Workspace & Skills
 

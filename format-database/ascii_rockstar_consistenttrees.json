@@ -84,6 +84,10 @@
       "pointer_scope: DEPTH_FIRST_ID_BASED",
       "pointer_description: ConsistentTrees provides global IDs (depth_first_id, desc_id). These must be mapped to zero-indexed array indices for SAGE.",
       "id_uniqueness: Halo IDs are globally unique. Root halos often have desc_id = -1, which requires explicit bounds handling."
+    ],
+    "testing_hints": [
+      "Raw input masses must be compared against (SAGE_Mvir * 1e10).",
+      "Topological traces must extract 5 branches for Top, Average, and Lowest mass roots."
     ]
   }
 }

@@ -88,6 +88,8 @@ Transitioning to State 4.
 
 ## STATE 4: Full Suite & Export
 
+**Assistant:** "I will now write the validation script. I will ensure I read the raw input, map the OriginalIDs, and use `sage_validation_utils.py` for all plotting to compare against the output. I will process the raw arrays to match the utility function inputs."
+
 Conducting batch conversion across all HDF5 volume chunks.
 
 **Final Conversion Results:**

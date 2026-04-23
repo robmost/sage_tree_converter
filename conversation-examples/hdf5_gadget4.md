@@ -93,6 +93,8 @@ Moving to State 4.
 
 ## STATE 4: Full Suite & Export
 
+**Assistant:** "I will now write the validation script. I will ensure I read the raw input, map the OriginalIDs, and use `sage_validation_utils.py` for all plotting to compare against the output. I will process the raw arrays to match the utility function inputs."
+
 Processing all 2.45 million halos natively.
 
 **Final Conversion Results:**

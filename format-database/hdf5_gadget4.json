@@ -69,6 +69,7 @@
       "pointer_scope: GLOBAL",
       "pointer_description: Gadget-4 pointers are typically absolute global indices. Ensure parity maps do not inadvertently apply offsets to already global pointers.",
       "id_uniqueness: Subhalo IDs are generally globally unique in Gadget-4 tree structures."
-    ]
+    ],
+    "testing_hints": []
   }
 }

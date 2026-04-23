@@ -41,6 +41,7 @@
       "pointer_scope: SUBLINK_ID_BASED",
       "pointer_description: SubLink tracking utilizes FirstProgenitorID, which refers to global IDs rather than array indices. Translation to 0-based array indices is required for SAGE pointers.",
       "id_uniqueness: Subhalo IDs are unique, but linking across snapshots requires careful mapping of ID to array index."
-    ]
+    ],
+    "testing_hints": []
   }
 }

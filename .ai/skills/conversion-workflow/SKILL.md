@@ -31,7 +31,11 @@ Advance sequentially through these states. Do NOT skip states.
 - **STATE 4 (Full Suite, Data Checkup, & Export):**
   - **GATE (Read):** Before writing the validation script, you MUST read `.ai/skills/sage-validation/assets/format_specs.json` and retrieve the `topology_warnings` from the current mapping in `format-database/`.
   - Process the entire dataset and generate all mandatory **Semantic** plots.
-  - **GATE (Audit):** Before executing any semantic validation script, you MUST delegate the code review to a separate sub-agent (e.g., `codebase-investigator` if using Gemini, or `Explore` if using Claude). Provide the sub-agent with the script, `format_specs.json`, and the format's `topology_warnings`. You may only proceed if the sub-agent approves the script.
+  - **GATE (Audit):** Before executing any semantic validation script, you MUST delegate the code review to a separate sub-agent (e.g., `codebase-investigator` if using Gemini, or `Explore` if using Claude). Provide the sub-agent with the script, `format_specs.json`, and the format's `topology_warnings`. You MUST explicitly ask the sub-agent to verify the following three things:
+    1. Does the script import and use `sage_validation_utils.py`? (Reject if it uses raw matplotlib calls or modifies the utility functions).
+    2. Does the script parse the RAW ASCII/HDF5 input files to establish an independent baseline? (Reject if it only reads the output).
+    3. Does it apply the correct unit scaling and physics information from `format_specs.json`?
+    You may only proceed if the sub-agent approves the script.
   - Perform the data checkup gate (via `sage-validation` skill). After full validation, write the final log and execute the `script-auditor` skill.
 
 ## 3. Conversion Engine Entry Point

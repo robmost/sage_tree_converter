@@ -38,6 +38,7 @@
       "pointer_scope: <e.g., GLOBAL, TREE_LOCAL, SYNTHESIZED_PARTICLE_BASED>",
       "pointer_description: <Describe how pointers are formed and any risk of out-of-bounds or offsets>",
       "id_uniqueness: <Describe if IDs are globally unique, snapshot-unique, or require explicit tracking>"
-    ]
+    ],
+    "testing_hints": []
   }
 }

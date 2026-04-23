@@ -77,6 +77,7 @@
       "pointer_scope: SYNTHESIZED_PARTICLE_BASED",
       "pointer_description: Pointers do not exist natively and must be synthesized from temporal ID linkages. High risk of cyclic or dangling pointers.",
       "id_uniqueness: Halo IDs must be globally unique across snapshots for temporal linking to succeed."
-    ]
+    ],
+    "testing_hints": []
   }
 }

@@ -61,6 +61,7 @@
       "pointer_scope: TREE_LOCAL",
       "pointer_description: FirstProgenitor and NextProgenitor pointers are absolute only within the scope of a single Tree. Do not use them as global array indices if concatenating multiple files.",
       "id_uniqueness: SubhaloIndex is NOT globally unique. It is only unique within a specific snapshot or FOF group."
-    ]
+    ],
+    "testing_hints": []
   }
 }

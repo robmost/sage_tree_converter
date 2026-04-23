@@ -54,4 +54,4 @@ Before generating and executing ANY semantic validation script, you MUST complet
 
 ## 5. Tool Parity
 
-All plotting MUST use `assets/sage_validation_utils.py`. Direct `plt.savefig()` and `plt.close()` calls are strictly forbidden in generated scripts.
+**CRITICAL RESTRICTION**: You are FORBIDDEN from modifying `sage_validation_utils.py` or writing custom matplotlib plotting routines. You MUST import `plot_3x3_evolution`, `plot_1x3_histogram`, and `plot_1x3_hexbin` from `assets/sage_validation_utils.py`. You MUST read the raw simulation input file to serve as the ground-truth "Input" arrays for these functions. You must pre-process and format your raw parsed arrays to match its expected inputs, rather than changing the utility functions. Direct `plt.savefig()` and `plt.close()` calls are strictly forbidden in generated scripts.
