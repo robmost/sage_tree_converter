@@ -1,0 +1,179 @@
+{
+  "format_id": "rockstar_consistent_trees_ascii",
+  "description": "ASCII merger tree format produced by Rockstar (halo finder) and Consistent Trees (tree builder). Each tree_*.dat file contains a flat list of halos across all trees in that file shard. Trees are delimited by '#tree <Tree_root_ID>' comment lines. Halos within each tree are ordered depth-first. Pointer fields are reconstructed from global halo IDs and depth-first index fields.",
+  "halo_finder": "Rockstar",
+  "tree_tool": "Consistent Trees",
+  "file_format": "ascii",
+  "driver_module": "rockstar_consistent_trees_ascii.py",
+  "references": [
+    "Behroozi et al. (2013), ApJ 762, 109 — Consistent Trees https://doi.org/10.1088/0004-637X/762/2/109",
+    "Behroozi et al. (2012), ApJ 756, 2 — Rockstar https://doi.org/10.1088/0004-637X/756/1/2",
+    "https://bitbucket.org/pbehroozi/consistent-trees"
+  ],
+  "field_map": {
+    "Descendant": {
+      "source_field": "desc_id",
+      "source_units": "global halo ID (int64)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "desc_id == -1 indicates no descendant (root halo). Mapped to tree-local flat index via id_to_local_index dict built per tree."
+    },
+    "FirstProgenitor": {
+      "source_field": "Depth_first_ID",
+      "source_units": "global depth-first integer",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "In depth-first ordering, halo at local_index i has its first progenitor at local_index i+1 if that halo's desc_id equals this halo's id; otherwise -1."
+    },
+    "NextProgenitor": {
+      "source_field": "Next_coprogenitor_depthfirst_ID",
+      "source_units": "global depth-first integer",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Converted to tree-local index by subtracting the tree's base Depth_first_ID and looking up via local dfi_to_index map. -1 when Next_coprogenitor_depthfirst_ID == -1."
+    },
+    "FirstHaloInFOFGroup": {
+      "source_field": "upid",
+      "source_units": "global halo ID (int64)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "upid is the ID of the most massive host halo (top-level FOF central). If upid == -1 the halo is itself a central: self-pointer. Otherwise map upid to tree-local index at the same snap_num."
+    },
+    "NextHaloInFOFGroup": {
+      "source_field": "upid",
+      "source_units": "global halo ID (int64)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Built by grouping halos at each snapshot by their top-level central (upid, or self if upid==-1), sorting group members by mvir descending, and linking them: central → sat1 → sat2 → ... → -1."
+    },
+    "SubhaloLen": {
+      "source_field": "mvir",
+      "source_units": "Msun/h",
+      "target_units": "particles",
+      "scale_factor": null,
+      "conversion_expr": "round(mvir / particle_mass_msun_per_h)",
+      "notes": "Consistent Trees does not output particle counts. Estimated as round(mvir / m_particle) where m_particle is the simulation particle mass in Msun/h. m_particle must be supplied via driver config or computed from Omega_M, box size, and N_particles. For BolshoiP (250 Mpc/h, 2048^3 particles, Omega_M=0.307115) m_particle ≈ 1.55e8 Msun/h."
+    },
+    "Group_M_Crit200": {
+      "source_field": "M200c",
+      "source_units": "Msun/h",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": 1e-10,
+      "conversion_expr": "M200c * 1e-10",
+      "notes": "Column index 40 in the ASCII file. Mass within the radius enclosing 200 times the critical density, as computed by Rockstar."
+    },
+    "Group_M_Mean200": {
+      "source_field": "M200b",
+      "source_units": "Msun/h",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": 1e-10,
+      "conversion_expr": "M200b * 1e-10",
+      "notes": "Column index 39. Mass within the radius enclosing 200 times the mean (background) density. Optional field; sentinel 0.0 if column is absent."
+    },
+    "Group_M_TopHat200": {
+      "source_field": "mvir",
+      "source_units": "Msun/h",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": 1e-10,
+      "conversion_expr": "mvir * 1e-10",
+      "notes": "Column index 10. Consistent Trees mvir uses the Bryan & Norman (1998) virial overdensity criterion Delta_vir(z), which is the standard tophat virial mass. This is the closest available field to Group_M_TopHat200. Optional field; sentinel 0.0 acceptable."
+    },
+    "SubhaloPos": {
+      "source_field": "x, y, z",
+      "source_units": "Mpc/h (comoving)",
+      "target_units": "kpc/h",
+      "scale_factor": 1000,
+      "conversion_expr": "stack([x, y, z], axis=1) * 1000",
+      "notes": "Columns 17, 18, 19. On-disk values in kpc/h for both output formats: the HDF5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing. Output shape (N, 3)."
+    },
+    "SubhaloVel": {
+      "source_field": "vx, vy, vz",
+      "source_units": "km/s (physical peculiar)",
+      "target_units": "km/s (physical peculiar)",
+      "scale_factor": 1,
+      "conversion_expr": "stack([vx, vy, vz], axis=1)",
+      "notes": "Columns 20, 21, 22. Already in km/s physical. Output shape (N, 3)."
+    },
+    "SubhaloVelDisp": {
+      "source_field": "vrms",
+      "source_units": "km/s (physical, 3D RMS)",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": "vrms",
+      "notes": "Column 13. Rockstar vrms is the 3D RMS velocity dispersion; SAGE convention is 1D dispersion (sigma_1D = vrms / sqrt(3)). Since SubhaloVelDisp is optional and not used for baryonic physics, vrms is mapped directly. See known_caveats."
+    },
+    "SubhaloVMax": {
+      "source_field": "vmax",
+      "source_units": "km/s (physical)",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": "vmax",
+      "notes": "Column 16. Rockstar vmax is max(sqrt(GM(<r>)/r)) — matches the SAGE definition exactly."
+    },
+    "SubhaloSpin": {
+      "source_field": "Jx, Jy, Jz",
+      "source_units": "(Msun/h)(Mpc/h)(km/s)",
+      "target_units": "(kpc/h)(km/s)",
+      "scale_factor": null,
+      "conversion_expr": "stack([Jx, Jy, Jz], axis=1) / mvir[:, None] * 1000",
+      "notes": "Columns 23, 24, 25. Jx/Jy/Jz are total angular momentum vectors (not specific). Dividing by mvir (Msun/h) yields specific angular momentum in (Mpc/h)(km/s); multiplying by 1000 converts to (kpc/h)(km/s) for on-disk storage. On-disk values in (kpc/h)(km/s) for both output formats: the HDF5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing. The dimensionless Spin column (26) is the Peebles spin parameter and cannot be used here. Output shape (N, 3)."
+    },
+    "SubhaloIDMostBound": {
+      "source_field": null,
+      "source_units": null,
+      "target_units": "particle ID (int64)",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Not available in Consistent Trees output. Using sentinel value -1 (int64)."
+    },
+    "SnapNum": {
+      "source_field": "Snap_num",
+      "source_units": "integer snapshot index",
+      "target_units": "integer snapshot index [0, N_snapshots - 1]",
+      "scale_factor": null,
+      "conversion_expr": "Snap_num",
+      "notes": "Column 31. Rockstar/Consistent Trees Snap_num is zero-based and matches the SAGE convention directly."
+    },
+    "FileNr": {
+      "source_field": null,
+      "source_units": null,
+      "target_units": "integer file index",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Not available in a stable per-halo form. Using sentinel value -1."
+    }
+  },
+  "pointer_logic": {
+    "description": "Consistent Trees encodes links via global 64-bit halo IDs (id, desc_id, upid) and pre-computed depth-first index fields (Depth_first_ID, Next_coprogenitor_depthfirst_ID, Last_progenitor_depthfirst_ID). Within each '#tree <root_id>' block in the ASCII file, halos are already stored in depth-first order. The driver assigns each halo a tree-local index (0, 1, 2, ...) equal to its position within the tree block. All five SAGE pointer fields are then reconstructed as tree-local indices.",
+    "Descendant": "Build a per-tree dict mapping global id → local_index. For each halo, look up desc_id in this dict. If desc_id == -1, set Descendant = -1.",
+    "FirstProgenitor": "Within each tree block, halos are in depth-first order. The first progenitor of halo at local_index i is at local_index i+1, provided i+1 < n_tree_halos and that halo's desc_id == this halo's id. Otherwise FirstProgenitor[i] = -1.",
+    "NextProgenitor": "Next_coprogenitor_depthfirst_ID is the global depth-first index of the next sibling progenitor. Convert to tree-local index: local = Next_coprogenitor_depthfirst_ID - tree_base_dfi, where tree_base_dfi = Depth_first_ID of the tree root. If Next_coprogenitor_depthfirst_ID == -1, set NextProgenitor = -1.",
+    "FirstHaloInFOFGroup": "For each halo in the tree: if upid == -1, the halo is a top-level central; set FirstHaloInFOFGroup = local_index of self. If upid != -1, look up upid in the per-tree id→local_index dict to obtain the central's local index. All lookups are O(1) via the dict.",
+    "NextHaloInFOFGroup": "Group all halos in the tree by snapshot (snap_num) and by their central (upid if upid != -1, else own id). Within each group, sort members by mvir descending. Build a singly-linked list: central.NextHaloInFOFGroup → first satellite, each satellite.NextHaloInFOFGroup → next satellite, last satellite.NextHaloInFOFGroup = -1. Halos with no satellites have NextHaloInFOFGroup = -1."
+  },
+  "simulation_params": {
+    "box_size_mpc_per_h": 250.0,
+    "omega_m": 0.307115,
+    "omega_l": 0.692885,
+    "h0": 0.680000,
+    "n_particles": 2048,
+    "particle_mass_note": "The driver computes particle mass from the file header (Omega_M, box_size) assuming n_side=2048 (BolshoiP default). For simulations with different N_particles, supply the correct value via --particle-mass <Msun/h> at conversion time; otherwise SubhaloLen will be incorrect. Example: BolshoiP (2048^3, 250 Mpc/h, Omega_M=0.307115, h=0.68): m_particle ≈ 1.55e8 Msun/h. Example: Shin-Uchuu (6400^3, 140 Mpc/h, Omega_M=0.30890, h=0.67740): m_particle = 8.97e5 Msun/h (user-confirmed); n_snapshots=70 (snap_idx 0–69, verified 2026-05-07). Formula: Omega_M * 2.775e11 * (box_size)^3 / n_particles^3 [Msun/h]."
+  },
+  "known_caveats": [
+    "SubhaloLen is not provided by Consistent Trees. It is estimated as round(mvir / m_particle) where m_particle is the simulation dark matter particle mass in Msun/h. This is an approximation: it ignores unbound particles and substructure. The true particle count may differ by a few percent.",
+    "SubhaloIDMostBound is not available in Consistent Trees output. The sentinel value -1 is written to every halo.",
+    "SubhaloVelDisp is mapped from Rockstar's vrms, which is the 3D RMS velocity dispersion (sigma_3D). SAGE convention is the 1D dispersion (sigma_1D = sigma_3D / sqrt(3)). Since SubhaloVelDisp is optional and SAGE does not use it for baryonic physics calculations, vrms is written directly without the sqrt(3) correction.",
+    "SubhaloSpin uses the total angular momentum vectors Jx, Jy, Jz divided by Mvir to produce specific angular momentum. The Consistent Trees Spin column (Peebles dimensionless spin parameter lambda) is NOT used.",
+    "Group_M_TopHat200 is mapped from Mvir, which uses the Bryan & Norman (1998) redshift-dependent virial overdensity Delta_vir(z). This is not identical to a fixed tophat overdensity criterion but is the standard virial mass and the closest available field.",
+    "Phantom halos (phantom != 0) are halos interpolated across timesteps by Consistent Trees. These are written to the output as regular halos. Users may wish to filter them if SAGE exhibits unexpected behaviour.",
+    "The forests.list and locations.dat files are used for efficient random access into tree_*.dat files. The driver may optionally use locations.dat to seek directly to each tree block rather than scanning the file sequentially.",
+    "The number of snapshots (n_snapshots) must be confirmed from the simulation metadata. For BolshoiP it is expected to be 180 (snap_num range 0-179), but the actual maximum snap_num in the data should be verified before writing the Header.",
+    "Some Consistent Trees outputs include extra trailing columns beyond the standard 59 (e.g. Shin-Uchuu adds Halfmass_Radius at col 59 and rvmax at col 60, giving 61 columns total). The driver accepts any file with >= 59 columns (_NCOLS_MIN check); extra trailing columns are silently ignored.",
+    "SAGE requires a non-empty FileWithSnapList parameter; an empty value causes an immediate fatal error. If no pre-existing snap list file is available, extract it from the input data by scanning for unique (snap_idx, scale_factor) pairs (col 31, col 0) and writing one scale factor per line ordered by snap_idx ascending."
+  ]
+}

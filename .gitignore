@@ -1,0 +1,33 @@
+# OS Files
+.DS_Store
+
+# Workspace files
+.vscode/
+*.code-workspace
+
+# Directories
+input/
+output/
+audits/*
+
+# Python files
+__pycache__/
+*.pyc
+
+# Environment API keys
+.env
+
+# PDD / internal planning documents
+pdd*.md
+
+# Stage 2 temporary conversion outputs
+assets/test_*.hdf5
+assets/test_*.0
+assets/test_sage_params.par
+assets/sage_test_output/
+assets/semantic_validation/
+
+# Additional Python artifacts
+*.pyo
+.mypy_cache/
+

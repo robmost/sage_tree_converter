@@ -1,0 +1,171 @@
+{
+  "format_id": "subfind_lhalotree_binary",
+  "description": "Classic LHaloTree binary format produced by the Gadget-2/Subfind pipeline and used by the original Millennium Simulation. Each file contains a compact binary header followed by a flat array of fixed-size 104-byte halo structs. Pointers are already tree-local integer indices; no reconstruction is needed. Field names are renamed to the canonical SAGE LHaloTree schema names used by both output formats (lhalo_hdf5 and lhalo_binary).",
+  "halo_finder": "FOF+Subfind (Gadget-2)",
+  "tree_tool": "LHaloTree",
+  "file_format": "binary",
+  "driver_module": "subfind_lhalotree_binary.py",
+  "references": [
+    "Springel et al. 2005, Nature 435, 629 — Millennium Simulation (https://doi.org/10.1038/nature03597)",
+    "Croton et al. 2016, ApJS 222, 22 — SAGE model (https://doi.org/10.3847/0067-0049/222/2/22)",
+    "https://github.com/sage-home/sage-model"
+  ],
+  "field_map": {
+    "Descendant": {
+      "source_field": "Descendant",
+      "source_units": "index",
+      "target_units": "index",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Tree-local integer index of this halo's descendant at the next snapshot. -1 if root (no descendant)."
+    },
+    "FirstProgenitor": {
+      "source_field": "FirstProgenitor",
+      "source_units": "index",
+      "target_units": "index",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Tree-local index of the most massive progenitor. -1 if leaf."
+    },
+    "NextProgenitor": {
+      "source_field": "NextProgenitor",
+      "source_units": "index",
+      "target_units": "index",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Tree-local index of the next progenitor sharing the same descendant. -1 if none."
+    },
+    "FirstHaloInFOFGroup": {
+      "source_field": "FirstHaloInFOFGroup",
+      "source_units": "index",
+      "target_units": "index",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Tree-local index of the central (most massive) halo in the same FOF group. A central halo points to itself."
+    },
+    "NextHaloInFOFGroup": {
+      "source_field": "NextHaloInFOFGroup",
+      "source_units": "index",
+      "target_units": "index",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Tree-local index of the next satellite in the same FOF group. -1 for the last satellite."
+    },
+    "SubhaloLen": {
+      "source_field": "Len",
+      "source_units": "particles",
+      "target_units": "particles",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Number of simulation particles bound to the halo."
+    },
+    "Group_M_Crit200": {
+      "source_field": "M_Crit200",
+      "source_units": "1e10 Msun/h",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Mass within r_200 (critical). Rename only — units already correct."
+    },
+    "Group_M_Mean200": {
+      "source_field": "M_Mean200",
+      "source_units": "1e10 Msun/h",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Mass within r_200 (mean). Rename only — units already correct."
+    },
+    "Group_M_TopHat200": {
+      "source_field": "M_TopHat",
+      "source_units": "1e10 Msun/h",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Top-hat virial mass. Rename only — units already correct."
+    },
+    "SubhaloPos": {
+      "source_field": "Pos",
+      "source_units": "Mpc/h",
+      "target_units": "kpc/h",
+      "scale_factor": 1000,
+      "conversion_expr": "source * 1000",
+      "notes": "Comoving position vector [X, Y, Z]. Shape (N, 3). On-disk values in kpc/h for both output formats: the HDF5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing."
+    },
+    "SubhaloVel": {
+      "source_field": "Vel",
+      "source_units": "km/s",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Peculiar velocity vector [Vx, Vy, Vz]. Shape (N, 3). Rename only."
+    },
+    "SubhaloVelDisp": {
+      "source_field": "VelDisp",
+      "source_units": "km/s",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "1D velocity dispersion. Rename only."
+    },
+    "SubhaloVMax": {
+      "source_field": "Vmax",
+      "source_units": "km/s",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Maximum circular velocity max(sqrt(GM/r)). Rename only."
+    },
+    "SubhaloSpin": {
+      "source_field": "Spin",
+      "source_units": "(Mpc/h)(km/s)",
+      "target_units": "(kpc/h)(km/s)",
+      "scale_factor": 1000,
+      "conversion_expr": "source * 1000",
+      "notes": "Specific angular momentum vector [Jx, Jy, Jz]. Shape (N, 3). On-disk values in (kpc/h)(km/s) for both output formats: the HDF5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing. NOT the dimensionless spin parameter lambda."
+    },
+    "SubhaloIDMostBound": {
+      "source_field": "MostBoundID",
+      "source_units": "dimensionless",
+      "target_units": "dimensionless",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Particle ID of the most bound particle. int64."
+    },
+    "SnapNum": {
+      "source_field": "SnapNum",
+      "source_units": "dimensionless",
+      "target_units": "dimensionless",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Zero-based snapshot index [0, 63] for the mini-Millennium (64 snapshots)."
+    },
+    "FileNr": {
+      "source_field": "FileNr",
+      "source_units": "dimensionless",
+      "target_units": "dimensionless",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Source file number (0–7 for mini-Millennium). Carried through unchanged."
+    }
+  },
+  "dropped_fields": {
+    "SubhaloIndex": "Not part of the SAGE LHaloTree schema. Discarded during conversion.",
+    "SubHalfMass": "Not part of the SAGE LHaloTree schema. Discarded during conversion."
+  },
+  "pointer_logic": {
+    "description": "All five pointer fields are already stored as tree-local integer indices into the flat halo array of the same tree. Sentinel value -1 indicates no link. This matches the SAGE LHaloTree pointer convention for both output formats, so no pointer reconstruction is required. Temporal constraint: progenitor SnapNum < descendant SnapNum. Spatial constraint: FirstHaloInFOFGroup and NextHaloInFOFGroup share the same SnapNum as the halo they point to.",
+    "FirstProgenitor": "Already a tree-local index. Copy directly.",
+    "NextProgenitor": "Already a tree-local index. Copy directly.",
+    "Descendant": "Already a tree-local index. Copy directly.",
+    "FirstHaloInFOFGroup": "Already a tree-local index. Central halo satisfies FirstHaloInFOFGroup[i] == i.",
+    "NextHaloInFOFGroup": "Already a tree-local index. Copy directly."
+  },
+  "particle_mass_1e10_msun_per_h": 0.0860,
+  "n_snapshots": 64,
+  "known_caveats": [
+    "SubhaloIndex and SubHalfMass are present in the binary struct but are not part of the SAGE LHaloTree HDF5 schema and are discarded during conversion.",
+    "ParticleMass defaults to 0.0860 × 10^10 Msun/h (Millennium Simulation value from Springel et al. 2005). Override for other simulations via the --particle-mass <value_in_Msun_per_h> CLI argument to the driver.",
+    "The binary files must be named trees_<snap>.<N> (e.g. trees_063.0). The driver discovers all such files in a directory and sorts them by file-extension number.",
+    "Multiple input binary files are merged into a single output file (HDF5 or binary depending on --output-format) with a global tree index. SAGE reads this as NumberOfOutputFiles=1."
+  ]
+}

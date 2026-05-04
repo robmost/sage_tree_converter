@@ -1,0 +1,166 @@
+{
+  "_comment": "Template for a KDB schema mapping entry. Copy this file to format-database/<format_id>.json and fill in every field. Remove this _comment key in the real entry. The field_map must contain an entry for every mandatory SAGE field listed here. A KDB entry that omits a mandatory field is considered incomplete.",
+  "format_id": "<halo_finder>_<tree_tool>_<file_format>",
+  "description": "<human-readable description of the input format>",
+  "halo_finder": "<AHF | Rockstar | FOF+Subfind (Gadget-2) | FOF+Subfind (Gadget-4)>",
+  "tree_tool": "<MergerTree | Consistent Trees | LHaloTree | Gadget-4 built-in>",
+  "file_format": "<ascii | binary-gadget1 | binary-gadget2 | hdf5>",
+  "driver_module": "<format_id>.py",
+  "references": [
+    "<URL to official documentation>",
+    "<paper citation, e.g. Author et al. (YYYY), DOI>"
+  ],
+  "field_map": {
+    "_comment": "One entry per mandatory SAGE LHaloTree field (see reference/sage_lhalotree_hdf5_schema.md for HDF5, reference/sage_lhalotree_binary_schema.md for binary). Field key names here are the writer-facing names used by both hdf5_writer and binary_writer — they must match exactly. Pointer fields are reconstructed via pointer_logic, not copied directly — set conversion_expr to 'see pointer_logic' for those.",
+
+    "Descendant": {
+      "source_field": "derived",
+      "source_units": "halo ID or snapshot-relative index (format-dependent)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Temporal pointer. Reconstructed from the input's descendant identifier. See pointer_logic.Descendant for format-specific logic."
+    },
+    "FirstProgenitor": {
+      "source_field": "derived",
+      "source_units": "halo ID or snapshot-relative index (format-dependent)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Temporal pointer. The most massive progenitor. See pointer_logic.FirstProgenitor."
+    },
+    "NextProgenitor": {
+      "source_field": "derived",
+      "source_units": "halo ID or snapshot-relative index (format-dependent)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Temporal pointer. Next in the sibling progenitor chain. See pointer_logic.NextProgenitor."
+    },
+    "FirstHaloInFOFGroup": {
+      "source_field": "derived",
+      "source_units": "halo ID or group index (format-dependent)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Spatial pointer. Central halo of the FOF group. Self-pointer for centrals. See pointer_logic.FirstHaloInFOFGroup."
+    },
+    "NextHaloInFOFGroup": {
+      "source_field": "derived",
+      "source_units": "halo ID or group index (format-dependent)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Spatial pointer. Next satellite in the FOF group chain. See pointer_logic.NextHaloInFOFGroup."
+    },
+
+    "SubhaloLen": {
+      "source_field": "<source column/dataset name for particle count>",
+      "source_units": "particles",
+      "target_units": "particles",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Number of bound particles. Direct copy if units match."
+    },
+    "Group_M_Crit200": {
+      "source_field": "<source column/dataset name for M_crit200>",
+      "source_units": "<e.g. Msun/h | 1e10 Msun/h | Msun>",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": "<e.g. 1e-10 if source is in Msun/h>",
+      "conversion_expr": "<e.g. source_field * 1e-10>",
+      "notes": "Halo mass within R_200_crit. Verify that the source uses critical (not mean) overdensity."
+    },
+    "Group_M_Mean200": {
+      "source_field": "<source column/dataset name, or null if unavailable>",
+      "source_units": "<e.g. Msun/h>",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": "<number or null>",
+      "conversion_expr": "<Python expression or null>",
+      "notes": "Optional; SAGE reads but does not use for baryonic physics. Use sentinel 0.0 if unavailable."
+    },
+    "Group_M_TopHat200": {
+      "source_field": "<source column/dataset name, or null if unavailable>",
+      "source_units": "<e.g. Msun/h>",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": "<number or null>",
+      "conversion_expr": "<Python expression or null>",
+      "notes": "Optional; SAGE reads but does not use for baryonic physics. Use sentinel 0.0 if unavailable."
+    },
+    "SubhaloPos": {
+      "source_field": "<source column/dataset name for [X, Y, Z] position>",
+      "source_units": "<e.g. kpc/h | Mpc/h | code units>",
+      "target_units": "kpc/h",
+      "scale_factor": "<e.g. 1 if source is already in kpc/h; 1000 if source is in Mpc/h>",
+      "conversion_expr": "<e.g. source_field * 1000 if source is in Mpc/h>",
+      "notes": "3-vector [X, Y, Z]. Output shape: (N, 3). Ensure comoving coordinates. On-disk values must be in kpc/h for both output formats: the HDF5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing."
+    },
+    "SubhaloVel": {
+      "source_field": "<source column/dataset name for [Vx, Vy, Vz]>",
+      "source_units": "<e.g. km/s | m/s>",
+      "target_units": "km/s",
+      "scale_factor": "<number or null>",
+      "conversion_expr": "<Python expression or null>",
+      "notes": "Peculiar velocity 3-vector [Vx, Vy, Vz]. Output shape: (N, 3)."
+    },
+    "SubhaloVelDisp": {
+      "source_field": "<source column/dataset name, or null if unavailable>",
+      "source_units": "<e.g. km/s>",
+      "target_units": "km/s",
+      "scale_factor": "<number or null>",
+      "conversion_expr": "<Python expression or null>",
+      "notes": "Optional; SAGE reads but does not use for baryonic physics. Use sentinel 0.0 if unavailable."
+    },
+    "SubhaloVMax": {
+      "source_field": "<source column/dataset name for Vmax>",
+      "source_units": "<e.g. km/s>",
+      "target_units": "km/s",
+      "scale_factor": "<number or null>",
+      "conversion_expr": "<Python expression or null>",
+      "notes": "Maximum circular velocity max(sqrt(GM(<r>)/r)). Not the velocity modulus. Verify against source definition."
+    },
+    "SubhaloSpin": {
+      "source_field": "<source column/dataset name for [Jx, Jy, Jz]>",
+      "source_units": "<e.g. (Mpc/h)(km/s) | (kpc/h)(km/s)>",
+      "target_units": "(kpc/h)(km/s)",
+      "scale_factor": "<e.g. 1 if source is already in (kpc/h)(km/s); 1000 if source is in (Mpc/h)(km/s)>",
+      "conversion_expr": "<e.g. source_field * 1000 if source is in (Mpc/h)(km/s)>",
+      "notes": "Specific angular momentum 3-vector [Jx, Jy, Jz] — angular momentum per unit mass, NOT the dimensionless spin parameter lambda. On-disk values must be in (kpc/h)(km/s) for both output formats: the HDF5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing. Output shape: (N, 3)."
+    },
+    "SubhaloIDMostBound": {
+      "source_field": "<source column/dataset name for most-bound particle ID, or null>",
+      "source_units": "particle ID (integer)",
+      "target_units": "particle ID (integer)",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "int64. Use sentinel -1 if unavailable in the input format."
+    },
+    "SnapNum": {
+      "source_field": "<source column/dataset name for snapshot index>",
+      "source_units": "integer snapshot index",
+      "target_units": "integer snapshot index [0, N_snapshots - 1]",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Zero-based. Verify that the input uses the same indexing convention."
+    },
+    "FileNr": {
+      "source_field": "<source column/dataset name, or null if unavailable>",
+      "source_units": "integer file index",
+      "target_units": "integer file index",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Optional; SAGE reads but does not use for baryonic physics. Use sentinel -1 if unavailable."
+    }
+  },
+  "pointer_logic": {
+    "description": "<Describe how the input format encodes temporal and spatial links. E.g. does it store global halo IDs, snapshot-local indices, or pre-built LHaloTree-style pointers? Describe any sorting or re-indexing required to convert to flat per-tree integer indices.>",
+    "FirstProgenitor": "<Describe which input field or algorithm yields the main progenitor index. E.g. 'group by descendant ID, sort progenitors by Mvir descending, take first'.>",
+    "NextProgenitor": "<Describe how the sibling progenitor chain is built. E.g. 'remaining progenitors of the same descendant, sorted by Mvir descending'.>",
+    "Descendant": "<Describe which input field maps to the descendant. E.g. 'DescendantID column mapped to flat tree index via id_to_index dict'.>",
+    "FirstHaloInFOFGroup": "<Describe how the central halo is identified. E.g. 'HostHaloID == HaloID indicates central; otherwise map HostHaloID to tree index'.>",
+    "NextHaloInFOFGroup": "<Describe how the satellite chain is built. E.g. 'group halos by HostHaloID at the same snapshot, link in order of decreasing Mvir'.>"
+  },
+  "known_caveats": [
+    "<Describe any known issues, edge cases, or deviations from ideal LHaloTree semantics. E.g. 'AHF MergerTree does not guarantee a unique main progenitor; ties broken by particle count'.>",
+    "<Add as many entries as needed.>"
+  ]
+}

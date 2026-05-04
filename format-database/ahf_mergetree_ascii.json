@@ -1,0 +1,187 @@
+{
+  "format_id": "ahf_mergetree_ascii",
+  "description": "ASCII merger tree format produced by AHF (Amiga Halo Finder) and its companion MergerTree tool. Per-snapshot halo catalogues are stored in .AHF_halos files; progenitor links (all progenitors with merit scores) are stored in .AHF_croco files; the best-progenitor index is stored in .AHF_mtree_idx files. Halo IDs encode the snapshot number and MPI rank via the SUSSING2013 scheme: ID = snap_id * 1e16 + mpi_rank * 1e10 + halo_1based_index. Trees are reconstructed from the full progenitor graph; pointers are expressed as tree-local flat indices.",
+  "halo_finder": "AHF",
+  "tree_tool": "MergerTree",
+  "file_format": "ascii",
+  "driver_module": "ahf_mergetree_ascii.py",
+  "references": [
+    "Knollmann & Knebe (2009), ApJS 182, 608 — AHF: AMIGA's Halo Finder https://doi.org/10.1088/0067-0049/182/2/608",
+    "AHF source v1.0-123, analysis/MergerTree/src/libio.c — write_mtree(), libio_halos.c — getHaloID / getSussing2013ID",
+    "AHF source v1.0-123, src/libahf/ahf_halos.c — AngMom normalization (lines 4946-4960), sigV definition (line 4687), halo ID encoding (line 2150)"
+  ],
+  "field_map": {
+    "Descendant": {
+      "source_field": "derived",
+      "source_units": "AHF SUSSING2013 halo ID (uint64)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Inverted from AHF_croco progenitor links. Each AHF_croco file for snap N lists progenitors of snap-N halos in snap N-1; the driver inverts these to build a snap-N-1 → snap-N descendant map. If a progenitor appears in multiple descendant lists (only possible when MTREE_BOTH_WAYS is not set), the descendant with the highest shared-particle merit is kept."
+    },
+    "FirstProgenitor": {
+      "source_field": "derived",
+      "source_units": "AHF SUSSING2013 halo ID (uint64)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "The progenitor listed first (highest merit = SharedPart/max(HaloPart_desc, HaloPart_prog)) in the AHF_croco block for each descendant halo. Mapped to tree-local flat index."
+    },
+    "NextProgenitor": {
+      "source_field": "derived",
+      "source_units": "AHF SUSSING2013 halo ID (uint64)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "The second (and subsequent) progenitors in the AHF_croco list for a given descendant, forming a singly-linked chain. NextProgenitor[FirstProgenitor] = second progenitor, etc. Mapped to tree-local flat indices."
+    },
+    "FirstHaloInFOFGroup": {
+      "source_field": "hostHaloID",
+      "source_units": "AHF SUSSING2013 halo ID (uint64); 0 = no host (field halo)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "AHF hostHaloID encodes the SUSSING2013 ID of the direct parent halo; a value of 0 means the halo is a field/central halo. For SAGE, FirstHaloInFOFGroup must point to the TOP-LEVEL central (the ancestor of the full subhalo hierarchy with hostHaloID=0). The driver traces each halo's hostHaloID chain to find this top-level central."
+    },
+    "NextHaloInFOFGroup": {
+      "source_field": "derived",
+      "source_units": "grouping by top-level central at same snapshot",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Built by grouping all halos at each snapshot that share the same top-level central (hostHaloID=0 ancestor). Within each group, halos are sorted by Mhalo descending (central first). The chain links central → sat1 → sat2 → ... → -1."
+    },
+    "SubhaloLen": {
+      "source_field": "npart",
+      "source_units": "particles",
+      "target_units": "particles",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Column 5 in AHF_halos. Direct copy of bound particle count."
+    },
+    "Group_M_Crit200": {
+      "source_field": "Mhalo",
+      "source_units": "Msun/h",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": 1e-10,
+      "conversion_expr": "Mhalo * 1e-10",
+      "notes": "Column 4 in AHF_halos. AHF defines the virial mass using the overdensity threshold stored in column 36 (ovdens). For this dataset ovdens=200.00 (critical), so Mhalo is M_200c — a direct match for Group_M_Crit200."
+    },
+    "Group_M_Mean200": {
+      "source_field": null,
+      "source_units": null,
+      "target_units": "1e10 Msun/h",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Not available in AHF output. AHF computes a single virial mass using one overdensity criterion (critical or mean, set at compile/run time). This dataset uses critical (ovdens=200). Using sentinel 0.0."
+    },
+    "Group_M_TopHat200": {
+      "source_field": null,
+      "source_units": null,
+      "target_units": "1e10 Msun/h",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Not available in AHF output. AHF does not separately compute the Bryan & Norman (1998) tophat virial mass. Using sentinel 0.0."
+    },
+    "SubhaloPos": {
+      "source_field": "Xc, Yc, Zc",
+      "source_units": "kpc/h (comoving)",
+      "target_units": "kpc/h",
+      "scale_factor": 1,
+      "conversion_expr": "stack([Xc, Yc, Zc], axis=1)",
+      "notes": "Columns 6-8 in AHF_halos. AHF writes positions as pos_code * x_fac * 1000, where x_fac = 1/boxsize converts code units to Mpc/h, so the output is in kpc/h. No scaling required. Output shape (N, 3). On-disk values stored in kpc/h for both output formats: lhalo_hdf5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing."
+    },
+    "SubhaloVel": {
+      "source_field": "VXc, VYc, VZc",
+      "source_units": "km/s (physical peculiar)",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": "stack([VXc, VYc, VZc], axis=1)",
+      "notes": "Columns 9-11 in AHF_halos. AHF writes velocities as vel_code * v_fac where v_fac = a * t_unit / boxsize converts to physical peculiar km/s. No scaling required. Output shape (N, 3)."
+    },
+    "SubhaloVelDisp": {
+      "source_field": "sigV",
+      "source_units": "km/s (3D RMS velocity dispersion)",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": "sigV",
+      "notes": "Column 19 in AHF_halos. AHF computes sigV = sqrt(sum(|dV|^2 * weight) / M_total) which is the 3D RMS velocity dispersion (sigma_3D). SAGE convention for SubhaloVelDisp is the 1D dispersion (sigma_1D = sigma_3D / sqrt(3)). Since SubhaloVelDisp is optional and not used for baryonic physics, sigV is written directly without the sqrt(3) correction. See known_caveats."
+    },
+    "SubhaloVMax": {
+      "source_field": "Vmax",
+      "source_units": "km/s (physical)",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": "Vmax",
+      "notes": "Column 17 in AHF_halos. AHF Vmax = sqrt(V2_max * phi_fac) where V2_max is the peak of GM(<r)/r — this is the correct max circular velocity definition matching the SAGE convention."
+    },
+    "SubhaloSpin": {
+      "source_field": "lambda, Lx, Ly, Lz, Mhalo, Rhalo",
+      "source_units": "lambda: dimensionless; Lx/Ly/Lz: unit vector; Mhalo: Msun/h; Rhalo: kpc/h",
+      "target_units": "(kpc/h)(km/s)",
+      "scale_factor": null,
+      "conversion_expr": "j_mag = lambda * sqrt(2 * G_phys * Mhalo * (Rhalo / 1000)) * 1000; SubhaloSpin = stack([j_mag*Lx, j_mag*Ly, j_mag*Lz], axis=1); where G_phys = 4.3009e-9 (Mpc/h)(km/s)^2(Msun/h)^-1",
+      "notes": "AHF stores AngMom as a UNIT VECTOR (direction cosines, cols 22-24 in AHF_halos) normalized by |L|; the magnitude information is encoded in lambda (col 20, Bullock-style spin parameter: lambda = |L_code| / (M_vir_code * sqrt(2 * M_vir_code * R_vir_code)) with G=1 in code units). The specific angular momentum magnitude is reconstructed from the physical definition: lambda = |j| / sqrt(2 * G * M_vir * R_vir), so |j| = lambda * sqrt(2 * G * Mhalo * Rhalo_Mpc_h). G = 4.3009e-9 (Mpc/h)(km/s)^2(Msun/h)^-1. Rhalo from col 12 is in kpc/h; divide by 1000 to get Mpc/h. Multiply final result by 1000 to convert from (Mpc/h)(km/s) to (kpc/h)(km/s). The direction is given by the unit vector (Lx, Ly, Lz). Output shape (N, 3). See known_caveats for the lambda reconstruction caveat. On-disk values in (kpc/h)(km/s): lhalo_hdf5 reader multiplies by 0.001; binary_writer divides by 1000 before packing."
+    },
+    "SubhaloIDMostBound": {
+      "source_field": null,
+      "source_units": null,
+      "target_units": "particle ID (int64)",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Not available in standard AHF_halos output. The most-bound particle index is tracked internally but not written to the per-snapshot catalogue. Using sentinel value -1 (int64)."
+    },
+    "SnapNum": {
+      "source_field": "derived from HaloID",
+      "source_units": "integer snapshot index encoded in HaloID",
+      "target_units": "integer snapshot index [0, N_snapshots - 1]",
+      "scale_factor": null,
+      "conversion_expr": "snap_id = int(HaloID // int(1e16)); SnapNum = snap_id - min_snap_id",
+      "notes": "AHF SUSSING2013 halo IDs encode the snapshot number: snap_id = floor(HaloID / 1e16). For this dataset, snaps run from 5 (z=29.079) to 56 (z=0.000), giving 52 snapshots. SnapNum is made zero-based by subtracting the minimum snap index (5): SnapNum = snap_id - 5, range [0, 51]. The min_snap_id is determined at runtime from the filenames."
+    },
+    "FileNr": {
+      "source_field": null,
+      "source_units": null,
+      "target_units": "integer file index",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Not applicable for AHF multi-snapshot ASCII format; the converter merges all snapshots into a single output file. Using sentinel value -1."
+    }
+  },
+  "pointer_logic": {
+    "description": "AHF/MergerTree does not produce pre-built LHaloTree pointer arrays. The driver must construct merger trees from scratch by (1) parsing all per-snapshot AHF_halos files and (2) parsing all AHF_croco progenitor-link files. Halo IDs follow the SUSSING2013 encoding: ID = snap_id * 1e16 + mpi_rank * 1e10 + halo_1based_index. Progenitor links in AHF_croco run backwards in time: each file for snapshot N lists, for every snap-N halo, all snap-(N-1) halos that share particles with it, sorted by merit descending. The driver inverts these to obtain descendant links, then identifies connected trees by DFS from snap-N_max roots, assigns flat tree-local indices, and builds all five SAGE pointer fields.",
+    "step1_parse_catalogues": "For each snapshot S from snap_min to snap_max, parse the corresponding AHF_halos file. Store per-halo: HaloID, Mhalo, npart, Xc/Yc/Zc, VXc/VYc/VZc, Vmax, sigV, lambda, Lx/Ly/Lz, Rhalo, hostHaloID, SnapNum. Build a global dict halo_props[HaloID] = {...}.",
+    "step2_parse_croco": "For each AHF_croco file (snap N, N from snap_min+1 to snap_max): parse every descendant block. Build progenitors[desc_ID] = [(merit1, prog_ID1), (merit2, prog_ID2), ...] sorted by merit descending. Simultaneously build descendants[prog_ID] = desc_ID (keep highest-merit descendant if a prog_ID appears under multiple desc_IDs, which should not occur with MTREE_BOTH_WAYS but is possible otherwise).",
+    "step3_identify_trees": "Starting from all halos at snap_max (z=0) that have no descendant entry in the descendants dict, perform a DFS/BFS backwards through progenitors to collect all temporally connected halos into a single tree. Halos at earlier snapshots with no descendant (orphan halos — e.g. from snap-skipping that was never resolved) are each placed in their own singleton tree. Process trees in order of decreasing Mhalo of the snap_max root.",
+    "step4_assign_indices": "Within each tree, assign flat integer indices [0, N_tree-1]. The ordering is: all halos sorted first by SnapNum descending (z=0 first, high-z last), then by Mhalo descending within each snapshot. This places the z=0 root at index 0 and ensures temporal consistency.",
+    "Descendant": "For each halo H in the tree, look up descendants[H.HaloID]. If found, map the result HaloID to its flat index via haloID_to_flat_index[desc_HaloID]. If not found (H is a root), set Descendant[H] = -1.",
+    "FirstProgenitor": "For each halo H: if H.HaloID is in progenitors and the list is non-empty, FirstProgenitor[H] = haloID_to_flat_index[progenitors[H.HaloID][0][1]] (the highest-merit progenitor). Otherwise -1.",
+    "NextProgenitor": "For each halo H with k>=2 progenitors [P0, P1, ..., Pk-1] sorted by merit descending: NextProgenitor[flat_index(P0)] = flat_index(P1), NextProgenitor[flat_index(P1)] = flat_index(P2), ..., NextProgenitor[flat_index(Pk-1)] = -1. Progenitors of H that have no sibling (k=1 or last in list) get NextProgenitor = -1.",
+    "FirstHaloInFOFGroup": "For each halo H at snapshot S: trace the hostHaloID chain upwards (hostHaloID != 0) until reaching the top-level central C (hostHaloID == 0). FirstHaloInFOFGroup[H] = haloID_to_flat_index[C.HaloID]. For a top-level central, FirstHaloInFOFGroup[C] = flat_index(C) (self-pointer). Cache the top-central result per halo to avoid repeated traversal (O(N) total with memoization).",
+    "NextHaloInFOFGroup": "For each snapshot S, group all halos by their top-level central HaloID. Within each group, sort by Mhalo descending (central first, then satellites by decreasing mass). Build the singly-linked chain: central.NextHaloInFOFGroup = flat_index(sat1), sat1.NextHaloInFOFGroup = flat_index(sat2), ..., last_sat.NextHaloInFOFGroup = -1. Halos with no group members other than themselves also get NextHaloInFOFGroup = -1."
+  },
+  "simulation_params": {
+    "box_size_mpc_per_h": 25.0,
+    "omega_m": 0.3099,
+    "omega_l": 0.6901,
+    "omega_b": 0.0488911,
+    "h0": 0.67742,
+    "n_snapshots": 52,
+    "snap_index_min": 5,
+    "snap_index_max": 56,
+    "n_particles_per_side": 512,
+    "ic_type": "CDM_3LPT",
+    "particle_mass_msun_per_h": 1.0012e7,
+    "particle_mass_note": "Confirmed from B25_N512_CDM_3LPT_z39_adapt.gizmo_parameters: Omega0=0.3099, BoxSize=25 Mpc/h, N=512^3. Formula: 0.3099 * 2.775e11 * 25^3 / 512^3 = 1.001e7 Msun/h. Matches driver estimate from Mhalo/npart."
+  },
+  "known_caveats": [
+    "SubhaloSpin is reconstructed from AHF's lambda spin parameter and AngMom unit vector. AHF stores AngMom as a UNIT VECTOR (direction cosines), not as specific angular momentum. The magnitude is reconstructed using the physical formula |j| = lambda * sqrt(2G * Mhalo * Rhalo_Mpc_h) with G = 4.3009e-9 (Mpc/h)(km/s)^2(Msun/h)^-1. This reconstruction is physically correct given the AHF lambda definition (confirmed from source: ahf_halos.c line 4952) but introduces dependence on Mhalo and Rhalo. Any uncertainty in these fields propagates to SubhaloSpin.",
+    "SubhaloVelDisp is mapped from AHF's sigV, which is the 3D RMS velocity dispersion (sigma_3D = sqrt(sum(|dV|^2 * w) / M), confirmed from ahf_halos.c line 4687). SAGE convention is the 1D dispersion (sigma_1D = sigma_3D / sqrt(3)). Since SubhaloVelDisp is optional and not used for SAGE baryonic physics, sigV is written directly.",
+    "Group_M_Mean200 and Group_M_TopHat200 are not available in AHF output. AHF computes a single virial mass using one overdensity criterion (here: M_200c, ovdens=200 critical). Both fields use sentinel 0.0.",
+    "SubhaloIDMostBound is not written to standard AHF_halos output. Sentinel -1 is used.",
+    "AHF snap-skipping: when MergerTree cannot find a progenitor at the immediately preceding snapshot, it searches further back in time. Progenitor-descendant links may therefore span non-adjacent snapshots. Such halos will have SnapNum values that differ by more than 1 across a Descendant-FirstProgenitor link, which is unusual but valid for SAGE (SAGE uses SnapNum to order halos temporally, not to enforce strict adjacency).",
+    "AHF hostHaloID encodes a multi-level subhalo hierarchy (sub-sub-halos etc.). The driver flattens this to a two-level structure for SAGE (top-level central + all satellites at any depth). Sub-subhalo hierarchical structure is not preserved in SAGE's FOF group chain.",
+    "The SUSSING2013 halo ID encoding assumes the AHF run used WITH_MPI: ID = snap_id * 1e16 + mpi_rank * 1e10 + halo_1based_index. For a single-process run (no MPI), the encoding is snap_id * 1e12 + halo_1based_index (from specific.c line 2150). The data files for this dataset use the MPI encoding (snap IDs visible as the leading two digits of 18-digit IDs), which the driver auto-detects by checking whether floor(ID / 1e16) yields a plausible snapshot number.",
+    "The AHF_croco files list progenitors ordered by merit at the time of writing, which is SharedPart / min(HaloPart_desc, HaloPart_prog) or a variant — the exact merit formula depends on the MergerTree compile-time flags. The driver treats the order as merit-descending and assigns FirstProgenitor to the first-listed progenitor, consistent with the AHF convention."
+  ]
+}

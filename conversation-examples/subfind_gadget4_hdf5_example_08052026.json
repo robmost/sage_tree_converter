@@ -1,0 +1,22 @@
+{
+  "format_id": "subfind_gadget4_hdf5",
+  "session_date": "08052026",
+  "input_description": "Gadget-4 SubLink merger tree for the 'gadget4-dust' simulation: single-file trees.hdf5 (1.1 GB), 194,957 trees, ~8.4 million halos, 128 snapshots, 35 Mpc/h box, SUBFIND_HBT halo finder, cosmology Omega=0.321 OmegaLambda=0.679 h=0.6688",
+  "mapping_source": "web_discovery",
+  "issues_encountered": [
+    "TreeDescendant misidentified as global flat-array index: early driver versions subtracted StartOffset to obtain tree-local indices, which was correct only for Tree0 (StartOffset=0) but silently corrupted all other trees.",
+    "TreeFirstProgenitor/TreeNextProgenitor point forward in time in Gadget-4 (opposite to SAGE convention) and contain cross-tree references; they cannot be used directly.",
+    "TreeFirstHaloInFOFgroup/TreeNextHaloInFOFgroup contain cross-tree pointers that cannot be resolved within a single tree slice.",
+    "~0.2% of halos have same-snapshot TreeDescendant values (intra-snapshot FOF mergers), violating the SAGE requirement that Descendant must point strictly forward in time.",
+    "Forest reconstruction via global pointer-jumping (attempted in v3) was also incorrect because it depended on the false global-index assumption."
+  ],
+  "resolutions": [
+    "Verified tree-local interpretation by checking Trees 0-4: under local interpretation, zero backward desc links exist in all trees; under global interpretation, 607,938 spurious backward links appear in Tree1 alone. Final driver (v4) uses TreeDescendant values as-is (no offset subtraction): they are already in [0, Length) or -1.",
+    "Discarded TreeFirstProgenitor and TreeNextProgenitor; reconstructed FirstProgenitor/NextProgenitor by inverting the resolved Descendant array (sort by SubhaloLen descending, vectorised, O(N log N)).",
+    "Discarded TreeFirstHaloInFOFgroup and TreeNextHaloInFOFgroup; reconstructed FirstHaloInFOFGroup/NextHaloInFOFGroup from (SnapNum, GroupNr) grouping (vectorised lexsort + cumsum, O(N log N)).",
+    "Added _resolve_same_snap_desc() that iteratively follows same-snapshot desc links (up to 10 hops per halo, using original values for each hop) until a cross-snapshot or -1 link is reached.",
+    "Reverted to one-Gadget4-tree = one-SAGE-tree (no forest reconstruction); processes each tree as an independent slice, yielding 194,957 SAGE trees."
+  ],
+  "kdb_action": "new_driver",
+  "outcome": "success"
+}

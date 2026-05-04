@@ -1,0 +1,170 @@
+{
+  "format_id": "subfind_gadget4_hdf5",
+  "description": "Gadget-4 built-in SubLink merger tree (FOF+Subfind / SUBFIND_HBT halo finder), HDF5 output produced by restartflag=8. All halos stored in a single flat /TreeHalos array; tree boundaries encoded in /TreeTable (StartOffset, Length). TreeDescendant values are TREE-LOCAL offsets into each tree's own halo slice.",
+  "halo_finder": "FOF+Subfind (Gadget-4)",
+  "tree_tool": "Gadget-4 built-in",
+  "file_format": "hdf5",
+  "driver_module": "subfind_gadget4_hdf5.py",
+  "references": [
+    "https://wwwmpa.mpa-garching.mpg.de/gadget4/",
+    "https://wwwmpa.mpa-garching.mpg.de/gadget4/09_special_modules/",
+    "Springel et al. (2021), MNRAS 506 2871 — Gadget-4 code paper"
+  ],
+  "field_map": {
+    "Descendant": {
+      "source_field": "TreeHalos/TreeDescendant",
+      "source_units": "tree-local index (int32, values in [0, Length) or -1)",
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "TreeDescendant stores a tree-local index (offset within the tree's own halo slice), NOT a global flat-array index. No offset subtraction is needed. After sorting halos within the tree the index is remapped through the sort permutation. Same-snapshot desc links (Gadget-4 records intra-snapshot FOF mergers this way) are resolved iteratively (up to 10 hops) to produce strictly forward-in-time pointers."
+    },
+    "FirstProgenitor": {
+      "source_field": "derived",
+      "source_units": null,
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Reconstructed by inverting Descendant. TreeHalos/TreeFirstProgenitor is DISCARDED — it points forward in time in Gadget-4 (opposite to SAGE convention) and may contain cross-tree references."
+    },
+    "NextProgenitor": {
+      "source_field": "derived",
+      "source_units": null,
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Reconstructed by inverting Descendant. TreeHalos/TreeNextProgenitor is DISCARDED for the same reason as TreeFirstProgenitor."
+    },
+    "FirstHaloInFOFGroup": {
+      "source_field": "derived",
+      "source_units": null,
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Reconstructed from (SnapNum, GroupNr) grouping. TreeHalos/TreeFirstHaloInFOFgroup is DISCARDED — it contains cross-tree pointers that cannot be resolved within a single tree slice."
+    },
+    "NextHaloInFOFGroup": {
+      "source_field": "derived",
+      "source_units": null,
+      "target_units": "integer index within Tree<X> halo array",
+      "scale_factor": null,
+      "conversion_expr": "see pointer_logic",
+      "notes": "Reconstructed from (SnapNum, GroupNr) grouping. TreeHalos/TreeNextHaloInFOFgroup is DISCARDED for the same reason as TreeFirstHaloInFOFgroup."
+    },
+    "SubhaloLen": {
+      "source_field": "TreeHalos/SubhaloLen",
+      "source_units": "particles",
+      "target_units": "particles",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Direct copy. int32."
+    },
+    "Group_M_Crit200": {
+      "source_field": "TreeHalos/Group_M_Crit200",
+      "source_units": "1e10 Msun/h",
+      "target_units": "1e10 Msun/h",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Direct copy. Gadget-4 UnitMass_in_g=1.989e43 (10^10 Msun) with comoving h-factor included. This is the FOF mass within R_200_crit, NOT SubhaloMass."
+    },
+    "Group_M_Mean200": {
+      "source_field": null,
+      "source_units": null,
+      "target_units": "1e10 Msun/h",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Not available in Gadget-4 built-in tree output. Using sentinel value 0.0."
+    },
+    "Group_M_TopHat200": {
+      "source_field": null,
+      "source_units": null,
+      "target_units": "1e10 Msun/h",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Not available in Gadget-4 built-in tree output. Using sentinel value 0.0."
+    },
+    "SubhaloPos": {
+      "source_field": "TreeHalos/SubhaloPos",
+      "source_units": "Mpc/h (comoving)",
+      "target_units": "kpc/h",
+      "scale_factor": 1000,
+      "conversion_expr": "SubhaloPos * 1000",
+      "notes": "Gadget-4 UnitLength_in_cm=3.0857e24 (1 Mpc). Positions stored in comoving Mpc/h. SAGE schema requires kpc/h on disk; the HDF5 reader multiplies by 0.001 internally (kpc/h → Mpc/h). Shape (N, 3)."
+    },
+    "SubhaloVel": {
+      "source_field": "TreeHalos/SubhaloVel",
+      "source_units": "km/s",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Peculiar velocity. Gadget-4 UnitVelocity_in_cm_per_s=1e5 (km/s). Direct copy. Shape (N, 3)."
+    },
+    "SubhaloVelDisp": {
+      "source_field": "TreeHalos/SubhaloVelDisp",
+      "source_units": "km/s",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "1D velocity dispersion. Available in this format; direct copy."
+    },
+    "SubhaloVMax": {
+      "source_field": "TreeHalos/SubhaloVmax",
+      "source_units": "km/s",
+      "target_units": "km/s",
+      "scale_factor": 1,
+      "conversion_expr": null,
+      "notes": "Maximum circular velocity max(sqrt(GM(<r>)/r)). Field name uses lowercase 'max' in Gadget-4. Direct copy."
+    },
+    "SubhaloSpin": {
+      "source_field": "TreeHalos/SubhaloSpin",
+      "source_units": "(Mpc/h)(km/s)",
+      "target_units": "(kpc/h)(km/s)",
+      "scale_factor": 1000,
+      "conversion_expr": "SubhaloSpin * 1000",
+      "notes": "Specific angular momentum vector [Jx, Jy, Jz] per unit mass — NOT the dimensionless spin parameter lambda. Gadget-4 stores in (Mpc/h)(km/s) = UnitLength * UnitVelocity. SAGE schema requires (kpc/h)(km/s) on disk; the HDF5 reader multiplies by 0.001 internally. Shape (N, 3)."
+    },
+    "SubhaloIDMostBound": {
+      "source_field": "TreeHalos/SubhaloIDMostbound",
+      "source_units": "particle ID (uint32)",
+      "target_units": "particle ID (int64)",
+      "scale_factor": null,
+      "conversion_expr": "int64(SubhaloIDMostbound)",
+      "notes": "Field name uses lowercase 'b' in Gadget-4 vs uppercase 'B' in SAGE. Dtype is uint32 in source; cast to int64 on write. All uint32 values fit safely in int64."
+    },
+    "SnapNum": {
+      "source_field": "TreeHalos/SnapNum",
+      "source_units": "integer snapshot index",
+      "target_units": "integer snapshot index [0, N_snapshots-1]",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Zero-based. SnapNum=0 is z~127 (earliest), SnapNum=127 is z~0 (root). Direct copy."
+    },
+    "FileNr": {
+      "source_field": null,
+      "source_units": null,
+      "target_units": "integer file index",
+      "scale_factor": null,
+      "conversion_expr": null,
+      "notes": "Not available; this dataset uses a single merged tree file. Using sentinel value -1."
+    }
+  },
+  "pointer_logic": {
+    "description": "Gadget-4 stores all halos in a single flat /TreeHalos array. /TreeTable provides StartOffset and Length for each tree. CRITICAL: TreeDescendant values are TREE-LOCAL indices (in [0, Length) or -1), NOT global flat-array indices. No offset subtraction is needed or correct. The five native pointer fields (TreeFirstProgenitor, TreeNextProgenitor, TreeFirstHaloInFOFgroup, TreeNextHaloInFOFgroup, TreeDescendant) are processed as follows: TreeDescendant is used directly; the other four are DISCARDED and reconstructed from scratch.",
+    "Descendant": "Load TreeHalos/TreeDescendant[start:start+n] directly — values are already tree-local [0, n) or -1. Clamp out-of-range values to -1 (defensive). Resolve same-snapshot links iteratively (up to 10 hops) using the original desc values for each hop to satisfy SAGE's strict forward-in-time requirement. After sorting halos within the tree (SnapNum desc, SubhaloLen desc), remap all tree-local indices through the sort permutation inverse.",
+    "FirstProgenitor": "DISCARD TreeHalos/TreeFirstProgenitor. Reconstruct by inverting the resolved Descendant array: for each halo i that has a valid Descendant d, record i as a progenitor of d. Sort progenitors of the same descendant by SubhaloLen descending; the most massive is FirstProgenitor[d]. Fully vectorised via lexsort, O(N log N).",
+    "NextProgenitor": "DISCARD TreeHalos/TreeNextProgenitor. Reconstruct alongside FirstProgenitor: the second-most-massive progenitor of d becomes NextProgenitor[FirstProgenitor[d]], and so on, forming the sibling chain.",
+    "FirstHaloInFOFGroup": "DISCARD TreeHalos/TreeFirstHaloInFOFgroup (contains cross-tree pointers). Reconstruct from (SnapNum, GroupNr): sort halos by (SnapNum, GroupNr, -SubhaloLen); the most massive halo in each (SnapNum, GroupNr) group is the central. FirstHaloInFOFGroup[i] = index of central in i's group. Fully vectorised via lexsort + cumsum, O(N log N).",
+    "NextHaloInFOFGroup": "DISCARD TreeHalos/TreeNextHaloInFOFgroup. Reconstruct alongside FirstHaloInFOFGroup: consecutive members of the same (SnapNum, GroupNr) group form the satellite chain via NextHaloInFOFGroup."
+  },
+  "known_caveats": [
+    "CRITICAL — TreeDescendant is tree-local, not global: values are offsets into each tree's own halo slice ([0, Length) or -1). Do NOT subtract StartOffset from TreeDescendant. The mistake is easy because Tree0 has StartOffset=0, making global and local interpretations identical for that tree only.",
+    "Same-snapshot TreeDescendant: Gadget-4 uses same-snapshot desc to record intra-snapshot FOF mergers (~0.2% of halos). These violate SAGE's strict forward-in-time Descendant requirement and must be resolved by following the chain forward until a cross-snapshot hop or -1 is reached.",
+    "TreeFirstProgenitor and TreeNextProgenitor are forward-in-time pointers (Gadget-4 convention opposite to SAGE). They are discarded and reconstructed from TreeDescendant.",
+    "TreeFirstHaloInFOFgroup and TreeNextHaloInFOFgroup contain cross-tree pointers and cannot be used directly. They are discarded and reconstructed from (SnapNum, GroupNr) grouping.",
+    "UnitLength_in_cm=3.0857e24 means the internal length unit is 1 Mpc (not 1 kpc). SubhaloPos is therefore in comoving Mpc/h and SubhaloSpin in (Mpc/h)(km/s). Both fields require ×1000 scaling before writing.",
+    "Group_M_Mean200 and Group_M_TopHat200 are not present in Gadget-4 built-in tree output; sentinel 0.0 is written for both.",
+    "SubhaloIDMostbound is stored as uint32 in Gadget-4 vs the int64 expected by SAGE; an explicit cast is required.",
+    "Config shows both SUBFIND and SUBFIND_HBT enabled; SUBFIND_HBT is the active finder. Field names are identical to standard SUBFIND output.",
+    "SubhaloHalfmassRad, SubhaloVmaxRad, TreeFirstDescendant, TreeNextDescendant, TreeMainProgenitor, and TreeProgenitor are present in the source but not mapped to any SAGE field."
+  ]
+}
