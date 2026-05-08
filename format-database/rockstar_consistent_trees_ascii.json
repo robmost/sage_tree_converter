@@ -102,10 +102,10 @@
     "SubhaloVelDisp": {
       "source_field": "vrms",
       "source_units": "km/s (physical, 3D RMS)",
-      "target_units": "km/s",
-      "scale_factor": 1,
-      "conversion_expr": "vrms",
-      "notes": "Column 13. Rockstar vrms is the 3D RMS velocity dispersion; SAGE convention is 1D dispersion (sigma_1D = vrms / sqrt(3)). Since SubhaloVelDisp is optional and not used for baryonic physics, vrms is mapped directly. See known_caveats."
+      "target_units": "km/s (1D sigma)",
+      "scale_factor": 0.5773502691896258,
+      "conversion_expr": "vrms / sqrt(3)",
+      "notes": "Column 13. Rockstar vrms is the 3D RMS velocity dispersion (sigma_3D = sqrt(3) * sigma_1D under isotropy). LHaloTree convention is the 1D velocity dispersion (Springel+2005). Correction vrms / sqrt(3) is applied."
     },
     "SubhaloVMax": {
       "source_field": "vmax",
@@ -167,7 +167,6 @@
   "known_caveats": [
     "SubhaloLen is not provided by Consistent Trees. It is estimated as round(mvir / m_particle) where m_particle is the simulation dark matter particle mass in Msun/h. This is an approximation: it ignores unbound particles and substructure. The true particle count may differ by a few percent.",
     "SubhaloIDMostBound is not available in Consistent Trees output. The sentinel value -1 is written to every halo.",
-    "SubhaloVelDisp is mapped from Rockstar's vrms, which is the 3D RMS velocity dispersion (sigma_3D). SAGE convention is the 1D dispersion (sigma_1D = sigma_3D / sqrt(3)). Since SubhaloVelDisp is optional and SAGE does not use it for baryonic physics calculations, vrms is written directly without the sqrt(3) correction.",
     "SubhaloSpin uses the total angular momentum vectors Jx, Jy, Jz divided by Mvir to produce specific angular momentum. The Consistent Trees Spin column (Peebles dimensionless spin parameter lambda) is NOT used.",
     "Group_M_TopHat200 is mapped from Mvir, which uses the Bryan & Norman (1998) redshift-dependent virial overdensity Delta_vir(z). This is not identical to a fixed tophat overdensity criterion but is the standard virial mass and the closest available field.",
     "Phantom halos (phantom != 0) are halos interpolated across timesteps by Consistent Trees. These are written to the output as regular halos. Users may wish to filter them if SAGE exhibits unexpected behaviour.",

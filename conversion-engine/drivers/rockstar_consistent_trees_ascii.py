@@ -419,7 +419,7 @@ def read_trees(
                 "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
                 "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
                 "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
-                "SubhaloVelDisp": halos[:, _C_VRMS].astype(np.float32),
+                "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
                 "SubhaloPos": (np.column_stack([
                     halos[:, _C_X], halos[:, _C_Y], halos[:, _C_Z],
                 ]) * 1000.0).astype(np.float32),
@@ -553,7 +553,7 @@ def convert(
                         "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
                         "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
                         "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
-                        "SubhaloVelDisp": halos[:, _C_VRMS].astype(np.float32),
+                        "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
                         "SubhaloPos": (np.column_stack([
                             halos[:, _C_X], halos[:, _C_Y], halos[:, _C_Z],
                         ]) * 1000.0).astype(np.float32),
@@ -634,7 +634,7 @@ def convert(
                             "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
                             "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
                             "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
-                            "SubhaloVelDisp": halos[:, _C_VRMS].astype(np.float32),
+                            "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
                             "SubhaloPos": (np.column_stack([
                                 halos[:, _C_X], halos[:, _C_Y], halos[:, _C_Z],
                             ]) * 1000.0).astype(np.float32),
