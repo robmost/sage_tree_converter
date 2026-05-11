@@ -64,14 +64,16 @@ When running SAGE on binary output from the converter:
 
 ---
 
-## 4. HDF5 Unit Scaling (both readers apply the same convention)
+## 4. HDF5 Unit Scaling (SAGE convention)
 
-Both SAGE and MIMIC apply ×0.001 to `Pos` and `Spin` after reading from HDF5:
+For converter `lhalo_hdf5` output, SAGE applies ×0.001 to `SubhaloPos` and `SubhaloSpin` after reading:
 
-- `Pos`: stored in kpc/h on disk → converted to Mpc/h internally
-- `Spin`: stored in (kpc/h)(km/s) on disk → converted to (Mpc/h)(km/s) internally
+- `SubhaloPos`: stored in kpc/h on disk → converted to Mpc/h internally
+- `SubhaloSpin`: stored in (kpc/h)(km/s) on disk → converted to (Mpc/h)(km/s) internally
 
-This is irrelevant for binary output (no post-read scaling in either reader).
+MIMIC cannot read converter HDF5 output because required dataset names differ (see Section 2), so this scaling convention is only relevant to SAGE for this output mode.
+
+For binary output, no post-read scaling is applied by either SAGE or MIMIC.
 
 ---
 

@@ -27,50 +27,66 @@ The converter translates merger tree outputs from common halo finders and tree-b
 ## Workflow
 
 ```mermaid
+---
+config:
+    theme: neutral
+    flowchart:
+        rankSpacing:  8
+        nodeSpacing: 8
+        padding: 8
+        curve: basis
+    themeVariables:
+        fontSize: 8px
+---
 flowchart LR
-    subgraph s1["Stage 1 · Discovery"]
+    subgraph s1["Stage 1: Discovery"]
         direction TB
         a(["Input files<br/>in input/"]) --> b{"KDB lookup"}
-        b -- "match found" --> c["Load schema<br/>mapping"]
-        b -- "no match" --> d["Web discovery<br/>+ schema mapping"]
-        c & d --> g1[["G1 · confirm mapping<br/>+ select output format"]]
+        b -- "Match found" --> c["Load schema<br/>mapping"]
+        b -- "No match" --> d["Web discovery<br/>+ Schema mapping"]
+        c & d --> g1[["G1 · Confirm mapping<br/>+ Select output format"]]
     end
 
-    subgraph s2["Stage 2 · Test Engine"]
+    subgraph s2["Stage 2: Test Engine"]
         direction TB
         e{"Driver exists?"}
-        e -- "yes" --> f["Test conversion<br/>~100 trees"]
-        e -- "no" --> g["Author new driver"] --> f
-        f --> h["Syntactic validation<br/>6 checks"]
+        e -- "Yes" --> f["Test conversion<br/>(~100 trees)"]
+        e -- "No" --> g["Author new driver"] --> f
+        f --> h["Syntactic validation<br/>(6 checks)"]
         h --> i{"SAGE binary<br/>available?"}
-        i -- "yes" --> j["Functional validation<br/>SAGE dry-run"]
-        i -- "no" --> k["Skip functional<br/>validation"]
-        j & k --> g2[["G2 · confirm test<br/>validation"]]
+        i -- "Yes" --> j["Functional validation<br/>SAGE dry-run"]
+        i -- "No" --> k["Skip functional<br/>validation"]
+        j & k --> g2[["G2 · Confirm test<br/>validation"]]
     end
 
-    subgraph s3["Stage 3 · Full Engine"]
+    subgraph s3["Stage 3: Full Engine"]
         direction TB
         l["Full conversion run"]
-        l --> m["Semantic validation<br/>7 plots"]
-        m --> n["Auditor review<br/>13-point checklist"]
-        n --> g3[["G3 · approve plots"]]
+        l --> m["Semantic validation<br/>(7 plots)"]
+        m --> n["Auditor review<br/>(13-point checklist)"]
+        n --> g3[["G3 · Approve plots"]]
     end
 
-    subgraph s4["Stage 4 · KDB Update"]
+    subgraph s4["Stage 4: KDB Update"]
         direction TB
         o{"New format?"}
-        o -- "yes" --> p["kdb-extend<br/>add driver + JSON"]
-        o -- "no" --> q["kdb-update<br/>patch entry"]
+        o -- "Yes" --> p["kdb-extend<br/>(Add driver + JSON)"]
+        o -- "No" --> q["kdb-update<br/>(Patch entry)"]
         p & q --> r["Archive audit files"]
-        r --> g4[["G4 · session closed"]]
+        r --> g4[["G4 · Session closed"]]
     end
 
-    g1 --> e
-    g2 --> l
-    g3 --> o
+    s1 --> s2
+    s2 --> s3
+    s3 --> s4
 ```
 
-**Gate legend** — `G1`: schema confirmed; `G2`: test conversion validated; `G3`: semantic plots approved; `G4`: KDB updated and session closed.
+### **Gate legend**
+
+- `G1`: Schema confirmed
+- `G2`: Test conversion validated
+- `G3`: Semantic plots approved
+- `G4`: KDB updated and session closed.
 
 ## Quick Start
 
@@ -228,14 +244,21 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 
 ## Unit Conventions
 
-All converted output uses the following units:
+Converted outputs use the following on-disk units:
 
-| Quantity | Unit |
-| --- | --- |
-| Mass | 10¹⁰ M☉ / h |
-| Position | kpc / h |
-| Velocity | km / s |
-| Spin | dimensionless |
+| Quantity | `lhalo_hdf5` on disk | `lhalo_binary` on disk |
+| --- | --- | --- |
+| Mass | 10¹⁰ M☉ / h | 10¹⁰ M☉ / h |
+| Position | kpc / h | Mpc / h |
+| Velocity | km / s | km / s |
+| Spin (specific angular momentum) | (kpc / h)(km / s) | (Mpc / h)(km / s) |
+
+Notes:
+
+- Drivers produce canonical field dictionaries in `lhalo_hdf5` on-disk units (`SubhaloPos` in kpc/h and `SubhaloSpin` in (kpc/h)(km/s)).
+- `lhalo_binary` writing converts those two fields by dividing by 1000 before packing, so binary files store Position in Mpc/h and Spin in (Mpc/h)(km/s).
+- SAGE's HDF5 reader rescales `SubhaloPos` and `SubhaloSpin` by 0.001 after reading, yielding internal units of Mpc/h and (Mpc/h)(km/s).
+- This discrepancy exists because SAGE's LHaloTree readers make different assumptions: the HDF5 reader expects kpc/h and (kpc/h)(km/s) on disk and converts internally, while the binary reader consumes on-disk Mpc/h and (Mpc/h)(km/s) values directly (no post-read scaling).
 
 ## Documentation
 
