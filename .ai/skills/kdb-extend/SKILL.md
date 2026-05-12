@@ -123,12 +123,7 @@ mv assets/test_<base>_STC.0.hdf5  "$AUDIT_DIR/" 2>/dev/null || true
 mv assets/test_<base>_STC.0        "$AUDIT_DIR/" 2>/dev/null || true
 ```
 
-Move Stage 3 full conversion output (HDF5 and binary cases):
-
-```bash
-mv output/<base>_STC.0.hdf5  "$AUDIT_DIR/" 2>/dev/null || true
-mv output/<base>_STC.0        "$AUDIT_DIR/" 2>/dev/null || true
-```
+**IMPORTANT:** Stage 3 full conversion output (`output/<base>_STC.0.hdf5` and `output/<base>_STC.0`) remains in `output/` and is NOT moved to the audit directory. This is the final deliverable.
 
 Move session artefacts from `assets/`:
 

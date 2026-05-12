@@ -7,7 +7,7 @@ so the user can quickly identify what will change and confirm or reject each ite
 
 ## Format
 
-```
+```text
 KDB Update Diff — <format_id>
 =============================
 
@@ -40,7 +40,7 @@ Use dot notation to identify nested fields. For list appends use `[+]`.
 
 ## Example
 
-```
+```text
 KDB Update Diff — ahf_mergertree_ascii
 =======================================
 

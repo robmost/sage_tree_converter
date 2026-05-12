@@ -20,7 +20,9 @@ For pointer reconstruction, see `pointer_reconstruction.md`.
 
 ## Halo Property Fields
 
-### `Len` — particle count
+### `SubhaloLen` — particle count
+
+> **Canonical name:** `SubhaloLen` (HDF5 dataset name and driver dict key). The binary writer maps this to the on-disk field name `Len`.
 
 | Halo finder | Typical source field | Input units | Conversion |
 | ----------- | -------------------- | ----------- | ---------- |
@@ -59,7 +61,9 @@ cosmology used. If it does not, record this in `known_caveats`.
 
 ---
 
-### `MostBoundID` — most-bound particle ID
+### `SubhaloIDMostBound` — most-bound particle ID
+
+> **Canonical name:** `SubhaloIDMostBound` (HDF5 dataset name and driver dict key). The binary writer maps this to the on-disk field name `MostBoundID`.
 
 | Halo finder | Typical source field | Notes |
 | ----------- | -------------------- | ----- |

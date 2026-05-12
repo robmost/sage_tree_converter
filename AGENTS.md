@@ -87,7 +87,8 @@ Reply YES to proceed to Stage 4, or describe any issues you see.
 
 ```text
 Stage 4 is complete.
-- Audit files moved to: audits/<dataset_name>_audit-files_<HHMM-DDMMYYYY>/
+- Session files archived to: audits/<dataset_name>_audit-files_<HHMM-DDMMYYYY>/
+- Full conversion output (final deliverable) remains in: output/
 - KDB action: [new driver added | existing entry updated | no change]
 
 Conversion session is now closed.

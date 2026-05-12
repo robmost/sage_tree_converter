@@ -57,7 +57,7 @@ Specific angular momentum = `J / Mvir` (in (Mpc/h)(km/s)); then multiply by 1000
 
 ## Particle Count
 
-No conversion needed. `Len` is an integer particle count; copy directly as int32.
+No conversion needed. `SubhaloLen` is an integer particle count; copy directly as int32.
 
 ## Snapshot Index
 

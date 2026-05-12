@@ -36,7 +36,7 @@ The diff must cover:
 
 Example output format:
 
-```
+```text
 KDB Update Diff — <format_id>
 =============================
 
@@ -57,7 +57,7 @@ UNCHANGED:
 
 After presenting the diff, ask the user explicitly:
 
-```
+```text
 The above diff summarises the changes to format-database/<format_id>.json.
 Please confirm:
   - Which corrected fields should be applied?  (type "all" or list by name)
@@ -137,12 +137,7 @@ mv assets/test_<base>_STC.0.hdf5  "$AUDIT_DIR/" 2>/dev/null || true
 mv assets/test_<base>_STC.0        "$AUDIT_DIR/" 2>/dev/null || true
 ```
 
-Move Stage 3 full conversion output (HDF5 and binary cases):
-
-```bash
-mv output/<base>_STC.0.hdf5  "$AUDIT_DIR/" 2>/dev/null || true
-mv output/<base>_STC.0        "$AUDIT_DIR/" 2>/dev/null || true
-```
+**IMPORTANT:** Stage 3 full conversion output (`output/<base>_STC.0.hdf5` and `output/<base>_STC.0`) remains in `output/` and is NOT moved to the audit directory. This is the final deliverable.
 
 Move session artefacts from `assets/`:
 
