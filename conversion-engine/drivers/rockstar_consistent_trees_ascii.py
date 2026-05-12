@@ -52,7 +52,6 @@ from pathlib import Path
 import h5py
 import numpy as np
 from tqdm import tqdm
-
 from utils import binary_writer, hdf5_writer
 
 # ---------------------------------------------------------------------------
@@ -73,14 +72,17 @@ _C_NEXT_COPROG_DFI = 32
 _C_M200B = 39
 _C_M200C = 40
 
-_NCOLS_MIN = 59  # minimum expected; some outputs (e.g. Shin-Uchuu) add extra trailing columns
-_RHO_CRIT0_H2 = 2.775e11   # h^2 Msun / Mpc^3
-_N_SIDE_DEFAULT = 2048       # BolshoiP default
+_NCOLS_MIN = (
+    59  # minimum expected; some outputs (e.g. Shin-Uchuu) add extra trailing columns
+)
+_RHO_CRIT0_H2 = 2.775e11  # h^2 Msun / Mpc^3
+_N_SIDE_DEFAULT = 2048  # BolshoiP default
 
 
 # ---------------------------------------------------------------------------
 # File discovery
 # ---------------------------------------------------------------------------
+
 
 def _discover_tree_files(input_path: str) -> list[Path]:
     """Return sorted list of tree_*.dat files from input_path."""
@@ -100,6 +102,7 @@ def _discover_tree_files(input_path: str) -> list[Path]:
 # Header / cosmology parsing
 # ---------------------------------------------------------------------------
 
+
 def _parse_cosmology(header_text: str) -> tuple[float, float]:
     """Return (omega_m, box_size_mpc_per_h) from file comment header."""
     omega_m, box_size = 0.307115, 250.0
@@ -112,19 +115,22 @@ def _parse_cosmology(header_text: str) -> tuple[float, float]:
     return omega_m, box_size
 
 
-def _compute_particle_mass(omega_m: float, box_size: float, n_side: int = _N_SIDE_DEFAULT) -> float:
+def _compute_particle_mass(
+    omega_m: float, box_size: float, n_side: int = _N_SIDE_DEFAULT
+) -> float:
     """Dark matter particle mass in Msun/h.
 
     Derived from: m_p = Omega_M * rho_crit0 * L_box^3 / N_particles
     where L_box is in Mpc/h and rho_crit0 = 2.775e11 h^2 Msun/Mpc^3,
     giving units of Msun/h after the h factors cancel.
     """
-    return omega_m * _RHO_CRIT0_H2 * (box_size ** 3) / (float(n_side) ** 3)
+    return omega_m * _RHO_CRIT0_H2 * (box_size**3) / (float(n_side) ** 3)
 
 
 # ---------------------------------------------------------------------------
 # Streaming tree parser
 # ---------------------------------------------------------------------------
+
 
 def _read_header_text(filepath: Path) -> str:
     """Return the concatenated comment lines before the first #tree marker."""
@@ -251,6 +257,7 @@ def _stream_trees(
 # Pointer reconstruction
 # ---------------------------------------------------------------------------
 
+
 def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
     """Build all five LHaloTree pointer arrays for one tree block.
 
@@ -369,6 +376,7 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
 # Public read_trees() — load input without writing output
 # ---------------------------------------------------------------------------
 
+
 def read_trees(
     input_path: str,
     n_trees: int | None = None,
@@ -389,7 +397,9 @@ def read_trees(
     tree_files = _discover_tree_files(input_path)
     header_text = _read_header_text(tree_files[0])
     omega_m, box_size = _parse_cosmology(header_text)
-    particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
+    particle_mass_msun_per_h = _compute_particle_mass(
+        omega_m, box_size, _N_SIDE_DEFAULT
+    )
 
     result: dict[int, dict] = {}
     global_tree_idx = 0
@@ -397,7 +407,9 @@ def read_trees(
 
     for tf in tree_files:
         limit = remaining
-        for halos in tqdm(_generate_trees(tf, limit), desc="Reading trees", unit="tree"):
+        for halos in tqdm(
+            _generate_trees(tf, limit), desc="Reading trees", unit="tree"
+        ):
             n = len(halos)
             if n == 0 or halos.shape[1] < _NCOLS_MIN:
                 continue
@@ -411,7 +423,9 @@ def read_trees(
 
             result[global_tree_idx] = {
                 **ptrs,
-                "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(np.int32),
+                "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(
+                    np.int32
+                ),
                 "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
                 "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
                 "FileNr": np.full(n, -1, dtype=np.int32),
@@ -420,12 +434,23 @@ def read_trees(
                 "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
                 "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
                 "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
-                "SubhaloPos": (np.column_stack([
-                    halos[:, _C_X], halos[:, _C_Y], halos[:, _C_Z],
-                ]) * 1000.0).astype(np.float32),
-                "SubhaloVel": np.column_stack([
-                    halos[:, _C_VX], halos[:, _C_VY], halos[:, _C_VZ],
-                ]).astype(np.float32),
+                "SubhaloPos": (
+                    np.column_stack(
+                        [
+                            halos[:, _C_X],
+                            halos[:, _C_Y],
+                            halos[:, _C_Z],
+                        ]
+                    )
+                    * 1000.0
+                ).astype(np.float32),
+                "SubhaloVel": np.column_stack(
+                    [
+                        halos[:, _C_VX],
+                        halos[:, _C_VY],
+                        halos[:, _C_VZ],
+                    ]
+                ).astype(np.float32),
                 "SubhaloSpin": (spin * 1000.0).astype(np.float32),
             }
             global_tree_idx += 1
@@ -441,6 +466,7 @@ def read_trees(
 # ---------------------------------------------------------------------------
 # Main convert function
 # ---------------------------------------------------------------------------
+
 
 def convert(
     input_path: str,
@@ -482,9 +508,13 @@ def convert(
         omega_m, box_size = _parse_cosmology(header_text)
         if particle_mass is not None:
             particle_mass_msun_per_h = particle_mass
-            print(f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h (user-supplied override)")
+            print(
+                f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h (user-supplied override)"
+            )
         else:
-            particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
+            particle_mass_msun_per_h = _compute_particle_mass(
+                omega_m, box_size, _N_SIDE_DEFAULT
+            )
             print(
                 f"Particle mass computed from header (n_side={_N_SIDE_DEFAULT}): "
                 f"{particle_mass_msun_per_h:.3e} Msun/h — "
@@ -541,25 +571,46 @@ def convert(
                     jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
                     with np.errstate(invalid="ignore", divide="ignore"):
                         inv_mvir = np.where(mvir > 0, 1.0 / mvir, 0.0)
-                    spin = np.column_stack([jx * inv_mvir, jy * inv_mvir, jz * inv_mvir])
+                    spin = np.column_stack(
+                        [jx * inv_mvir, jy * inv_mvir, jz * inv_mvir]
+                    )
 
                     fields = {
                         **ptrs,
-                        "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(np.int32),
+                        "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(
+                            np.int32
+                        ),
                         "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
                         "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
                         "FileNr": np.full(n, -1, dtype=np.int32),
-                        "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(np.float32),
-                        "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
+                        "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(
+                            np.float32
+                        ),
+                        "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(
+                            np.float32
+                        ),
                         "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
                         "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
-                        "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
-                        "SubhaloPos": (np.column_stack([
-                            halos[:, _C_X], halos[:, _C_Y], halos[:, _C_Z],
-                        ]) * 1000.0).astype(np.float32),
-                        "SubhaloVel": np.column_stack([
-                            halos[:, _C_VX], halos[:, _C_VY], halos[:, _C_VZ],
-                        ]).astype(np.float32),
+                        "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(
+                            np.float32
+                        ),
+                        "SubhaloPos": (
+                            np.column_stack(
+                                [
+                                    halos[:, _C_X],
+                                    halos[:, _C_Y],
+                                    halos[:, _C_Z],
+                                ]
+                            )
+                            * 1000.0
+                        ).astype(np.float32),
+                        "SubhaloVel": np.column_stack(
+                            [
+                                halos[:, _C_VX],
+                                halos[:, _C_VY],
+                                halos[:, _C_VZ],
+                            ]
+                        ).astype(np.float32),
                         "SubhaloSpin": (spin * 1000.0).astype(np.float32),
                     }
 
@@ -589,7 +640,9 @@ def convert(
                     n_output_files=1,
                     tree_n_halos=tree_n_halos,
                 )
-                for idx, flds in enumerate(tqdm(all_fields, desc="Writing binary trees", unit="tree")):
+                for idx, flds in enumerate(
+                    tqdm(all_fields, desc="Writing binary trees", unit="tree")
+                ):
                     binary_writer.write_tree(f, idx, flds)
 
         elif output_format == "lhalo_hdf5":
@@ -622,25 +675,46 @@ def convert(
                         jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
                         with np.errstate(invalid="ignore", divide="ignore"):
                             inv_mvir = np.where(mvir > 0, 1.0 / mvir, 0.0)
-                        spin = np.column_stack([jx * inv_mvir, jy * inv_mvir, jz * inv_mvir])
+                        spin = np.column_stack(
+                            [jx * inv_mvir, jy * inv_mvir, jz * inv_mvir]
+                        )
 
                         fields = {
                             **ptrs,
-                            "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(np.int32),
+                            "SubhaloLen": np.round(
+                                mvir / particle_mass_msun_per_h
+                            ).astype(np.int32),
                             "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
                             "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
                             "FileNr": np.full(n, -1, dtype=np.int32),
-                            "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(np.float32),
-                            "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
+                            "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(
+                                np.float32
+                            ),
+                            "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(
+                                np.float32
+                            ),
                             "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
                             "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
-                            "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
-                            "SubhaloPos": (np.column_stack([
-                                halos[:, _C_X], halos[:, _C_Y], halos[:, _C_Z],
-                            ]) * 1000.0).astype(np.float32),
-                            "SubhaloVel": np.column_stack([
-                                halos[:, _C_VX], halos[:, _C_VY], halos[:, _C_VZ],
-                            ]).astype(np.float32),
+                            "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(
+                                np.float32
+                            ),
+                            "SubhaloPos": (
+                                np.column_stack(
+                                    [
+                                        halos[:, _C_X],
+                                        halos[:, _C_Y],
+                                        halos[:, _C_Z],
+                                    ]
+                                )
+                                * 1000.0
+                            ).astype(np.float32),
+                            "SubhaloVel": np.column_stack(
+                                [
+                                    halos[:, _C_VX],
+                                    halos[:, _C_VY],
+                                    halos[:, _C_VZ],
+                                ]
+                            ).astype(np.float32),
                             "SubhaloSpin": (spin * 1000.0).astype(np.float32),
                         }
 

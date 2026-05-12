@@ -31,3 +31,5 @@ assets/semantic_validation/
 *.pyo
 .mypy_cache/
 
+# pyright configuration
+pyrightconfig.json

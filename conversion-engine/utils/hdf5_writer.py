@@ -13,53 +13,63 @@ import numpy as np
 # ---------------------------------------------------------------------------
 
 # Fields stored as int32
-_INT32_FIELDS = frozenset({
-    "Descendant",
-    "FirstProgenitor",
-    "NextProgenitor",
-    "FirstHaloInFOFGroup",
-    "NextHaloInFOFGroup",
-    "SubhaloLen",
-    "SnapNum",
-    "FileNr",
-})
+_INT32_FIELDS = frozenset(
+    {
+        "Descendant",
+        "FirstProgenitor",
+        "NextProgenitor",
+        "FirstHaloInFOFGroup",
+        "NextHaloInFOFGroup",
+        "SubhaloLen",
+        "SnapNum",
+        "FileNr",
+    }
+)
 
 # Fields stored as int64
-_INT64_FIELDS = frozenset({
-    "SubhaloIDMostBound",
-})
+_INT64_FIELDS = frozenset(
+    {
+        "SubhaloIDMostBound",
+    }
+)
 
 # Fields stored as float32 (scalar per halo)
-_FLOAT32_SCALAR_FIELDS = frozenset({
-    "Group_M_Crit200",
-    "SubhaloVMax",
-    "Group_M_Mean200",
-    "Group_M_TopHat200",
-    "SubhaloVelDisp",
-})
+_FLOAT32_SCALAR_FIELDS = frozenset(
+    {
+        "Group_M_Crit200",
+        "SubhaloVMax",
+        "Group_M_Mean200",
+        "Group_M_TopHat200",
+        "SubhaloVelDisp",
+    }
+)
 
 # Fields stored as float32 with shape (N, 3)
-_FLOAT32_VECTOR_FIELDS = frozenset({
-    "SubhaloPos",
-    "SubhaloVel",
-    "SubhaloSpin",
-})
+_FLOAT32_VECTOR_FIELDS = frozenset(
+    {
+        "SubhaloPos",
+        "SubhaloVel",
+        "SubhaloSpin",
+    }
+)
 
-MANDATORY_FIELDS = frozenset({
-    "Descendant",
-    "FirstProgenitor",
-    "NextProgenitor",
-    "FirstHaloInFOFGroup",
-    "NextHaloInFOFGroup",
-    "SubhaloLen",
-    "Group_M_Crit200",
-    "SubhaloVMax",
-    "SubhaloIDMostBound",
-    "SnapNum",
-    "SubhaloPos",
-    "SubhaloVel",
-    "SubhaloSpin",
-})
+MANDATORY_FIELDS = frozenset(
+    {
+        "Descendant",
+        "FirstProgenitor",
+        "NextProgenitor",
+        "FirstHaloInFOFGroup",
+        "NextHaloInFOFGroup",
+        "SubhaloLen",
+        "Group_M_Crit200",
+        "SubhaloVMax",
+        "SubhaloIDMostBound",
+        "SnapNum",
+        "SubhaloPos",
+        "SubhaloVel",
+        "SubhaloSpin",
+    }
+)
 
 
 def _cast(field_name: str, data) -> np.ndarray:
@@ -80,6 +90,7 @@ def _cast(field_name: str, data) -> np.ndarray:
         return out
     # Unknown field — preserve as-is but warn.
     import warnings
+
     warnings.warn(
         f"Field '{field_name}' is not in the canonical dtype map. "
         "Writing as-is. Check reference/sage_lhalotree_hdf5_schema.md.",

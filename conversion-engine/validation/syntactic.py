@@ -20,37 +20,52 @@ Usage:
 
 import os
 import struct
+from typing import Any
 
 import h5py
 import numpy as np
 
-MANDATORY_FIELDS = frozenset({
-    "Descendant",
-    "FirstProgenitor",
-    "NextProgenitor",
-    "FirstHaloInFOFGroup",
-    "NextHaloInFOFGroup",
-    "SubhaloLen",
-    "Group_M_Crit200",
-    "SubhaloVMax",
-    "SubhaloIDMostBound",
-    "SnapNum",
-    "SubhaloPos",
-    "SubhaloVel",
-    "SubhaloSpin",
-})
+CheckDict = dict[str, Any]
 
-OPTIONAL_FIELDS = frozenset({
-    "Group_M_Mean200",
-    "Group_M_TopHat200",
-    "SubhaloVelDisp",
-    "FileNr",
-})
+
+def _load_arr(group: h5py.Group, key: str) -> np.ndarray:
+    """Load an h5py dataset field into a numpy array (type-narrowing helper)."""
+    ds: h5py.Dataset = group[key]  # type: ignore[assignment]
+    return np.asarray(ds)  # type: ignore[arg-type]
+
+MANDATORY_FIELDS = frozenset(
+    {
+        "Descendant",
+        "FirstProgenitor",
+        "NextProgenitor",
+        "FirstHaloInFOFGroup",
+        "NextHaloInFOFGroup",
+        "SubhaloLen",
+        "Group_M_Crit200",
+        "SubhaloVMax",
+        "SubhaloIDMostBound",
+        "SnapNum",
+        "SubhaloPos",
+        "SubhaloVel",
+        "SubhaloSpin",
+    }
+)
+
+OPTIONAL_FIELDS = frozenset(
+    {
+        "Group_M_Mean200",
+        "Group_M_TopHat200",
+        "SubhaloVelDisp",
+        "FileNr",
+    }
+)
 
 ALL_KNOWN_FIELDS = MANDATORY_FIELDS | OPTIONAL_FIELDS
 
+
 def _PASS(detail=""):
     return {"passed": True, "detail": detail}
+
 
 def _FAIL(detail):
     return {"passed": False, "detail": detail}
@@ -71,7 +86,7 @@ def _check_file_integrity(path: str) -> dict:
 
 
 def _check_schema_compliance(f: h5py.File) -> dict:
-    hdr = f["Header"]
+    hdr: h5py.Group = f["Header"]  # type: ignore[assignment]
     details = []
 
     n_trees_attr = int(hdr.attrs.get("NtreesPerFile", -1))
@@ -80,7 +95,7 @@ def _check_schema_compliance(f: h5py.File) -> dict:
     if "TreeNHalos" not in hdr:
         return _FAIL("Header/TreeNHalos dataset missing")
 
-    tree_n_halos = hdr["TreeNHalos"][:]
+    tree_n_halos = _load_arr(hdr, "TreeNHalos")
 
     if len(tree_n_halos) != n_trees_attr:
         details.append(
@@ -99,7 +114,7 @@ def _check_schema_compliance(f: h5py.File) -> dict:
         )
 
     for tree_name in tree_names:
-        grp = f[tree_name]
+        grp: h5py.Group = f[tree_name]  # type: ignore[assignment]
         present = set(grp.keys())
         missing = MANDATORY_FIELDS - present
         extra = present - ALL_KNOWN_FIELDS
@@ -118,15 +133,18 @@ def _check_temporal_pointers(f: h5py.File) -> dict:
     tree_names = sorted([k for k in f.keys() if k.startswith("Tree")])
 
     for tree_name in tree_names:
-        grp = f[tree_name]
-        N = len(grp["SnapNum"])
-        snap = grp["SnapNum"][:].astype(np.int32)
-        desc = grp["Descendant"][:].astype(np.int32)
-        fp = grp["FirstProgenitor"][:].astype(np.int32)
-        np_ = grp["NextProgenitor"][:].astype(np.int32)
+        grp: h5py.Group = f[tree_name]  # type: ignore[assignment]
+        N = len(_load_arr(grp, "SnapNum"))
+        snap = _load_arr(grp, "SnapNum").astype(np.int32)
+        desc = _load_arr(grp, "Descendant").astype(np.int32)
+        fp = _load_arr(grp, "FirstProgenitor").astype(np.int32)
+        np_ = _load_arr(grp, "NextProgenitor").astype(np.int32)
 
-        for field_name, arr in [("Descendant", desc), ("FirstProgenitor", fp),
-                                 ("NextProgenitor", np_)]:
+        for field_name, arr in [
+            ("Descendant", desc),
+            ("FirstProgenitor", fp),
+            ("NextProgenitor", np_),
+        ]:
             bad = np.where((arr < -1) | (arr >= N))[0]
             if len(bad):
                 details.append(
@@ -178,13 +196,16 @@ def _check_spatial_pointers(f: h5py.File) -> dict:
     tree_names = sorted([k for k in f.keys() if k.startswith("Tree")])
 
     for tree_name in tree_names:
-        grp = f[tree_name]
-        N = len(grp["SnapNum"])
-        snap = grp["SnapNum"][:].astype(np.int32)
-        fof = grp["FirstHaloInFOFGroup"][:].astype(np.int32)
-        nfof = grp["NextHaloInFOFGroup"][:].astype(np.int32)
+        grp: h5py.Group = f[tree_name]  # type: ignore[assignment]
+        N = len(_load_arr(grp, "SnapNum"))
+        snap = _load_arr(grp, "SnapNum").astype(np.int32)
+        fof = _load_arr(grp, "FirstHaloInFOFGroup").astype(np.int32)
+        nfof = _load_arr(grp, "NextHaloInFOFGroup").astype(np.int32)
 
-        for field_name, arr in [("FirstHaloInFOFGroup", fof), ("NextHaloInFOFGroup", nfof)]:
+        for field_name, arr in [
+            ("FirstHaloInFOFGroup", fof),
+            ("NextHaloInFOFGroup", nfof),
+        ]:
             bad = np.where((arr < -1) | (arr >= N))[0]
             if len(bad):
                 details.append(
@@ -208,15 +229,18 @@ def _check_snapshot_consistency(f: h5py.File, n_snapshots: int | None) -> dict:
     tree_names = sorted([k for k in f.keys() if k.startswith("Tree")])
 
     for tree_name in tree_names:
-        snap = f[tree_name]["SnapNum"][:].astype(np.int32)
+        grp: h5py.Group = f[tree_name]  # type: ignore[assignment]
+        snap = _load_arr(grp, "SnapNum").astype(np.int32)
         if np.any(snap < 0):
             details.append(f"{tree_name}: negative SnapNum values found")
         if n_snapshots is not None and np.any(snap >= n_snapshots):
-            details.append(
-                f"{tree_name}: SnapNum >= n_snapshots ({n_snapshots}) found"
-            )
+            details.append(f"{tree_name}: SnapNum >= n_snapshots ({n_snapshots}) found")
 
-    note = "" if n_snapshots is not None else " (upper bound not verified — n_snapshots not provided)"
+    note = (
+        ""
+        if n_snapshots is not None
+        else " (upper bound not verified — n_snapshots not provided)"
+    )
     if details:
         return _FAIL("; ".join(details) + note)
     return _PASS(note.strip())
@@ -227,9 +251,9 @@ def _check_property_consistency(f: h5py.File) -> dict:
     tree_names = sorted([k for k in f.keys() if k.startswith("Tree")])
 
     for tree_name in tree_names:
-        grp = f[tree_name]
+        grp: h5py.Group = f[tree_name]  # type: ignore[assignment]
 
-        mass = grp["Group_M_Crit200"][:]
+        mass = _load_arr(grp, "Group_M_Crit200")
         if not np.all(np.isfinite(mass)):
             details.append(f"{tree_name}/Group_M_Crit200: NaN or Inf present")
         if np.any(mass < 0) or np.any(mass > 1e6):
@@ -238,17 +262,17 @@ def _check_property_consistency(f: h5py.File) -> dict:
                 f"{tree_name}/Group_M_Crit200: {n_bad} values outside [0, 1e6] (10¹⁰ M☉/h)"
             )
 
-        vel = grp["SubhaloVel"][:]
+        vel = _load_arr(grp, "SubhaloVel")
         vel_mag = np.linalg.norm(vel, axis=1)
         if np.any(vel_mag > 10_000):
             n_bad = int(np.sum(vel_mag > 10_000))
             details.append(f"{tree_name}/SubhaloVel: {n_bad} magnitudes > 10000 km/s")
 
-        vmax = grp["SubhaloVMax"][:]
+        vmax = _load_arr(grp, "SubhaloVMax")
         if np.any(vmax < 0) or np.any(vmax > 10_000):
             details.append(f"{tree_name}/SubhaloVMax: values outside [0, 10000] km/s")
 
-        pos = grp["SubhaloPos"][:]
+        pos = _load_arr(grp, "SubhaloPos")
         if not np.all(np.isfinite(pos)):
             details.append(f"{tree_name}/SubhaloPos: NaN or Inf present")
 
@@ -257,7 +281,7 @@ def _check_property_consistency(f: h5py.File) -> dict:
     return _PASS()
 
 
-def run_checks(hdf5_path: str, n_snapshots: int | None = None) -> dict:
+def run_checks(hdf5_path: str, n_snapshots: int | None = None) -> CheckDict:
     """Run all six syntactic checks on a SAGE LHaloTree HDF5 file.
 
     Parameters
@@ -274,17 +298,15 @@ def run_checks(hdf5_path: str, n_snapshots: int | None = None) -> dict:
         "overall" : bool — True if all checks passed.
         "checks"  : dict mapping check name → {"passed": bool, "detail": str}
     """
-    result = {
-        "overall": False,
-        "checks": {
-            "file_integrity":             _FAIL("not run"),
-            "schema_compliance":          _FAIL("not run"),
-            "temporal_pointer_integrity": _FAIL("not run"),
-            "spatial_pointer_integrity":  _FAIL("not run"),
-            "snapshot_consistency":       _FAIL("not run"),
-            "property_consistency":       _FAIL("not run"),
-        },
+    checks: CheckDict = {
+        "file_integrity": _FAIL("not run"),
+        "schema_compliance": _FAIL("not run"),
+        "temporal_pointer_integrity": _FAIL("not run"),
+        "spatial_pointer_integrity": _FAIL("not run"),
+        "snapshot_consistency": _FAIL("not run"),
+        "property_consistency": _FAIL("not run"),
     }
+    result: CheckDict = {"overall": False, "checks": checks}
 
     # Check 1 — file integrity (also determines if we can continue)
     result["checks"]["file_integrity"] = _check_file_integrity(hdf5_path)
@@ -296,7 +318,9 @@ def run_checks(hdf5_path: str, n_snapshots: int | None = None) -> dict:
         result["checks"]["schema_compliance"] = _check_schema_compliance(f)
         result["checks"]["temporal_pointer_integrity"] = _check_temporal_pointers(f)
         result["checks"]["spatial_pointer_integrity"] = _check_spatial_pointers(f)
-        result["checks"]["snapshot_consistency"] = _check_snapshot_consistency(f, n_snapshots)
+        result["checks"]["snapshot_consistency"] = _check_snapshot_consistency(
+            f, n_snapshots
+        )
         result["checks"]["property_consistency"] = _check_property_consistency(f)
 
     result["overall"] = all(c["passed"] for c in result["checks"].values())
@@ -307,30 +331,32 @@ def run_checks(hdf5_path: str, n_snapshots: int | None = None) -> dict:
 # Binary format (lhalo_binary / SAGE TreeType=0) validation
 # ---------------------------------------------------------------------------
 
-_BINARY_HALO_DTYPE = np.dtype([
-    ("Descendant",          np.int32),
-    ("FirstProgenitor",     np.int32),
-    ("NextProgenitor",      np.int32),
-    ("FirstHaloInFOFgroup", np.int32),
-    ("NextHaloInFOFgroup",  np.int32),
-    ("Len",                 np.int32),
-    ("M_Mean200",           np.float32),
-    ("Mvir",                np.float32),
-    ("M_TopHat",            np.float32),
-    ("Pos",                 np.float32, 3),
-    ("Vel",                 np.float32, 3),
-    ("VelDisp",             np.float32),
-    ("Vmax",                np.float32),
-    ("Spin",                np.float32, 3),
-    ("MostBoundID",         np.int64),
-    ("SnapNum",             np.int32),
-    ("FileNr",              np.int32),
-    ("SubhaloIndex",        np.int32),
-    ("SubHalfMass",         np.float32),
-])  # 104 bytes per record — matches struct halo_data in core_simulation.h
+_BINARY_HALO_DTYPE = np.dtype(
+    [
+        ("Descendant", np.int32),
+        ("FirstProgenitor", np.int32),
+        ("NextProgenitor", np.int32),
+        ("FirstHaloInFOFgroup", np.int32),
+        ("NextHaloInFOFgroup", np.int32),
+        ("Len", np.int32),
+        ("M_Mean200", np.float32),
+        ("Mvir", np.float32),
+        ("M_TopHat", np.float32),
+        ("Pos", np.float32, 3),
+        ("Vel", np.float32, 3),
+        ("VelDisp", np.float32),
+        ("Vmax", np.float32),
+        ("Spin", np.float32, 3),
+        ("MostBoundID", np.int64),
+        ("SnapNum", np.int32),
+        ("FileNr", np.int32),
+        ("SubhaloIndex", np.int32),
+        ("SubHalfMass", np.float32),
+    ]
+)  # 104 bytes per record — matches struct halo_data in core_simulation.h
 
 
-def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> dict:
+def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> CheckDict:
     """Run structural checks on a SAGE LHaloTree binary file (TreeType=0).
 
     Parameters
@@ -347,16 +373,14 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> dict:
         "overall" : bool — True if all checks passed.
         "checks"  : dict mapping check name → {"passed": bool, "detail": str}
     """
-    result = {
-        "overall": False,
-        "checks": {
-            "file_readable":         _FAIL("not run"),
-            "header_consistency":    _FAIL("not run"),
-            "file_size_consistency": _FAIL("not run"),
-            "first_tree_pointers":   _FAIL("not run"),
-            "first_tree_snapnums":   _FAIL("not run"),
-        },
+    checks: CheckDict = {
+        "file_readable": _FAIL("not run"),
+        "header_consistency": _FAIL("not run"),
+        "file_size_consistency": _FAIL("not run"),
+        "first_tree_pointers": _FAIL("not run"),
+        "first_tree_snapnums": _FAIL("not run"),
     }
+    result: CheckDict = {"overall": False, "checks": checks}
 
     # Check 1 — file readable and has at least an 8-byte header
     try:
@@ -434,8 +458,13 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> dict:
         return result
 
     ptr_details = []
-    for field in ("Descendant", "FirstProgenitor", "NextProgenitor",
-                  "FirstHaloInFOFgroup", "NextHaloInFOFgroup"):
+    for field in (
+        "Descendant",
+        "FirstProgenitor",
+        "NextProgenitor",
+        "FirstHaloInFOFgroup",
+        "NextHaloInFOFgroup",
+    ):
         arr = halos[field].astype(np.int32)
         bad = np.where((arr < -1) | (arr >= n0))[0]
         if len(bad):

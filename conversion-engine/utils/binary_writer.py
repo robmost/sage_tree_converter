@@ -45,39 +45,41 @@ assert _HALO_STRUCT_SIZE == 104, (
     "Check _HALO_STRUCT_FMT against core_simulation.h."
 )
 
-MANDATORY_FIELDS = frozenset({
-    "Descendant",
-    "FirstProgenitor",
-    "NextProgenitor",
-    "FirstHaloInFOFGroup",
-    "NextHaloInFOFGroup",
-    "SubhaloLen",
-    "Group_M_Crit200",
-    "SubhaloVMax",
-    "SubhaloIDMostBound",
-    "SnapNum",
-    "SubhaloPos",
-    "SubhaloVel",
-    "SubhaloSpin",
-})
+MANDATORY_FIELDS = frozenset(
+    {
+        "Descendant",
+        "FirstProgenitor",
+        "NextProgenitor",
+        "FirstHaloInFOFGroup",
+        "NextHaloInFOFGroup",
+        "SubhaloLen",
+        "Group_M_Crit200",
+        "SubhaloVMax",
+        "SubhaloIDMostBound",
+        "SnapNum",
+        "SubhaloPos",
+        "SubhaloVel",
+        "SubhaloSpin",
+    }
+)
 
 
 def _pack_tree(fields: dict) -> bytes:
     """Pack all halos in a tree into a bytes object (n_halos * 104 bytes)."""
     n = len(fields["Descendant"])
 
-    desc    = np.asarray(fields["Descendant"],          dtype=np.int32)
-    fp      = np.asarray(fields["FirstProgenitor"],     dtype=np.int32)
-    np_     = np.asarray(fields["NextProgenitor"],      dtype=np.int32)
-    fhifof  = np.asarray(fields["FirstHaloInFOFGroup"], dtype=np.int32)
-    nhifof  = np.asarray(fields["NextHaloInFOFGroup"],  dtype=np.int32)
-    length  = np.asarray(fields["SubhaloLen"],          dtype=np.int32)
+    desc = np.asarray(fields["Descendant"], dtype=np.int32)
+    fp = np.asarray(fields["FirstProgenitor"], dtype=np.int32)
+    np_ = np.asarray(fields["NextProgenitor"], dtype=np.int32)
+    fhifof = np.asarray(fields["FirstHaloInFOFGroup"], dtype=np.int32)
+    nhifof = np.asarray(fields["NextHaloInFOFGroup"], dtype=np.int32)
+    length = np.asarray(fields["SubhaloLen"], dtype=np.int32)
 
     m_mean200 = np.asarray(
-        fields.get("Group_M_Mean200",  np.zeros(n, np.float32)), dtype=np.float32
+        fields.get("Group_M_Mean200", np.zeros(n, np.float32)), dtype=np.float32
     )
-    mvir      = np.asarray(fields["Group_M_Crit200"],   dtype=np.float32)
-    m_tophat  = np.asarray(
+    mvir = np.asarray(fields["Group_M_Crit200"], dtype=np.float32)
+    m_tophat = np.asarray(
         fields.get("Group_M_TopHat200", np.zeros(n, np.float32)), dtype=np.float32
     )
 
@@ -85,38 +87,30 @@ def _pack_tree(fields: dict) -> bytes:
     # Binary reader expects Mpc/h — divide by 1000.
     pos_raw = np.asarray(fields["SubhaloPos"], dtype=np.float32)
     if pos_raw.ndim != 2 or pos_raw.shape[1] != 3:
-        raise ValueError(
-            f"SubhaloPos must have shape (N, 3), got {pos_raw.shape}."
-        )
+        raise ValueError(f"SubhaloPos must have shape (N, 3), got {pos_raw.shape}.")
     pos = pos_raw * np.float32(1e-3)
 
-    vel = np.asarray(fields["SubhaloVel"],  dtype=np.float32)
+    vel = np.asarray(fields["SubhaloVel"], dtype=np.float32)
     if vel.ndim != 2 or vel.shape[1] != 3:
-        raise ValueError(
-            f"SubhaloVel must have shape (N, 3), got {vel.shape}."
-        )
+        raise ValueError(f"SubhaloVel must have shape (N, 3), got {vel.shape}.")
 
     veldisp = np.asarray(
         fields.get("SubhaloVelDisp", np.zeros(n, np.float32)), dtype=np.float32
     )
-    vmax    = np.asarray(fields["SubhaloVMax"], dtype=np.float32)
+    vmax = np.asarray(fields["SubhaloVMax"], dtype=np.float32)
 
     # SubhaloSpin is in (kpc/h)(km/s) (HDF5 on-disk convention).
     # Binary reader expects (Mpc/h)(km/s) — divide by 1000.
     spin_raw = np.asarray(fields["SubhaloSpin"], dtype=np.float32)
     if spin_raw.ndim != 2 or spin_raw.shape[1] != 3:
-        raise ValueError(
-            f"SubhaloSpin must have shape (N, 3), got {spin_raw.shape}."
-        )
+        raise ValueError(f"SubhaloSpin must have shape (N, 3), got {spin_raw.shape}.")
     spin = spin_raw * np.float32(1e-3)
 
     mostbound = np.asarray(fields["SubhaloIDMostBound"], dtype=np.int64)
-    snapnum   = np.asarray(fields["SnapNum"],  dtype=np.int32)
-    filenr    = np.asarray(
-        fields.get("FileNr", np.full(n, -1, np.int32)), dtype=np.int32
-    )
+    snapnum = np.asarray(fields["SnapNum"], dtype=np.int32)
+    filenr = np.asarray(fields.get("FileNr", np.full(n, -1, np.int32)), dtype=np.int32)
     subhalo_idx = np.full(n, -1, dtype=np.int32)
-    subhalf     = np.zeros(n, dtype=np.float32)
+    subhalf = np.zeros(n, dtype=np.float32)
 
     buf = bytearray(n * _HALO_STRUCT_SIZE)
     for i in range(n):
@@ -124,15 +118,30 @@ def _pack_tree(fields: dict) -> bytes:
             _HALO_STRUCT_FMT,
             buf,
             i * _HALO_STRUCT_SIZE,
-            int(desc[i]), int(fp[i]), int(np_[i]), int(fhifof[i]), int(nhifof[i]),
+            int(desc[i]),
+            int(fp[i]),
+            int(np_[i]),
+            int(fhifof[i]),
+            int(nhifof[i]),
             int(length[i]),
-            float(m_mean200[i]), float(mvir[i]), float(m_tophat[i]),
-            float(pos[i, 0]), float(pos[i, 1]), float(pos[i, 2]),
-            float(vel[i, 0]), float(vel[i, 1]), float(vel[i, 2]),
-            float(veldisp[i]), float(vmax[i]),
-            float(spin[i, 0]), float(spin[i, 1]), float(spin[i, 2]),
+            float(m_mean200[i]),
+            float(mvir[i]),
+            float(m_tophat[i]),
+            float(pos[i, 0]),
+            float(pos[i, 1]),
+            float(pos[i, 2]),
+            float(vel[i, 0]),
+            float(vel[i, 1]),
+            float(vel[i, 2]),
+            float(veldisp[i]),
+            float(vmax[i]),
+            float(spin[i, 0]),
+            float(spin[i, 1]),
+            float(spin[i, 2]),
             int(mostbound[i]),
-            int(snapnum[i]), int(filenr[i]), int(subhalo_idx[i]),
+            int(snapnum[i]),
+            int(filenr[i]),
+            int(subhalo_idx[i]),
             float(subhalf[i]),
         )
     return bytes(buf)
@@ -205,7 +214,5 @@ def write_tree(
     """
     missing = MANDATORY_FIELDS - set(fields)
     if missing:
-        raise ValueError(
-            f"write_tree: missing mandatory fields: {sorted(missing)}."
-        )
+        raise ValueError(f"write_tree: missing mandatory fields: {sorted(missing)}.")
     f.write(_pack_tree(fields))

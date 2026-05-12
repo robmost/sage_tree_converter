@@ -30,39 +30,41 @@ SubhaloIndex and SubHalfMass are read but discarded (not in schema).
 import os
 import re
 import sys
+from io import BufferedReader
 from pathlib import Path
 
 import h5py
 import numpy as np
 from tqdm import tqdm
-
 from utils import binary_writer, hdf5_writer
 
 # Dark matter particle mass for the Millennium / mini-Millennium simulation
 # (Springel et al. 2005). Units: 10^10 Msun/h.
 PARTICLE_MASS = 0.0860
 
-HALO_DTYPE = np.dtype([
-    ("Descendant",          np.int32),
-    ("FirstProgenitor",     np.int32),
-    ("NextProgenitor",      np.int32),
-    ("FirstHaloInFOFGroup", np.int32),
-    ("NextHaloInFOFGroup",  np.int32),
-    ("Len",                 np.int32),
-    ("M_Mean200",           np.float32),
-    ("M_Crit200",           np.float32),
-    ("M_TopHat",            np.float32),
-    ("Pos",                 np.float32, 3),
-    ("Vel",                 np.float32, 3),
-    ("VelDisp",             np.float32),
-    ("Vmax",                np.float32),
-    ("Spin",                np.float32, 3),
-    ("MostBoundID",         np.int64),
-    ("SnapNum",             np.int32),
-    ("FileNr",              np.int32),
-    ("SubhaloIndex",        np.int32),
-    ("SubHalfMass",         np.float32),
-])  # 104 bytes per halo — confirmed against mini-Millennium file sizes
+HALO_DTYPE = np.dtype(
+    [
+        ("Descendant", np.int32),
+        ("FirstProgenitor", np.int32),
+        ("NextProgenitor", np.int32),
+        ("FirstHaloInFOFGroup", np.int32),
+        ("NextHaloInFOFGroup", np.int32),
+        ("Len", np.int32),
+        ("M_Mean200", np.float32),
+        ("M_Crit200", np.float32),
+        ("M_TopHat", np.float32),
+        ("Pos", np.float32, 3),
+        ("Vel", np.float32, 3),
+        ("VelDisp", np.float32),
+        ("Vmax", np.float32),
+        ("Spin", np.float32, 3),
+        ("MostBoundID", np.int64),
+        ("SnapNum", np.int32),
+        ("FileNr", np.int32),
+        ("SubhaloIndex", np.int32),
+        ("SubHalfMass", np.float32),
+    ]
+)  # 104 bytes per halo — confirmed against mini-Millennium file sizes
 
 
 def _discover_files(input_path: str) -> list[Path]:
@@ -118,23 +120,23 @@ def _build_fields(halos: np.ndarray) -> dict:
     binary_writer divides both back by 1000 before packing.
     """
     return {
-        "Descendant":          halos["Descendant"],
-        "FirstProgenitor":     halos["FirstProgenitor"],
-        "NextProgenitor":      halos["NextProgenitor"],
+        "Descendant": halos["Descendant"],
+        "FirstProgenitor": halos["FirstProgenitor"],
+        "NextProgenitor": halos["NextProgenitor"],
         "FirstHaloInFOFGroup": halos["FirstHaloInFOFGroup"],
-        "NextHaloInFOFGroup":  halos["NextHaloInFOFGroup"],
-        "SubhaloLen":          halos["Len"],
-        "Group_M_Crit200":     halos["M_Crit200"],
-        "Group_M_Mean200":     halos["M_Mean200"],
-        "Group_M_TopHat200":   halos["M_TopHat"],
-        "SubhaloPos":          (halos["Pos"]  * np.float32(1000.0)).astype(np.float32),
-        "SubhaloVel":          halos["Vel"],
-        "SubhaloVelDisp":      halos["VelDisp"],
-        "SubhaloVMax":         halos["Vmax"],
-        "SubhaloSpin":         (halos["Spin"] * np.float32(1000.0)).astype(np.float32),
-        "SubhaloIDMostBound":  halos["MostBoundID"],
-        "SnapNum":             halos["SnapNum"],
-        "FileNr":              halos["FileNr"],
+        "NextHaloInFOFGroup": halos["NextHaloInFOFGroup"],
+        "SubhaloLen": halos["Len"],
+        "Group_M_Crit200": halos["M_Crit200"],
+        "Group_M_Mean200": halos["M_Mean200"],
+        "Group_M_TopHat200": halos["M_TopHat"],
+        "SubhaloPos": (halos["Pos"] * np.float32(1000.0)).astype(np.float32),
+        "SubhaloVel": halos["Vel"],
+        "SubhaloVelDisp": halos["VelDisp"],
+        "SubhaloVMax": halos["Vmax"],
+        "SubhaloSpin": (halos["Spin"] * np.float32(1000.0)).astype(np.float32),
+        "SubhaloIDMostBound": halos["MostBoundID"],
+        "SnapNum": halos["SnapNum"],
+        "FileNr": halos["FileNr"],
     }
 
 
@@ -170,7 +172,7 @@ def read_trees(
 
     result: dict[int, dict] = {}
     current_file_path = None
-    current_fp = None
+    current_fp: BufferedReader | None = None
     try:
         for global_tree_idx, (file_path, local_idx, n_halos, byte_offset) in enumerate(
             tqdm(work, desc="Reading trees")
@@ -180,6 +182,7 @@ def read_trees(
                     current_fp.close()
                 current_fp = open(file_path, "rb")
                 current_file_path = file_path
+            assert current_fp is not None
             current_fp.seek(byte_offset)
             raw = current_fp.read(n_halos * HALO_DTYPE.itemsize)
             halos = np.frombuffer(raw, dtype=HALO_DTYPE)
@@ -235,7 +238,9 @@ def convert(
                 header_bytes = 4 + 4 + n_trees_in_file * 4
             offset = header_bytes  # start of halo data
             for local_idx in range(n_trees_in_file):
-                work.append((file_path, local_idx, int(tree_n_halos[local_idx]), offset))
+                work.append(
+                    (file_path, local_idx, int(tree_n_halos[local_idx]), offset)
+                )
                 offset += int(tree_n_halos[local_idx]) * HALO_DTYPE.itemsize
 
         # Apply n_trees limit
@@ -252,7 +257,7 @@ def convert(
         # Helper: iterate work list, keeping input files open across their trees.
         def _iter_trees(out_f, write_tree_fn):
             current_file_path = None
-            current_fp = None
+            current_fp: BufferedReader | None = None
             global_tree_idx = 0
             try:
                 for file_path, local_idx, n_halos, byte_offset in tqdm(
@@ -264,6 +269,7 @@ def convert(
                         current_fp = open(file_path, "rb")
                         current_file_path = file_path
 
+                    assert current_fp is not None
                     current_fp.seek(byte_offset)
                     raw = current_fp.read(n_halos * HALO_DTYPE.itemsize)
                     halos = np.frombuffer(raw, dtype=HALO_DTYPE)

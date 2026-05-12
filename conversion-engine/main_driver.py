@@ -36,10 +36,10 @@ from pathlib import Path
 # Updated during Stage 4 when new drivers are registered.
 # ---------------------------------------------------------------------------
 FORMAT_REGISTRY: dict[str, str] = {
-    "subfind_lhalotree_binary":          "subfind_lhalotree_binary",
-    "rockstar_consistent_trees_ascii":   "rockstar_consistent_trees_ascii",
-    "ahf_mergetree_ascii":               "ahf_mergetree_ascii",
-    "subfind_gadget4_hdf5":              "subfind_gadget4_hdf5",
+    "subfind_lhalotree_binary": "subfind_lhalotree_binary",
+    "rockstar_consistent_trees_ascii": "rockstar_consistent_trees_ascii",
+    "ahf_mergetree_ascii": "ahf_mergetree_ascii",
+    "subfind_gadget4_hdf5": "subfind_gadget4_hdf5",
 }
 
 KDB_DIR = "format-database"
@@ -105,23 +105,46 @@ def main() -> None:
         description="Convert merger tree files to SAGE LHaloTree HDF5 format.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--input", required=True, metavar="PATH",
-                        help="Path to the input file or directory.")
-    parser.add_argument("--output", required=True, metavar="PATH",
-                        help="Path for the output HDF5 file.")
-    parser.add_argument("--format", metavar="FORMAT_ID", default=None,
-                        help="Format identifier (e.g. 'ahf_mergertree_ascii'). "
-                             "If omitted, auto-detection is attempted.")
-    parser.add_argument("--n-trees", type=int, default=None, metavar="N",
-                        help="Convert only the first N trees (Stage 2 test mode).")
-    parser.add_argument("--particle-mass", type=float, default=None, metavar="MSUN_PER_H",
-                        help="Dark matter particle mass in Msun/h. Overrides the value "
-                             "computed from the file header (use when the simulation "
-                             "N_particles differs from the driver default).")
-    parser.add_argument("--output-format", metavar="FORMAT", default="lhalo_hdf5",
-                        choices=["lhalo_hdf5", "lhalo_binary"],
-                        help="Output format: 'lhalo_hdf5' (default, SAGE TreeType=1) or "
-                             "'lhalo_binary' (SAGE TreeType=0).")
+    parser.add_argument(
+        "--input",
+        required=True,
+        metavar="PATH",
+        help="Path to the input file or directory.",
+    )
+    parser.add_argument(
+        "--output", required=True, metavar="PATH", help="Path for the output HDF5 file."
+    )
+    parser.add_argument(
+        "--format",
+        metavar="FORMAT_ID",
+        default=None,
+        help="Format identifier (e.g. 'ahf_mergertree_ascii'). "
+        "If omitted, auto-detection is attempted.",
+    )
+    parser.add_argument(
+        "--n-trees",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Convert only the first N trees (Stage 2 test mode).",
+    )
+    parser.add_argument(
+        "--particle-mass",
+        type=float,
+        default=None,
+        metavar="MSUN_PER_H",
+        help="Dark matter particle mass in Msun/h. Overrides the value "
+        "computed from the file header (use when the simulation "
+        "N_particles differs from the driver default).",
+    )
+    parser.add_argument(
+        "--output-format",
+        metavar="FORMAT",
+        default="lhalo_hdf5",
+        choices=["lhalo_hdf5", "lhalo_binary"],
+        help="Output format: 'lhalo_hdf5' (default, SAGE TreeType=1) or "
+        "'lhalo_binary' (SAGE TreeType=0).",
+    )
     args = parser.parse_args()
 
     log.info("SAGE merger tree converter starting — %s", datetime.now().isoformat())
@@ -143,7 +166,8 @@ def main() -> None:
             log.error(
                 "Auto-detection failed. No matching format found in %s "
                 "for input '%s'. Use --format to specify the format explicitly.",
-                KDB_DIR, args.input,
+                KDB_DIR,
+                args.input,
             )
             sys.exit(1)
         log.info("Auto-detected format: %s", format_id)
@@ -153,7 +177,8 @@ def main() -> None:
     if format_id not in FORMAT_REGISTRY:
         log.error(
             "Unknown format '%s'. Registered formats: %s",
-            format_id, sorted(FORMAT_REGISTRY.keys()) or ["(none — add drivers in Stage 4)"],
+            format_id,
+            sorted(FORMAT_REGISTRY.keys()) or ["(none — add drivers in Stage 4)"],
         )
         sys.exit(1)
 
@@ -182,9 +207,13 @@ def main() -> None:
 
     log.info("Conversion started.")
     try:
-        driver.convert(args.input, args.output, n_trees=args.n_trees,
-                       particle_mass=args.particle_mass,
-                       output_format=args.output_format)
+        driver.convert(
+            args.input,
+            args.output,
+            n_trees=args.n_trees,
+            particle_mass=args.particle_mass,
+            output_format=args.output_format,
+        )
     except SystemExit:
         log.error("Driver exited with an error. See messages above.")
         sys.exit(1)

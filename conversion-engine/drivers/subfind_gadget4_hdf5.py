@@ -50,15 +50,28 @@ import warnings
 import h5py
 import numpy as np
 from tqdm import tqdm
-
 from utils import binary_writer, hdf5_writer
 
 _POS_SPIN_SCALE = np.float32(1000.0)
 
 
+def _ds(group: h5py.Group, key: str) -> h5py.Dataset:
+    """Return the named item as a Dataset (type-narrowing helper)."""
+    return group[key]  # type: ignore[return-value]
+
+
+def _load_arr(
+    group: h5py.Group, key: str, sel: slice | None = None
+) -> np.ndarray:
+    """Load an h5py dataset field into a numpy array."""
+    ds = _ds(group, key)
+    return np.asarray(ds if sel is None else ds[sel])  # type: ignore[arg-type, index]
+
+
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
+
 
 def _estimate_particle_mass(sub_mass: np.ndarray, sub_len: np.ndarray) -> float:
     """Estimate DM particle mass from SubhaloMass / SubhaloLen of large halos."""
@@ -67,7 +80,9 @@ def _estimate_particle_mass(sub_mass: np.ndarray, sub_len: np.ndarray) -> float:
         return 0.0
     n_sample = max(1, int(valid.sum()) // 1000)
     top_idx = np.argpartition(sub_len[valid], -n_sample)[-n_sample:]
-    ratios = sub_mass[valid][top_idx].astype(np.float64) / sub_len[valid][top_idx].astype(np.float64)
+    ratios = sub_mass[valid][top_idx].astype(np.float64) / sub_len[valid][
+        top_idx
+    ].astype(np.float64)
     return float(np.median(ratios))
 
 
@@ -78,7 +93,7 @@ def _resolve_same_snap_desc(desc_in: np.ndarray, snap: np.ndarray) -> np.ndarray
     each hop so in-flight updates do not affect other halos in the same pass.
     Up to 10 iterations; residual same-snapshot links are set to -1.
     """
-    snap_i  = snap.astype(np.int64)
+    snap_i = snap.astype(np.int64)
     desc_eff = desc_in.astype(np.int64)
     for _ in range(10):
         same_snap = (desc_eff >= 0) & (snap_i[desc_eff.clip(0)] == snap_i)
@@ -103,24 +118,24 @@ def _build_temporal_pointers(
 
     Fully vectorised. O(N log N).
     """
-    n   = len(desc)
-    fp  = np.full(n, -1, dtype=np.int32)
+    n = len(desc)
+    fp = np.full(n, -1, dtype=np.int32)
     np_ = np.full(n, -1, dtype=np.int32)
 
     valid = desc >= 0
     if not valid.any():
         return fp, np_
 
-    local_ids        = np.arange(n, dtype=np.int32)
-    valid_progs      = local_ids[valid]
-    desc_of_progs    = desc[valid].astype(np.int32)
+    local_ids = np.arange(n, dtype=np.int32)
+    valid_progs = local_ids[valid]
+    desc_of_progs = desc[valid].astype(np.int32)
     sub_len_of_progs = sub_len[valid].astype(np.int64)
 
-    sort_key     = np.lexsort((-sub_len_of_progs, desc_of_progs))
+    sort_key = np.lexsort((-sub_len_of_progs, desc_of_progs))
     sorted_progs = valid_progs[sort_key]
     sorted_descs = desc_of_progs[sort_key]
 
-    is_new_group    = np.empty(len(sorted_descs), dtype=bool)
+    is_new_group = np.empty(len(sorted_descs), dtype=bool)
     is_new_group[0] = True
     is_new_group[1:] = sorted_descs[1:] != sorted_descs[:-1]
 
@@ -141,26 +156,28 @@ def _build_fof_pointers(
 
     Fully vectorised. O(N log N).
     """
-    n      = len(snap)
-    fhfof  = np.full(n, -1, dtype=np.int32)
-    nhfof  = np.full(n, -1, dtype=np.int32)
+    n = len(snap)
+    fhfof = np.full(n, -1, dtype=np.int32)
+    nhfof = np.full(n, -1, dtype=np.int32)
 
-    local_ids  = np.arange(n, dtype=np.int32)
-    snap_32    = snap.astype(np.int32)
+    local_ids = np.arange(n, dtype=np.int32)
+    snap_32 = snap.astype(np.int32)
     group_nr_i = group_nr.astype(np.int64)
-    sub_len_i  = sub_len.astype(np.int64)
+    sub_len_i = sub_len.astype(np.int64)
 
-    sort_key     = np.lexsort((-sub_len_i, group_nr_i, snap_32))
+    sort_key = np.lexsort((-sub_len_i, group_nr_i, snap_32))
     sorted_halos = local_ids[sort_key]
-    sorted_snap  = snap_32[sort_key]
-    sorted_gnr   = group_nr_i[sort_key]
+    sorted_snap = snap_32[sort_key]
+    sorted_gnr = group_nr_i[sort_key]
 
-    is_new    = np.empty(n, dtype=bool)
+    is_new = np.empty(n, dtype=bool)
     is_new[0] = True
-    is_new[1:] = (sorted_snap[1:] != sorted_snap[:-1]) | (sorted_gnr[1:] != sorted_gnr[:-1])
+    is_new[1:] = (sorted_snap[1:] != sorted_snap[:-1]) | (
+        sorted_gnr[1:] != sorted_gnr[:-1]
+    )
 
     central_halos = sorted_halos[is_new]
-    group_idx     = np.cumsum(is_new) - 1
+    group_idx = np.cumsum(is_new) - 1
     fhfof[sorted_halos] = central_halos[group_idx]
 
     same_group = ~is_new[1:]
@@ -184,17 +201,17 @@ def _process_tree(th: h5py.Group, start: int, n: int) -> dict:
     sl = slice(start, start + n)
 
     # Load tree-local data from the flat arrays
-    desc_raw   = th["TreeDescendant"][sl].astype(np.int32)
-    snap       = th["SnapNum"][sl].astype(np.int32)
-    group_nr   = th["GroupNr"][sl].astype(np.int64)
-    sub_len    = th["SubhaloLen"][sl].astype(np.int32)
-    mass       = th["Group_M_Crit200"][sl].astype(np.float32)
-    pos        = th["SubhaloPos"][sl].astype(np.float32) * _POS_SPIN_SCALE
-    vel        = th["SubhaloVel"][sl].astype(np.float32)
-    vdisp      = th["SubhaloVelDisp"][sl].astype(np.float32)
-    vmax       = th["SubhaloVmax"][sl].astype(np.float32)
-    spin       = th["SubhaloSpin"][sl].astype(np.float32) * _POS_SPIN_SCALE
-    most_bound = th["SubhaloIDMostbound"][sl].astype(np.int64)
+    desc_raw = _load_arr(th, "TreeDescendant", sl).astype(np.int32)
+    snap = _load_arr(th, "SnapNum", sl).astype(np.int32)
+    group_nr = _load_arr(th, "GroupNr", sl).astype(np.int64)
+    sub_len = _load_arr(th, "SubhaloLen", sl).astype(np.int32)
+    mass = _load_arr(th, "Group_M_Crit200", sl).astype(np.float32)
+    pos = _load_arr(th, "SubhaloPos", sl).astype(np.float32) * _POS_SPIN_SCALE
+    vel = _load_arr(th, "SubhaloVel", sl).astype(np.float32)
+    vdisp = _load_arr(th, "SubhaloVelDisp", sl).astype(np.float32)
+    vmax = _load_arr(th, "SubhaloVmax", sl).astype(np.float32)
+    spin = _load_arr(th, "SubhaloSpin", sl).astype(np.float32) * _POS_SPIN_SCALE
+    most_bound = _load_arr(th, "SubhaloIDMostbound", sl).astype(np.int64)
 
     # Clamp out-of-range desc values to -1 (defensive)
     desc_raw = np.where((desc_raw >= 0) & (desc_raw < n), desc_raw, np.int32(-1))
@@ -204,46 +221,47 @@ def _process_tree(th: h5py.Group, start: int, n: int) -> dict:
 
     # Sort: SnapNum descending, SubhaloLen descending → halo 0 = z=0 central
     sort_order = np.lexsort((-sub_len.astype(np.int64), -snap.astype(np.int64)))
-    inv_sort   = np.empty(n, dtype=np.int32)
+    inv_sort = np.empty(n, dtype=np.int32)
     inv_sort[sort_order] = np.arange(n, dtype=np.int32)
 
     # Remap desc_eff (pre-sort local indices) to post-sort local indices
-    desc_pre    = desc_eff[sort_order]   # desc in pre-sort space for each sorted position
-    valid       = desc_pre >= 0
+    desc_pre = desc_eff[sort_order]  # desc in pre-sort space for each sorted position
+    valid = desc_pre >= 0
     desc_sorted = np.full(n, -1, dtype=np.int32)
     desc_sorted[valid] = inv_sort[desc_pre[valid]]
 
-    snap_s    = snap[sort_order]
-    group_s   = group_nr[sort_order]
+    snap_s = snap[sort_order]
+    group_s = group_nr[sort_order]
     sub_len_s = sub_len[sort_order]
 
-    fp, np_       = _build_temporal_pointers(desc_sorted, sub_len_s)
-    fhfof, nhfof  = _build_fof_pointers(snap_s, group_s, sub_len_s)
+    fp, np_ = _build_temporal_pointers(desc_sorted, sub_len_s)
+    fhfof, nhfof = _build_fof_pointers(snap_s, group_s, sub_len_s)
 
     return {
-        "Descendant":          desc_sorted,
-        "FirstProgenitor":     fp,
-        "NextProgenitor":      np_,
+        "Descendant": desc_sorted,
+        "FirstProgenitor": fp,
+        "NextProgenitor": np_,
         "FirstHaloInFOFGroup": fhfof,
-        "NextHaloInFOFGroup":  nhfof,
-        "SubhaloLen":          sub_len_s,
-        "Group_M_Crit200":     mass[sort_order],
-        "Group_M_Mean200":     np.zeros(n, dtype=np.float32),
-        "Group_M_TopHat200":   np.zeros(n, dtype=np.float32),
-        "SubhaloPos":          pos[sort_order],
-        "SubhaloVel":          vel[sort_order],
-        "SubhaloVelDisp":      vdisp[sort_order],
-        "SubhaloVMax":         vmax[sort_order],
-        "SubhaloSpin":         spin[sort_order],
-        "SubhaloIDMostBound":  most_bound[sort_order],
-        "SnapNum":             snap_s,
-        "FileNr":              np.full(n, -1, dtype=np.int32),
+        "NextHaloInFOFGroup": nhfof,
+        "SubhaloLen": sub_len_s,
+        "Group_M_Crit200": mass[sort_order],
+        "Group_M_Mean200": np.zeros(n, dtype=np.float32),
+        "Group_M_TopHat200": np.zeros(n, dtype=np.float32),
+        "SubhaloPos": pos[sort_order],
+        "SubhaloVel": vel[sort_order],
+        "SubhaloVelDisp": vdisp[sort_order],
+        "SubhaloVMax": vmax[sort_order],
+        "SubhaloSpin": spin[sort_order],
+        "SubhaloIDMostBound": most_bound[sort_order],
+        "SnapNum": snap_s,
+        "FileNr": np.full(n, -1, dtype=np.int32),
     }
 
 
 # ---------------------------------------------------------------------------
 # Public interface
 # ---------------------------------------------------------------------------
+
 
 def convert(
     input_path: str,
@@ -273,18 +291,18 @@ def convert(
 
     try:
         with h5py.File(input_path, "r") as in_f:
-            tt          = in_f["TreeTable"]
-            starts      = tt["StartOffset"][:].astype(np.int64)
-            lengths     = tt["Length"][:].astype(np.int64)
-            n_g4_trees  = int(len(starts))
-            n_to_write  = min(n_trees, n_g4_trees) if n_trees is not None else n_g4_trees
+            tt: h5py.Group = in_f["TreeTable"]  # type: ignore[assignment]
+            starts = _load_arr(tt, "StartOffset").astype(np.int64)
+            lengths = _load_arr(tt, "Length").astype(np.int64)
+            n_g4_trees = int(len(starts))
+            n_to_write = min(n_trees, n_g4_trees) if n_trees is not None else n_g4_trees
 
-            th = in_f["TreeHalos"]
+            th: h5py.Group = in_f["TreeHalos"]  # type: ignore[assignment]
 
             if particle_mass is None:
-                sample_size = min(100_000, int(th["SubhaloLen"].shape[0]))
-                sub_mass_s  = th["SubhaloMass"][:sample_size].copy()
-                sub_len_s   = th["SubhaloLen"][:sample_size].copy()
+                sample_size = min(100_000, int(_ds(th, "SubhaloLen").shape[0]))
+                sub_mass_s = _load_arr(th, "SubhaloMass", slice(sample_size)).copy()
+                sub_len_s = _load_arr(th, "SubhaloLen", slice(sample_size)).copy()
                 particle_mass = _estimate_particle_mass(sub_mass_s, sub_len_s)
                 warnings.warn(
                     f"particle_mass not provided; estimated from SubhaloMass/SubhaloLen: "
@@ -298,7 +316,7 @@ def convert(
                 file=sys.stderr,
             )
 
-            tree_n_halos    = lengths[:n_to_write].astype(np.int32)
+            tree_n_halos = lengths[:n_to_write].astype(np.int32)
             total_halos_out = int(tree_n_halos.sum())
 
             if output_format == "lhalo_hdf5":
@@ -312,7 +330,9 @@ def convert(
                         tree_n_halos=tree_n_halos,
                     )
                     for tree_idx in tqdm(range(n_to_write), desc="Converting trees"):
-                        fields = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
+                        fields = _process_tree(
+                            th, int(starts[tree_idx]), int(lengths[tree_idx])
+                        )
                         hdf5_writer.write_tree(out_f, tree_idx, fields)
 
             elif output_format == "lhalo_binary":
@@ -326,17 +346,22 @@ def convert(
                         tree_n_halos=tree_n_halos,
                     )
                     for tree_idx in tqdm(range(n_to_write), desc="Converting trees"):
-                        fields = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
+                        fields = _process_tree(
+                            th, int(starts[tree_idx]), int(lengths[tree_idx])
+                        )
                         binary_writer.write_tree(out_f, tree_idx, fields)
 
             else:
-                print(f"ERROR: unknown output_format '{output_format}'.", file=sys.stderr)
+                print(
+                    f"ERROR: unknown output_format '{output_format}'.", file=sys.stderr
+                )
                 sys.exit(1)
 
     except SystemExit:
         raise
     except Exception as exc:
         import traceback
+
         print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         if os.path.exists(output_path):
@@ -361,14 +386,16 @@ def read_trees(
     """
     result: dict[int, dict] = {}
     with h5py.File(input_path, "r") as in_f:
-        tt         = in_f["TreeTable"]
-        starts     = tt["StartOffset"][:].astype(np.int64)
-        lengths    = tt["Length"][:].astype(np.int64)
+        tt: h5py.Group = in_f["TreeTable"]  # type: ignore[assignment]
+        starts = _load_arr(tt, "StartOffset").astype(np.int64)
+        lengths = _load_arr(tt, "Length").astype(np.int64)
         n_g4_trees = int(len(starts))
-        n_to_read  = min(n_trees, n_g4_trees) if n_trees is not None else n_g4_trees
+        n_to_read = min(n_trees, n_g4_trees) if n_trees is not None else n_g4_trees
 
-        th = in_f["TreeHalos"]
+        th: h5py.Group = in_f["TreeHalos"]  # type: ignore[assignment]
         for tree_idx in tqdm(range(n_to_read), desc="Reading trees"):
-            result[tree_idx] = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
+            result[tree_idx] = _process_tree(
+                th, int(starts[tree_idx]), int(lengths[tree_idx])
+            )
 
     return result

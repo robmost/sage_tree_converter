@@ -118,37 +118,41 @@ FileWithSnapList
 """
 
 # numpy dtype for reading binary halo records (matches struct halo_data in core_simulation.h)
-_BINARY_HALO_DTYPE = np.dtype([
-    ("Descendant",          np.int32),
-    ("FirstProgenitor",     np.int32),
-    ("NextProgenitor",      np.int32),
-    ("FirstHaloInFOFgroup", np.int32),
-    ("NextHaloInFOFgroup",  np.int32),
-    ("Len",                 np.int32),
-    ("M_Mean200",           np.float32),
-    ("Mvir",                np.float32),
-    ("M_TopHat",            np.float32),
-    ("Pos",                 np.float32, 3),
-    ("Vel",                 np.float32, 3),
-    ("VelDisp",             np.float32),
-    ("Vmax",                np.float32),
-    ("Spin",                np.float32, 3),
-    ("MostBoundID",         np.int64),
-    ("SnapNum",             np.int32),
-    ("FileNr",              np.int32),
-    ("SubhaloIndex",        np.int32),
-    ("SubHalfMass",         np.float32),
-])
+_BINARY_HALO_DTYPE = np.dtype(
+    [
+        ("Descendant", np.int32),
+        ("FirstProgenitor", np.int32),
+        ("NextProgenitor", np.int32),
+        ("FirstHaloInFOFgroup", np.int32),
+        ("NextHaloInFOFgroup", np.int32),
+        ("Len", np.int32),
+        ("M_Mean200", np.float32),
+        ("Mvir", np.float32),
+        ("M_TopHat", np.float32),
+        ("Pos", np.float32, 3),
+        ("Vel", np.float32, 3),
+        ("VelDisp", np.float32),
+        ("Vmax", np.float32),
+        ("Spin", np.float32, 3),
+        ("MostBoundID", np.int64),
+        ("SnapNum", np.int32),
+        ("FileNr", np.int32),
+        ("SubhaloIndex", np.int32),
+        ("SubHalfMass", np.float32),
+    ]
+)
 
 
 def _read_hdf5_params(hdf5_path: str) -> tuple[float, int]:
     """Return (particle_mass, lowest_redshift_snap) from an HDF5 output file."""
     with h5py.File(hdf5_path, "r") as f:
-        particle_mass = float(f["Header"].attrs.get("ParticleMass", 0.0))
+        hdr: h5py.Group = f["Header"]  # type: ignore[assignment]
+        particle_mass = float(hdr.attrs.get("ParticleMass", 0.0))
         max_snap = 0
         for key in f.keys():
             if key.startswith("Tree"):
-                snap_arr = f[key]["SnapNum"][:]
+                grp: h5py.Group = f[key]  # type: ignore[assignment]
+                snap_arr = np.asarray(grp["SnapNum"])  # type: ignore[arg-type]
                 tree_max = int(np.max(snap_arr))
                 if tree_max > max_snap:
                     max_snap = tree_max
@@ -307,7 +311,11 @@ def run_functional_validation(
     if param_overrides:
         param_values.update(param_overrides)
 
-    template = _PARAM_TEMPLATE_BINARY if output_format == "lhalo_binary" else _PARAM_TEMPLATE_HDF5
+    template = (
+        _PARAM_TEMPLATE_BINARY
+        if output_format == "lhalo_binary"
+        else _PARAM_TEMPLATE_HDF5
+    )
     param_content = template.format(**param_values)
     param_file = assets_path / "test_sage_params.par"
     param_file.write_text(param_content)

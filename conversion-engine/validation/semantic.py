@@ -35,32 +35,35 @@ from .plot_utils import (
     set_reldiff_ylim,
 )
 
-_BINARY_HALO_DTYPE = np.dtype([
-    ("Descendant",          np.int32),
-    ("FirstProgenitor",     np.int32),
-    ("NextProgenitor",      np.int32),
-    ("FirstHaloInFOFgroup", np.int32),
-    ("NextHaloInFOFgroup",  np.int32),
-    ("Len",                 np.int32),
-    ("M_Mean200",           np.float32),
-    ("Mvir",                np.float32),
-    ("M_TopHat",            np.float32),
-    ("Pos",                 np.float32, 3),
-    ("Vel",                 np.float32, 3),
-    ("VelDisp",             np.float32),
-    ("Vmax",                np.float32),
-    ("Spin",                np.float32, 3),
-    ("MostBoundID",         np.int64),
-    ("SnapNum",             np.int32),
-    ("FileNr",              np.int32),
-    ("SubhaloIndex",        np.int32),
-    ("SubHalfMass",         np.float32),
-])
+_BINARY_HALO_DTYPE = np.dtype(
+    [
+        ("Descendant", np.int32),
+        ("FirstProgenitor", np.int32),
+        ("NextProgenitor", np.int32),
+        ("FirstHaloInFOFgroup", np.int32),
+        ("NextHaloInFOFgroup", np.int32),
+        ("Len", np.int32),
+        ("M_Mean200", np.float32),
+        ("Mvir", np.float32),
+        ("M_TopHat", np.float32),
+        ("Pos", np.float32, 3),
+        ("Vel", np.float32, 3),
+        ("VelDisp", np.float32),
+        ("Vmax", np.float32),
+        ("Spin", np.float32, 3),
+        ("MostBoundID", np.int64),
+        ("SnapNum", np.int32),
+        ("FileNr", np.int32),
+        ("SubhaloIndex", np.int32),
+        ("SubHalfMass", np.float32),
+    ]
+)
 
 
 # ---------------------------------------------------------------------------
 # Data loading helpers
 # ---------------------------------------------------------------------------
+
 
 def _load_trees(hdf5_path: str) -> dict[int, dict[str, np.ndarray]]:
     """Load all trees from an HDF5 file into memory.
@@ -69,14 +72,17 @@ def _load_trees(hdf5_path: str) -> dict[int, dict[str, np.ndarray]]:
     -------
     dict mapping tree_idx (int) → dict of field_name → numpy array.
     """
-    trees = {}
+    trees: dict[int, dict[str, np.ndarray]] = {}
     with h5py.File(hdf5_path, "r") as f:
         for key in f.keys():
             if not key.startswith("Tree"):
                 continue
             idx = int(key[4:])
-            grp = f[key]
-            trees[idx] = {field: grp[field][:] for field in grp.keys()}
+            grp: h5py.Group = f[key]  # type: ignore[assignment]
+            trees[idx] = {
+                field: np.asarray(grp[field])  # type: ignore[arg-type]
+                for field in grp.keys()
+            }
     return trees
 
 
@@ -87,9 +93,9 @@ def _load_binary_trees(binary_path: str) -> dict[int, dict[str, np.ndarray]]:
     ((Mpc/h)(km/s) → (kpc/h)(km/s), ×1000) to match HDF5 on-disk convention
     so both sides of the comparison use equivalent quantities.
     """
-    trees = {}
+    trees: dict[int, dict[str, np.ndarray]] = {}
     with open(binary_path, "rb") as fp:
-        nforests   = _struct.unpack("<i", fp.read(4))[0]
+        nforests = _struct.unpack("<i", fp.read(4))[0]
         _totnhalos = _struct.unpack("<i", fp.read(4))[0]
         nhalos_per_forest = np.frombuffer(fp.read(nforests * 4), dtype=np.int32).copy()
         for idx in range(nforests):
@@ -97,26 +103,26 @@ def _load_binary_trees(binary_path: str) -> dict[int, dict[str, np.ndarray]]:
             if n == 0:
                 trees[idx] = {}
                 continue
-            raw   = fp.read(n * _BINARY_HALO_DTYPE.itemsize)
+            raw = fp.read(n * _BINARY_HALO_DTYPE.itemsize)
             halos = np.frombuffer(raw, dtype=_BINARY_HALO_DTYPE).copy()
             trees[idx] = {
-                "Descendant":          halos["Descendant"],
-                "FirstProgenitor":     halos["FirstProgenitor"],
-                "NextProgenitor":      halos["NextProgenitor"],
+                "Descendant": halos["Descendant"],
+                "FirstProgenitor": halos["FirstProgenitor"],
+                "NextProgenitor": halos["NextProgenitor"],
                 "FirstHaloInFOFGroup": halos["FirstHaloInFOFgroup"],
-                "NextHaloInFOFGroup":  halos["NextHaloInFOFgroup"],
-                "SubhaloLen":          halos["Len"],
-                "Group_M_Crit200":     halos["Mvir"],
-                "Group_M_Mean200":     halos["M_Mean200"],
-                "Group_M_TopHat200":   halos["M_TopHat"],
-                "SubhaloPos":  (halos["Pos"]  * np.float32(1000.0)).astype(np.float32),
-                "SubhaloVel":          halos["Vel"],
-                "SubhaloVelDisp":      halos["VelDisp"],
-                "SubhaloVMax":         halos["Vmax"],
+                "NextHaloInFOFGroup": halos["NextHaloInFOFgroup"],
+                "SubhaloLen": halos["Len"],
+                "Group_M_Crit200": halos["Mvir"],
+                "Group_M_Mean200": halos["M_Mean200"],
+                "Group_M_TopHat200": halos["M_TopHat"],
+                "SubhaloPos": (halos["Pos"] * np.float32(1000.0)).astype(np.float32),
+                "SubhaloVel": halos["Vel"],
+                "SubhaloVelDisp": halos["VelDisp"],
+                "SubhaloVMax": halos["Vmax"],
                 "SubhaloSpin": (halos["Spin"] * np.float32(1000.0)).astype(np.float32),
-                "SubhaloIDMostBound":  halos["MostBoundID"],
-                "SnapNum":             halos["SnapNum"],
-                "FileNr":              halos["FileNr"],
+                "SubhaloIDMostBound": halos["MostBoundID"],
+                "SnapNum": halos["SnapNum"],
+                "FileNr": halos["FileNr"],
             }
     return trees
 
@@ -156,6 +162,10 @@ def _load_native_trees(
         sys.path.insert(0, engine_str)
 
     spec = importlib.util.spec_from_file_location(format_id, driver_path)
+    if spec is None:
+        raise ValueError(f"Cannot create module spec for driver '{driver_path}'")
+    if spec.loader is None:
+        raise ValueError(f"Module spec for driver '{driver_path}' has no loader")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
 
@@ -207,9 +217,9 @@ def _select_mass_bins(
     k = min(5, n)
 
     top = sorted_ids[:k]
-    bottom = sorted_ids[max(0, n - k):]
+    bottom = sorted_ids[max(0, n - k) :]
     mid_start = max(0, n // 2 - k // 2)
-    median = sorted_ids[mid_start: mid_start + k]
+    median = sorted_ids[mid_start : mid_start + k]
 
     return top, median, bottom
 
@@ -286,8 +296,13 @@ def _lifespan(tree: dict, root_idx: int) -> int:
 # 3×3 evolution plots
 # ---------------------------------------------------------------------------
 
+
 def _plot_mah(
-    in_trees: dict, out_trees: dict, mass_bins: tuple, output_dir: str, style_path: str = "reference/sage_validation.mplstyle"
+    in_trees: dict,
+    out_trees: dict,
+    mass_bins: tuple,
+    output_dir: str,
+    style_path: str = "reference/sage_validation.mplstyle",
 ) -> str:
     """Plot 1 — Mass Accretion History (3×3)."""
     if os.path.isfile(style_path):
@@ -317,8 +332,17 @@ def _plot_mah(
             in_masses_pos = [m if m > 0 else np.nan for m in in_masses]
             out_masses_pos = [m if m > 0 else np.nan for m in out_masses]
 
-            axes[row_idx, 0].semilogy(in_snaps, in_masses_pos, alpha=0.6, marker="o", markersize=3, label=f"Tree {tid}")
-            axes[row_idx, 1].semilogy(out_snaps, out_masses_pos, alpha=0.6, marker="o", markersize=3)
+            axes[row_idx, 0].semilogy(
+                in_snaps,
+                in_masses_pos,
+                alpha=0.6,
+                marker="o",
+                markersize=3,
+                label=f"Tree {tid}",
+            )
+            axes[row_idx, 1].semilogy(
+                out_snaps, out_masses_pos, alpha=0.6, marker="o", markersize=3
+            )
 
             # Relative difference on common snapshots
             in_map = dict(zip(in_snaps, in_masses))
@@ -346,7 +370,11 @@ def _plot_mah(
 
 
 def _plot_merger_rate(
-    in_trees: dict, out_trees: dict, mass_bins: tuple, output_dir: str, style_path: str = "reference/sage_validation.mplstyle"
+    in_trees: dict,
+    out_trees: dict,
+    mass_bins: tuple,
+    output_dir: str,
+    style_path: str = "reference/sage_validation.mplstyle",
 ) -> str:
     """Plot 2 — Merger Rate (3×3)."""
     if os.path.isfile(style_path):
@@ -356,7 +384,11 @@ def _plot_merger_rate(
     bin_groups = [top, median, bottom]
 
     fig, axes = make_3x3_figure(
-        col_titles=("Input — Merger rate", "Output — Merger rate", "Relative difference"),
+        col_titles=(
+            "Input — Merger rate",
+            "Output — Merger rate",
+            "Relative difference",
+        ),
     )
 
     for row_idx, tree_ids in enumerate(bin_groups):
@@ -375,8 +407,21 @@ def _plot_merger_rate(
 
             in_snaps = sorted(in_rate)
             out_snaps = sorted(out_rate)
-            axes[row_idx, 0].plot(in_snaps, [in_rate[s] for s in in_snaps], alpha=0.6, marker="o", markersize=3, label=f"Tree {tid}")
-            axes[row_idx, 1].plot(out_snaps, [out_rate[s] for s in out_snaps], alpha=0.6, marker="o", markersize=3)
+            axes[row_idx, 0].plot(
+                in_snaps,
+                [in_rate[s] for s in in_snaps],
+                alpha=0.6,
+                marker="o",
+                markersize=3,
+                label=f"Tree {tid}",
+            )
+            axes[row_idx, 1].plot(
+                out_snaps,
+                [out_rate[s] for s in out_snaps],
+                alpha=0.6,
+                marker="o",
+                markersize=3,
+            )
 
             common = sorted(set(in_snaps) & set(out_snaps))
             if common:
@@ -402,7 +447,11 @@ def _plot_merger_rate(
 
 
 def _plot_angular_momentum(
-    in_trees: dict, out_trees: dict, mass_bins: tuple, output_dir: str, style_path: str = "reference/sage_validation.mplstyle"
+    in_trees: dict,
+    out_trees: dict,
+    mass_bins: tuple,
+    output_dir: str,
+    style_path: str = "reference/sage_validation.mplstyle",
 ) -> str:
     """Plot 3 — Specific Angular Momentum |SubhaloSpin| (3×3)."""
     if os.path.isfile(style_path):
@@ -436,8 +485,17 @@ def _plot_angular_momentum(
             in_spins_pos = [s if s > 0 else np.nan for s in in_spins]
             out_spins_pos = [s if s > 0 else np.nan for s in out_spins]
 
-            axes[row_idx, 0].semilogy(in_snaps, in_spins_pos, alpha=0.6, marker="o", markersize=3, label=f"Tree {tid}")
-            axes[row_idx, 1].semilogy(out_snaps, out_spins_pos, alpha=0.6, marker="o", markersize=3)
+            axes[row_idx, 0].semilogy(
+                in_snaps,
+                in_spins_pos,
+                alpha=0.6,
+                marker="o",
+                markersize=3,
+                label=f"Tree {tid}",
+            )
+            axes[row_idx, 1].semilogy(
+                out_snaps, out_spins_pos, alpha=0.6, marker="o", markersize=3
+            )
 
             in_map = dict(zip(in_snaps, in_spins))
             common = sorted(set(in_snaps) & set(out_snaps))
@@ -467,6 +525,7 @@ def _plot_angular_momentum(
 # 1×3 distribution plots
 # ---------------------------------------------------------------------------
 
+
 def _collect_halos_at_snap(trees: dict, snap: int) -> dict[str, np.ndarray]:
     """Collect all halo-level arrays at the given snapshot across all trees.
 
@@ -490,7 +549,12 @@ def _collect_halos_at_snap(trees: dict, snap: int) -> dict[str, np.ndarray]:
     }
 
 
-def _plot_hmf(in_halos: dict, out_halos: dict, output_dir: str, style_path: str = "reference/sage_validation.mplstyle") -> str:
+def _plot_hmf(
+    in_halos: dict,
+    out_halos: dict,
+    output_dir: str,
+    style_path: str = "reference/sage_validation.mplstyle",
+) -> str:
     """Plot 4 — Halo Mass Function (1×3)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
@@ -509,8 +573,12 @@ def _plot_hmf(in_halos: dict, out_halos: dict, output_dir: str, style_path: str 
         col_titles=("Input — HMF", "Output — HMF", "Relative difference"),
     )
 
-    axes[0].semilogy(bin_centres, np.where(in_counts > 0, in_counts, np.nan), drawstyle="steps-mid")
-    axes[1].semilogy(bin_centres, np.where(out_counts > 0, out_counts, np.nan), drawstyle="steps-mid")
+    axes[0].semilogy(
+        bin_centres, np.where(in_counts > 0, in_counts, np.nan), drawstyle="steps-mid"
+    )
+    axes[1].semilogy(
+        bin_centres, np.where(out_counts > 0, out_counts, np.nan), drawstyle="steps-mid"
+    )
 
     rd = rel_diff(out_counts.astype(float), in_counts.astype(float))
     axes[2].plot(bin_centres, rd, drawstyle="steps-mid")
@@ -528,7 +596,12 @@ def _plot_hmf(in_halos: dict, out_halos: dict, output_dir: str, style_path: str 
     return path
 
 
-def _plot_velocity_dist(in_halos: dict, out_halos: dict, output_dir: str, style_path: str = "reference/sage_validation.mplstyle") -> str:
+def _plot_velocity_dist(
+    in_halos: dict,
+    out_halos: dict,
+    output_dir: str,
+    style_path: str = "reference/sage_validation.mplstyle",
+) -> str:
     """Plot 5 — Velocity Distribution |SubhaloVel| (1×3)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
@@ -571,7 +644,12 @@ def _plot_velocity_dist(in_halos: dict, out_halos: dict, output_dir: str, style_
     return path
 
 
-def _plot_lifespan(in_trees: dict, out_trees: dict, output_dir: str, style_path: str = "reference/sage_validation.mplstyle") -> str:
+def _plot_lifespan(
+    in_trees: dict,
+    out_trees: dict,
+    output_dir: str,
+    style_path: str = "reference/sage_validation.mplstyle",
+) -> str:
     """Plot 6 — Lifespan Distribution (1×3)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
@@ -593,7 +671,9 @@ def _plot_lifespan(in_trees: dict, out_trees: dict, output_dir: str, style_path:
     if not in_lifespans or not out_lifespans:
         fig, axes = make_1x3_figure()
         for ax in axes:
-            ax.text(0.5, 0.5, "No data", ha="center", va="center", transform=ax.transAxes)
+            ax.text(
+                0.5, 0.5, "No data", ha="center", va="center", transform=ax.transAxes
+            )
         path = os.path.join(output_dir, "lifespan_dist.pdf")
         save_figure(fig, path)
         return path
@@ -628,7 +708,12 @@ def _plot_lifespan(in_trees: dict, out_trees: dict, output_dir: str, style_path:
     return path
 
 
-def _plot_spatial(in_halos: dict, out_halos: dict, output_dir: str, style_path: str = "reference/sage_validation.mplstyle") -> str:
+def _plot_spatial(
+    in_halos: dict,
+    out_halos: dict,
+    output_dir: str,
+    style_path: str = "reference/sage_validation.mplstyle",
+) -> str:
     """Plot 7 — Spatial Distribution X–Y hexbin (1×3)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
@@ -681,6 +766,7 @@ def _plot_spatial(in_halos: dict, out_halos: dict, output_dir: str, style_path: 
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def generate_all_plots(
     input_path: str,
     output_path: str,
@@ -726,7 +812,10 @@ def generate_all_plots(
         plt.style.use(style_path)
     else:
         import warnings
-        warnings.warn(f"Style file not found at '{style_path}'. Using matplotlib defaults.")
+
+        warnings.warn(
+            f"Style file not found at '{style_path}'. Using matplotlib defaults."
+        )
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -738,7 +827,11 @@ def generate_all_plots(
     else:
         in_trees = _load_native_trees(input_format, input_path)
     print(f"Loading output trees from: {output_path}")
-    out_trees = _load_trees(output_path) if output_format == "lhalo_hdf5" else _load_binary_trees(output_path)
+    out_trees = (
+        _load_trees(output_path)
+        if output_format == "lhalo_hdf5"
+        else _load_binary_trees(output_path)
+    )
 
     if not in_trees:
         raise ValueError(f"No trees found in input file: {input_path}")
@@ -773,10 +866,16 @@ def generate_all_plots(
     print("\nGenerating plots …")
 
     saved.append(_plot_mah(in_trees_shared, out_trees_shared, mass_bins, output_dir))
-    saved.append(_plot_merger_rate(in_trees_shared, out_trees_shared, mass_bins, output_dir))
-    saved.append(_plot_angular_momentum(in_trees_shared, out_trees_shared, mass_bins, output_dir))
+    saved.append(
+        _plot_merger_rate(in_trees_shared, out_trees_shared, mass_bins, output_dir)
+    )
+    saved.append(
+        _plot_angular_momentum(in_trees_shared, out_trees_shared, mass_bins, output_dir)
+    )
     saved.append(_plot_hmf(in_halos_lo, out_halos_lo, output_dir))
-    saved.append(_plot_velocity_dist(in_halos_lo, out_halos_lo, output_dir))  # uses SubhaloVel, NOT SubhaloVMax
+    saved.append(
+        _plot_velocity_dist(in_halos_lo, out_halos_lo, output_dir)
+    )  # uses SubhaloVel, NOT SubhaloVMax
     saved.append(_plot_lifespan(in_trees_shared, out_trees_shared, output_dir))
     saved.append(_plot_spatial(in_halos_lo, out_halos_lo, output_dir))
 

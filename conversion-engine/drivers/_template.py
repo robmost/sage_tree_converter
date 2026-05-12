@@ -34,11 +34,10 @@ INTERFACE CONTRACT
 import os
 import sys
 
-import h5py
-import numpy as np
-from tqdm import tqdm
-
-from utils import binary_writer, hdf5_writer
+import h5py  # noqa: F401
+import numpy as np  # noqa: F401
+from tqdm import tqdm  # noqa: F401
+from utils import binary_writer, hdf5_writer  # noqa: F401
 
 
 def convert(
