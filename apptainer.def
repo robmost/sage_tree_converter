@@ -1,0 +1,45 @@
+BootStrap: docker
+From: ubuntu:22.04
+
+%labels
+    Maintainer Robert A. Mostoghiu Paun
+    Description SAGE Universal Merger Tree Converter runtime image
+
+%files
+    requirements.txt /tmp/requirements.txt
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        git \
+        hdf5-tools \
+        python3 \
+        python3-pip
+
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y --no-install-recommends nodejs
+
+    npm install -g @anthropic-ai/claude-code @google/gemini-cli
+
+    for uid in 501 502 1000 1001; do
+        grep -q ":${uid}:" /etc/passwd || \
+        echo "user${uid}:x:${uid}:${uid}::/tmp:/bin/sh" >> /etc/passwd
+    done
+
+    git config --system safe.directory '*'
+    pip3 install --no-cache-dir -r /tmp/requirements.txt
+
+    rm -rf /var/lib/apt/lists/* /tmp/requirements.txt
+
+%environment
+    export HOME=/tmp
+    export MPLCONFIGDIR=/tmp/matplotlib
+    export PS1='sage-sandbox:\w\$ '
+
+%runscript
+    if [ "$#" -eq 0 ]; then
+        exec /bin/bash
+    fi
+    exec "$@"

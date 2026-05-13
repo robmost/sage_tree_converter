@@ -122,7 +122,7 @@ All keys are read from `.env` at the project root. See `.env.example` for the fu
 | `OUTPUT_DIR` | Override for the output data directory (default: `./output`) |
 | `SAGE_BINARY_PATH` | Absolute path to a compiled SAGE binary. If set, Stage 2 runs functional validation. If absent, functional validation is skipped. |
 | `SAGE_MEMORY_MULTIPLIER` | Peak memory estimate multiplier (default: `3.0`). See memory pre-check rule. |
-| `PYTHON_BIN` | Python interpreter for all shell invocations. Default: `python3`. Set to the full path of your Anaconda Python when running outside the container (e.g. `/opt/anaconda3/bin/python`). |
+| `PYTHON_BIN` | Python interpreter for all shell invocations. Default: `python3`. Set to the full path of your Anaconda Python when running outside containers (e.g. `/opt/anaconda3/bin/python`). |
 
 ---
 
@@ -156,13 +156,12 @@ Reading beyond the minimum needed to identify format or diagnose an error is pro
 Before invoking the conversion driver in Stage 2:
 
 1. Obtain the input file size in bytes: `stat -c%s <input_file>` (Linux) or `stat -f%z <input_file>` (macOS).
-2. Read `SAGE_MEMORY_MULTIPLIER` from `.env` (default `3.0`).
-3. Estimate peak memory: `input_file_size_bytes × SAGE_MEMORY_MULTIPLIER`.
-4. Read available memory:
-   - **Linux / inside container**: `grep MemAvailable /proc/meminfo` (reports kB; convert to bytes).
-   - **macOS (host, outside container)**: `vm_stat | grep "Pages free"` then multiply by page size (`sysctl -n hw.pagesize`), or use `$PYTHON_BIN -c "import psutil; print(psutil.virtual_memory().available)"` if psutil is installed.
-   - If neither method succeeds, skip the check and log a note that available memory could not be determined.
-5. If the estimate exceeds available memory, **warn** the user with both figures and ask whether to proceed. Do not block; this is a warning only.
+1. Read `SAGE_MEMORY_MULTIPLIER` from `.env` (default `3.0`).
+1. Estimate peak memory: `input_file_size_bytes × SAGE_MEMORY_MULTIPLIER`.
+1. Read available memory on Linux inside Docker/Apptainer with `grep MemAvailable /proc/meminfo` (reports kB; convert to bytes).
+1. Read available memory on macOS host with `vm_stat | grep "Pages free"` then multiply by page size (`sysctl -n hw.pagesize`), or use `$PYTHON_BIN -c "import psutil; print(psutil.virtual_memory().available)"` if psutil is installed.
+1. If neither method succeeds, skip the check and log a note that available memory could not be determined.
+1. If the estimate exceeds available memory, **warn** the user with both figures and ask whether to proceed. Do not block; this is a warning only.
 
 ---
 
@@ -199,7 +198,7 @@ for tree_idx in tqdm(range(n_trees), desc="Converting trees"):
 
 - The `desc=` label must be meaningful (e.g. `"Converting trees"`, `"Validating pointers"`).
 - Progress bars must operate at the **outer tree loop level**, not at the halo level.
-- `tqdm` is pre-installed in the container via `requirements.txt`.
+- `tqdm` is pre-installed in the Docker/Apptainer container via `requirements.txt`.
 
 ---
 

@@ -92,7 +92,7 @@ flowchart LR
 
 ### Prerequisites
 
-- Docker (recommended) **or** Python 3.10+ with packages from `requirements.txt`
+- Docker (recommended) **or** Apptainer (for HPC) **or** Python 3.10+ with packages from `requirements.txt`
 - Claude Code CLI or Gemini CLI
 - An Anthropic API key (Claude) or Gemini API key
 
@@ -105,7 +105,7 @@ cp .env.example .env
 # 2. Fill in your API key and optional paths
 #    ANTHROPIC_API_KEY=...
 #    SAGE_BINARY_PATH=...   # optional: enables Stage 2 functional validation
-#    PYTHON_BIN=...         # optional: override if running outside Docker
+#    PYTHON_BIN=...         # optional: override if running outside containers
 
 # 3. Place your merger tree files in a named subdirectory of input/:
 #      input/<dataset_name>/   (e.g. input/gadget4-dust/ or input/bolshoi/)
@@ -118,9 +118,50 @@ cp .env.example .env
 # Docker (recommended)
 docker compose up
 
+# Apptainer (HPC)
+# 1) Build image (choose your own output path/name for the .sif file)
+module load apptainer
+# Use --fakeroot if your cluster requires it for package installation at build time.
+apptainer build sage-tree-converter.sif apptainer.def
+
+# 2) Load Docker-equivalent bind and env configuration
+source apptainer.env.sh
+
+# 3) Start an interactive shell
+apptainer shell --pwd /app sage-tree-converter.sif
+
+# then, inside the container shell:
+# claude   # or: gemini
+
 # Native shell (Claude Code)
 claude
 ```
+
+Notes:
+
+- On OzSTAR, load Apptainer first with `module load apptainer`.
+- Apptainer implicitly binds `$PWD` by default, but this can vary by launch directory; `apptainer.env.sh` forces deterministic bind paths.
+- `apptainer.env.sh` sets deterministic bind mounts and container environment values so your run command stays short.
+- For best filesystem performance in batch jobs, consider copying the `.sif` to local job temporary storage before running.
+
+Apptainer self-check (optional):
+
+```bash
+# Run after: source apptainer.env.sh
+apptainer exec --pwd /app sage-tree-converter.sif bash -lc '
+    echo "[paths]";
+    pwd;
+    ls -ld /app /app/input /app/output;
+    echo "[env]";
+    env | rg "^(HOME|MPLCONFIGDIR|PYTHON_BIN|SAGE_BINARY_PATH|SAGE_MEMORY_MULTIPLIER|ANTHROPIC_API_KEY|GEMINI_API_KEY)="
+'
+```
+
+Expected result:
+
+- `/app`, `/app/input`, and `/app/output` are present.
+- `HOME=/tmp` and `MPLCONFIGDIR=/tmp/matplotlib` are set.
+- `PYTHON_BIN` and `SAGE_MEMORY_MULTIPLIER` reflect your `.env` values (or defaults).
 
 The LLM CLI will guide you through all four stages interactively, presenting each gate prompt before advancing.
 
@@ -238,6 +279,8 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 ├── output/                  # Stage 3 writes converted files here
 ├── reference/               # Static schema and style references
 ├── Dockerfile
+├── apptainer.def
+├── apptainer.env.sh
 ├── docker-compose.yml
 └── requirements.txt
 ```
