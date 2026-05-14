@@ -105,6 +105,12 @@ def _resolve_same_snap_desc(desc_in: np.ndarray, snap: np.ndarray) -> np.ndarray
             np.int64(-1),
         )
     still_same = (desc_eff >= 0) & (snap_i[desc_eff.clip(0)] == snap_i)
+    if still_same.any():
+        warnings.warn(
+            f"{still_same.sum()} same-snapshot Descendant links unresolved after 10 iterations"
+            " — setting Descendant = -1. This indicates an unusual input artifact.",
+            stacklevel=2,
+        )
     desc_eff[still_same] = -1
     return desc_eff.astype(np.int32)
 
@@ -203,6 +209,14 @@ def _process_tree(th: h5py.Group, start: int, n: int) -> dict:
     group_nr = _load_arr(th, "GroupNr", sl).astype(np.int64)
     sub_len = _load_arr(th, "SubhaloLen", sl).astype(np.int32)
     mass = _load_arr(th, "Group_M_Crit200", sl).astype(np.float32)
+    # Gadget-4 sets Group_M_Crit200 only on FOF centrals (SubRankInGr==0); broadcast
+    # to all satellites in same (SnapNum, GroupNr) so the output field is semantically
+    # correct. SAGE ignores this field for satellites (uses Len×PartMass instead).
+    unique_key = snap.astype(np.int64) * 10_000_000 + group_nr
+    keys, inverse = np.unique(unique_key, return_inverse=True)
+    per_key_max = np.zeros(keys.shape[0], dtype=np.float32)
+    np.maximum.at(per_key_max, inverse, mass)
+    mass = per_key_max[inverse]
     pos = _load_arr(th, "SubhaloPos", sl).astype(np.float32) * _POS_SPIN_SCALE
     vel = _load_arr(th, "SubhaloVel", sl).astype(np.float32)
     vdisp = _load_arr(th, "SubhaloVelDisp", sl).astype(np.float32)
