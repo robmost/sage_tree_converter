@@ -1,0 +1,10 @@
+{
+  "format_id": "rockstar_consistent_trees_ascii",
+  "session_date": "14052026",
+  "input_description": "Rockstar halo finder + Consistent Trees ASCII format. micro-uchuu dataset: 640^3 particles in a 100 Mpc/h box (Omega_M=0.30890, h=0.67740), 50 snapshots (snap_num 0-49), 440,651 forests, 22.6M halos, single shard (tree_0_0_0.dat) with forests.list and locations.dat ancillary files present. Forest-mode processing used throughout.",
+  "mapping_source": "kdb_match",
+  "issues_encountered": [],
+  "resolutions": [],
+  "kdb_action": "updated_entry",
+  "outcome": "success"
+}
