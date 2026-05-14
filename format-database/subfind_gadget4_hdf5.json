@@ -65,7 +65,7 @@
       "target_units": "1e10 Msun/h",
       "scale_factor": 1,
       "conversion_expr": null,
-      "notes": "Direct copy. Gadget-4 UnitMass_in_g=1.989e43 (10^10 Msun) with comoving h-factor included. This is the FOF mass within R_200_crit, NOT SubhaloMass."
+      "notes": "FOF group M200c (mass within R_200_crit). Gadget-4 sets this non-zero only on FOF centrals (SubRankInGr==0); all satellite subhalos are initialised to 0 in halotrees.cc. The driver broadcasts the central's value to all satellites in the same (SnapNum, GroupNr) group so the output field is semantically correct. SAGE ignores this field for satellites anyway (get_virial_mass() in model_misc.c falls through to Len×PartMass for non-central halos), so the propagation has no effect on SAGE physics. UnitMass_in_g=1.989e43 (10^10 Msun) with comoving h-factor included."
     },
     "Group_M_Mean200": {
       "source_field": null,
@@ -162,6 +162,7 @@
     "TreeFirstProgenitor and TreeNextProgenitor are forward-in-time pointers (Gadget-4 convention opposite to SAGE). They are discarded and reconstructed from TreeDescendant.",
     "TreeFirstHaloInFOFgroup and TreeNextHaloInFOFgroup contain cross-tree pointers and cannot be used directly. They are discarded and reconstructed from (SnapNum, GroupNr) grouping.",
     "UnitLength_in_cm=3.0857e24 means the internal length unit is 1 Mpc (not 1 kpc). SubhaloPos is therefore in comoving Mpc/h and SubhaloSpin in (Mpc/h)(km/s). Both fields require ×1000 scaling before writing.",
+    "Group_M_Crit200 is an FOF group property set non-zero only on the FOF central (SubRankInGr==0); all satellite entries are 0 in the raw Gadget-4 output. The driver broadcasts the central's M200c to all satellites in the same (SnapNum, GroupNr) group before writing. SAGE's get_virial_mass() already ignores this field for satellites (uses Len×PartMass), so the propagation is purely for output correctness and does not affect SAGE runs.",
     "Group_M_Mean200 and Group_M_TopHat200 are not present in Gadget-4 built-in tree output; sentinel 0.0 is written for both.",
     "SubhaloIDMostbound is stored as uint32 in Gadget-4 vs the int64 expected by SAGE; an explicit cast is required.",
     "Config shows both SUBFIND and SUBFIND_HBT enabled; SUBFIND_HBT is the active finder. Field names are identical to standard SUBFIND output.",
