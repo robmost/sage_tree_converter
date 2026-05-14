@@ -6,12 +6,12 @@ Usage:
     Stage 2 (test, 100 trees):
         $PYTHON_BIN conversion-engine/main_driver.py --input <path> \
             --output assets/test_<base>_STC.0.hdf5 --n-trees 100 [--format <format_id>] \
-            [--output-format {lhalo_hdf5,lhalo_binary}]
+            [--output-format {lhalo_hdf5,lhalo_binary}] [--sim-config <path.json>]
 
     Stage 3 (full conversion):
         $PYTHON_BIN conversion-engine/main_driver.py --input <path> \
             --output output/<base>_STC.0.hdf5 [--format <format_id>] \
-            [--output-format {lhalo_hdf5,lhalo_binary}]
+            [--output-format {lhalo_hdf5,lhalo_binary}] [--sim-config <path.json>]
 
     <base> is the dataset directory name inside input/ (see AGENTS.md §13):
     - Directory input: base = Path(input_path).name
@@ -130,13 +130,15 @@ def main() -> None:
         help="Convert only the first N trees (Stage 2 test mode).",
     )
     parser.add_argument(
-        "--particle-mass",
-        type=float,
+        "--sim-config",
+        metavar="PATH",
         default=None,
-        metavar="MSUN_PER_H",
-        help="Dark matter particle mass in Msun/h. Overrides the value "
-        "computed from the file header (use when the simulation "
-        "N_particles differs from the driver default).",
+        help=(
+            "Path to a JSON file with simulation parameter overrides "
+            "(particle_mass_msun_per_h, n_particles_per_side, box_size_mpc_per_h, "
+            "omega_m, omega_l, h0). All keys are optional. "
+            "See reference/sim_config_template.json for the schema."
+        ),
     )
     parser.add_argument(
         "--output-format",
@@ -201,18 +203,28 @@ def main() -> None:
         sys.exit(1)
 
     # -----------------------------------------------------------------------
+    # Load simulation parameter overrides
+    # -----------------------------------------------------------------------
+    sim_params: dict = {}
+    if args.sim_config is not None:
+        try:
+            with open(args.sim_config) as fh:
+                sim_params = json.load(fh)
+            log.info("Simulation config loaded from: %s", args.sim_config)
+        except (OSError, json.JSONDecodeError) as exc:
+            log.error("Failed to load --sim-config '%s': %s", args.sim_config, exc)
+            sys.exit(1)
+
+    # -----------------------------------------------------------------------
     # Run conversion
     # -----------------------------------------------------------------------
-    if args.particle_mass is not None:
-        log.info("Particle mass override: %.3e Msun/h", args.particle_mass)
-
     log.info("Conversion started.")
     try:
         driver.convert(
             args.input,
             args.output,
             n_trees=args.n_trees,
-            particle_mass=args.particle_mass,
+            sim_params=sim_params,
             output_format=args.output_format,
         )
     except SystemExit:

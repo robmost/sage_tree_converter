@@ -122,7 +122,9 @@ Set `FirstFile = 0` and `LastFile = 0` for a single-file run.
 **Binary particle_mass requirement.** For `lhalo_binary`, the binary file contains no
 particle mass field. SAGE reads `PartMass` from the parameter file instead. Ensure the
 `PartMass` line in `assets/test_sage_params.par` is set to the correct value in
-units of 10¹⁰ M☉/h (same value used by the driver).
+units of 10¹⁰ M☉/h (same value used by the driver). The value comes from
+`--sim-config` (key: `particle_mass_msun_per_h`, converted to 10¹⁰ M☉/h) or the
+driver's auto-detection/default.
 
 Create the output directory:
 ```bash

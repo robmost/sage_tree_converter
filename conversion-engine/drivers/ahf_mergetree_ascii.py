@@ -454,7 +454,7 @@ def convert(
     input_path: str,
     output_path: str,
     n_trees: int | None = None,
-    particle_mass: float | None = None,
+    sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
 ) -> None:
     """Convert AHF/MergerTree ASCII input to SAGE LHaloTree HDF5 or binary.
@@ -467,8 +467,9 @@ def convert(
         Path for the output file.
     n_trees : int or None
         If given, convert only the first n_trees trees (test mode).
-    particle_mass : float or None
-        Dark matter particle mass in Msun/h. If None, estimated from data.
+    sim_params : dict or None
+        Simulation parameter overrides from --sim-config JSON.
+        Key used: particle_mass_msun_per_h (Msun/h). If absent, estimated from data.
     output_format : str
         'lhalo_hdf5' or 'lhalo_binary'.
     """
@@ -516,7 +517,8 @@ def convert(
         print(f"  Total halos loaded: {n_input_halos}", file=sys.stderr)
 
         # Estimate particle mass (in Msun/h) if not user-supplied
-        if particle_mass is None:
+        _pm_override = (sim_params or {}).get("particle_mass_msun_per_h")
+        if _pm_override is None:
             top_hids = sorted(
                 snap_halos[max_snap],
                 key=lambda hid: halo_props[hid]["Mhalo"],
@@ -527,7 +529,7 @@ def convert(
             ]
             m_particle_msun = float(np.median(m_estimates)) if m_estimates else 1e7
         else:
-            m_particle_msun = float(particle_mass)
+            m_particle_msun = float(_pm_override)
 
         particle_mass_1e10 = m_particle_msun / 1e10
         print(

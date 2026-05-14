@@ -1,0 +1,9 @@
+{
+  "_comment": "Simulation parameter overrides for the SAGE Tree Converter. All fields are optional — set only the ones you need to override. Drivers fall back to auto-detection or data-based estimation for any field that is absent or null. Units as noted in the key names.",
+  "particle_mass_msun_per_h": null,
+  "n_particles_per_side": null,
+  "box_size_mpc_per_h": null,
+  "omega_m": null,
+  "omega_l": null,
+  "h0": null
+}

@@ -208,7 +208,10 @@ $PYTHON_BIN conversion-engine/main_driver.py \
     --output-format lhalo_hdf5   # or lhalo_binary → output/<base>_STC.0
 ```
 
-Use `--particle-mass <Msun_per_h>` to override the particle mass read from the file header.
+Use `--sim-config <path/to/sim.json>` to supply simulation parameter overrides (particle
+mass, box size, cosmology). Copy `reference/sim_config_template.json`, fill in the values
+you want to override, and pass the file path as the argument. All keys are optional;
+drivers fall back to auto-detection or data estimation for any key that is absent or null.
 
 ### Syntactic validation
 

@@ -162,7 +162,7 @@
     "omega_l": 0.692885,
     "h0": 0.680000,
     "n_particles": 2048,
-    "particle_mass_note": "The driver computes particle mass from the file header (Omega_M, box_size) assuming n_side=2048 (BolshoiP default). For simulations with different N_particles, supply the correct value via --particle-mass <Msun/h> at conversion time; otherwise SubhaloLen will be incorrect. Example: BolshoiP (2048^3, 250 Mpc/h, Omega_M=0.307115, h=0.68): m_particle ≈ 1.55e8 Msun/h. Example: Shin-Uchuu (6400^3, 140 Mpc/h, Omega_M=0.30890, h=0.67740): m_particle = 8.97e5 Msun/h (user-confirmed); n_snapshots=70 (snap_idx 0–69, verified 2026-05-07). Formula: Omega_M * 2.775e11 * (box_size)^3 / n_particles^3 [Msun/h]."
+    "particle_mass_note": "The driver computes particle mass from the file header (Omega_M, box_size) assuming n_side=2048 (BolshoiP default). For simulations with different N_particles, supply the correct value via --sim-config (key: n_particles_per_side or particle_mass_msun_per_h) at conversion time; otherwise SubhaloLen will be incorrect. Example: BolshoiP (2048^3, 250 Mpc/h, Omega_M=0.307115, h=0.68): m_particle ≈ 1.55e8 Msun/h. Example: Shin-Uchuu (6400^3, 140 Mpc/h, Omega_M=0.30890, h=0.67740): m_particle = 8.97e5 Msun/h (user-confirmed); n_snapshots=70 (snap_idx 0–69, verified 2026-05-07). Formula: Omega_M * 2.775e11 * (box_size)^3 / n_particles^3 [Msun/h]."
   },
   "known_caveats": [
     "SubhaloLen is not provided by Consistent Trees. It is estimated as round(mvir / m_particle) where m_particle is the simulation dark matter particle mass in Msun/h. This is an approximation: it ignores unbound particles and substructure. The true particle count may differ by a few percent.",

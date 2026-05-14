@@ -200,7 +200,7 @@ def convert(
     input_path: str,
     output_path: str,
     n_trees: int | None = None,
-    particle_mass: float | None = None,
+    sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
 ) -> None:
     """Convert LHaloTree binary files to SAGE LHaloTree HDF5 or binary format.
@@ -214,9 +214,10 @@ def convert(
         Path for the output file.
     n_trees : int or None
         If given, convert only the first n_trees trees (Stage 2 test mode).
-    particle_mass : float or None
-        Accepted for API symmetry; ignored — this driver uses the hardcoded
-        Millennium particle mass (PARTICLE_MASS = 0.0860 × 10^10 Msun/h).
+    sim_params : dict or None
+        Simulation parameter overrides from --sim-config JSON.
+        Key used: particle_mass_msun_per_h (Msun/h, converted to 10^10 Msun/h
+        internally). Falls back to PARTICLE_MASS (Millennium default) if absent.
     output_format : str
         'lhalo_hdf5' (default) writes HDF5 via utils.hdf5_writer.
         'lhalo_binary' writes SAGE binary (TreeType=0) via utils.binary_writer.
@@ -224,6 +225,9 @@ def convert(
         are known from the input file headers before any halo data is read.
     """
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+
+    _pm_override = (sim_params or {}).get("particle_mass_msun_per_h")
+    effective_pm = float(_pm_override) * 1e-10 if _pm_override is not None else PARTICLE_MASS
 
     try:
         # ------------------------------------------------------------------
@@ -283,7 +287,7 @@ def convert(
             with h5py.File(output_path, "w") as f:
                 hdf5_writer.write_header(
                     f,
-                    particle_mass=PARTICLE_MASS,
+                    particle_mass=effective_pm,
                     n_trees=total_trees,
                     total_halos=total_halos,
                     n_output_files=1,
@@ -295,7 +299,7 @@ def convert(
             with open(output_path, "wb") as f:
                 binary_writer.write_header(
                     f,
-                    particle_mass=PARTICLE_MASS,
+                    particle_mass=effective_pm,
                     n_trees=total_trees,
                     total_halos=total_halos,
                     n_output_files=1,

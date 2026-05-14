@@ -33,7 +33,7 @@ def convert(
     input_path: str,
     output_path: str,
     n_trees: int | None = None,
-    particle_mass: float | None = None,
+    sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
 ) -> None:
     """
@@ -47,8 +47,11 @@ def convert(
         Path for the output file.
     n_trees : int or None
         If given, convert only the first n_trees trees (Stage 2 test mode).
-    particle_mass : float or None
-        Dark matter particle mass in 10^10 Msun/h. Override from CLI; may be None.
+    sim_params : dict or None
+        Simulation parameter overrides loaded from --sim-config JSON.
+        Recognised keys: particle_mass_msun_per_h, n_particles_per_side,
+        box_size_mpc_per_h, omega_m, omega_l, h0. All optional; drivers
+        fall back to auto-detection when absent.
     output_format : str
         'lhalo_hdf5' (default) or 'lhalo_binary'. Selects the output writer.
     """

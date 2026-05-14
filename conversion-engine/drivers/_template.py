@@ -15,7 +15,7 @@ HOW TO USE THIS TEMPLATE
 
 INTERFACE CONTRACT
 ==================
-- Signature:  convert(input_path, output_path, n_trees=None, particle_mass=None,
+- Signature:  convert(input_path, output_path, n_trees=None, sim_params=None,
                       output_format="lhalo_hdf5") -> None
 - On success: write a valid SAGE LHaloTree output file to output_path; return None.
 - On error:   print a message to stderr and call sys.exit(1).
@@ -45,7 +45,7 @@ def convert(
     input_path: str,
     output_path: str,
     n_trees: int | None = None,
-    particle_mass: float | None = None,
+    sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
 ) -> None:
     """Convert input merger trees to SAGE LHaloTree HDF5 or binary format.
@@ -58,8 +58,11 @@ def convert(
         Path for the output file. The parent directory is created if needed.
     n_trees : int or None
         If given, convert only the first n_trees trees (Stage 2 test mode).
-    particle_mass : float or None
-        Dark matter particle mass in Msun/h. Override from CLI; may be None.
+    sim_params : dict or None
+        Simulation parameter overrides loaded from --sim-config JSON.
+        Recognised keys: particle_mass_msun_per_h, n_particles_per_side,
+        box_size_mpc_per_h, omega_m, omega_l, h0. All optional; drivers
+        fall back to auto-detection when absent.
     output_format : str
         'lhalo_hdf5' (default) or 'lhalo_binary'. See interface contract above.
     """

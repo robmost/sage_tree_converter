@@ -620,7 +620,7 @@ def convert(
     input_path: str,
     output_path: str,
     n_trees: int | None = None,
-    particle_mass: float | None = None,
+    sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
 ) -> None:
     """Convert Consistent Trees ASCII files to SAGE LHaloTree HDF5 or binary format.
@@ -634,9 +634,11 @@ def convert(
     n_trees : int or None
         If given, convert only the first n_trees output units (forests in
         forest mode, individual trees in tree mode).  Used for Stage 2 tests.
-    particle_mass : float or None
-        Dark matter particle mass in Msun/h.  Overrides the value computed
-        from the file header cosmology and _N_SIDE_DEFAULT.
+    sim_params : dict or None
+        Simulation parameter overrides from --sim-config JSON.
+        Keys used: particle_mass_msun_per_h (Msun/h), n_particles_per_side,
+        box_size_mpc_per_h, omega_m. All optional; header-parsed values are
+        used as fallback.
     output_format : str
         'lhalo_hdf5' (default) or 'lhalo_binary'.
     """
@@ -662,15 +664,31 @@ def convert(
         header_text = _read_header_text(tree_files[0])
         omega_m, box_size = _parse_cosmology(header_text)
 
-        if particle_mass is not None:
-            particle_mass_msun_per_h = particle_mass
-            print(f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h (user-supplied override)")
+        _sp = sim_params or {}
+        if _sp.get("omega_m") is not None:
+            omega_m = float(_sp["omega_m"])
+        if _sp.get("box_size_mpc_per_h") is not None:
+            box_size = float(_sp["box_size_mpc_per_h"])
+        n_side_override = _sp.get("n_particles_per_side")
+
+        _pm_override = _sp.get("particle_mass_msun_per_h")
+        if _pm_override is not None:
+            particle_mass_msun_per_h = float(_pm_override)
+            print(f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h (sim-config override)")
+        elif n_side_override is not None:
+            particle_mass_msun_per_h = _compute_particle_mass(
+                omega_m, box_size, int(n_side_override)
+            )
+            print(
+                f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h "
+                f"(computed, n_side={n_side_override})"
+            )
         else:
             particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
             print(
-                f"Particle mass computed from header (n_side={_N_SIDE_DEFAULT}): "
-                f"{particle_mass_msun_per_h:.3e} Msun/h — "
-                f"use --particle-mass to override if N_particles differs"
+                f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h "
+                f"(computed, n_side={_N_SIDE_DEFAULT} default — "
+                f"use --sim-config to override if N_particles differs)"
             )
         particle_mass_1e10 = particle_mass_msun_per_h * 1e-10
         print(

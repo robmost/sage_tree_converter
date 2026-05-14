@@ -264,7 +264,7 @@ def convert(
     input_path: str,
     output_path: str,
     n_trees: int | None = None,
-    particle_mass: float | None = None,
+    sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
 ) -> None:
     """Convert Gadget-4 SubLink HDF5 merger trees to SAGE LHaloTree format.
@@ -279,8 +279,10 @@ def convert(
         Path for the output file (.hdf5 for lhalo_hdf5).
     n_trees : int or None
         If given, convert only the first n_trees Gadget-4 trees (test mode).
-    particle_mass : float or None
-        Dark matter particle mass in 10^10 Msun/h. Estimated if None.
+    sim_params : dict or None
+        Simulation parameter overrides from --sim-config JSON.
+        Key used: particle_mass_msun_per_h (Msun/h, converted to 10^10 Msun/h
+        internally). If absent, estimated from SubhaloMass/SubhaloLen.
     output_format : str
         'lhalo_hdf5' (default) or 'lhalo_binary'.
     """
@@ -296,7 +298,10 @@ def convert(
 
             th: h5py.Group = in_f["TreeHalos"]  # type: ignore[assignment]
 
-            if particle_mass is None:
+            _pm_override = (sim_params or {}).get("particle_mass_msun_per_h")
+            if _pm_override is not None:
+                particle_mass = float(_pm_override) * 1e-10  # Msun/h → 10^10 Msun/h
+            else:
                 sample_size = min(100_000, int(_ds(th, "SubhaloLen").shape[0]))
                 sub_mass_s = _load_arr(th, "SubhaloMass", slice(sample_size)).copy()
                 sub_len_s = _load_arr(th, "SubhaloLen", slice(sample_size)).copy()
@@ -304,7 +309,7 @@ def convert(
                 warnings.warn(
                     f"particle_mass not provided; estimated from SubhaloMass/SubhaloLen: "
                     f"{particle_mass:.4e} × 10^10 Msun/h. "
-                    "Pass --particle-mass to override.",
+                    "Pass --sim-config with particle_mass_msun_per_h to override.",
                     stacklevel=2,
                 )
 

@@ -3,7 +3,13 @@
 ## Function signature
 
 ```python
-def convert(input_path: str, output_path: str, n_trees: int | None = None) -> None:
+def convert(
+    input_path: str,
+    output_path: str,
+    n_trees: int | None = None,
+    sim_params: dict | None = None,
+    output_format: str = "lhalo_hdf5",
+) -> None:
 ```
 
 Both `convert()` and `read_trees()` are public functions every driver module must expose. The main driver
@@ -11,7 +17,7 @@ Both `convert()` and `read_trees()` are public functions every driver module mus
 
 ```python
 from drivers.<format_id> import convert
-convert(input_path, output_path, n_trees=n_trees)
+convert(input_path, output_path, n_trees=n_trees, sim_params=sim_params)
 ```
 
 Do not rename it, add required positional arguments, or add return values.
@@ -23,6 +29,7 @@ Do not rename it, add required positional arguments, or add return values.
 | `input_path` | str | Yes | Absolute or relative path to the input file or input directory (format-dependent). |
 | `output_path` | str | Yes | Absolute or relative path for the output file (`.hdf5` extension for `lhalo_hdf5`; no extension for `lhalo_binary`). The driver creates this file; it must not assume the parent directory exists (create it with `os.makedirs(os.path.dirname(output_path), exist_ok=True)` if needed). |
 | `n_trees` | int or None | No | If not None, convert only the first `n_trees` trees. Used in Stage 2 test mode. When `n_trees` is given, the output file is still a valid SAGE LHaloTree file containing exactly `n_trees` trees with correct internal indexing. |
+| `sim_params` | dict or None | No | Simulation parameter overrides loaded from `--sim-config` JSON. Recognised keys: `particle_mass_msun_per_h` (Msun/h), `n_particles_per_side`, `box_size_mpc_per_h`, `omega_m`, `omega_l`, `h0`. All optional; drivers fall back to auto-detection when absent. Extract with `(sim_params or {}).get("key")`. |
 
 ## Required output file structure
 
