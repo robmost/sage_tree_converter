@@ -131,6 +131,7 @@ def _load_native_trees(
     format_id: str,
     input_path: str,
     n_trees: int | None = None,
+    sim_params: dict | None = None,
 ) -> dict[int, dict]:
     """Load trees from a native input format using the format's conversion driver.
 
@@ -174,7 +175,7 @@ def _load_native_trees(
             f"Driver '{driver_path.name}' does not implement read_trees(). "
             "Add read_trees(input_path, n_trees=None) to the driver."
         )
-    return mod.read_trees(input_path, n_trees=n_trees)
+    return mod.read_trees(input_path, n_trees=n_trees, sim_params=sim_params)
 
 
 def _find_lowest_snap(trees: dict) -> int:
@@ -773,6 +774,7 @@ def generate_all_plots(
     style_path: str = "reference/sage_validation.mplstyle",
     input_format: str = "lhalo_hdf5",
     output_format: str = "lhalo_hdf5",
+    sim_params: dict | None = None,
 ) -> list[str]:
     """Generate all seven mandatory semantic validation plots.
 
@@ -794,6 +796,11 @@ def generate_all_plots(
         original source data directly via the driver's read_trees() function.
     output_format : str
         'lhalo_hdf5' (default) or 'lhalo_binary'. Format of output_path.
+    sim_params : dict or None
+        Simulation parameter overrides (same schema as reference/sim_config_template.json).
+        Passed to read_trees() when input_format is a native driver format ID. Required
+        for drivers that derive SubhaloLen from simulation properties (e.g. Rockstar/
+        Consistent Trees when the simulation uses a non-default particle count).
 
     Returns
     -------
@@ -822,7 +829,7 @@ def generate_all_plots(
     elif input_format == "lhalo_binary":
         in_trees = _load_binary_trees(input_path)
     else:
-        in_trees = _load_native_trees(input_format, input_path)
+        in_trees = _load_native_trees(input_format, input_path, sim_params=sim_params)
     print(f"Loading output trees from: {output_path}")
     out_trees = (
         _load_trees(output_path)

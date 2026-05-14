@@ -145,6 +145,7 @@ def _build_fields(halos: np.ndarray) -> dict:
 def read_trees(
     input_path: str,
     n_trees: int | None = None,
+    sim_params: dict | None = None,
 ) -> dict[int, dict]:
     """Read LHaloTree binary files into the SAGE LHaloTree schema without writing output.
 

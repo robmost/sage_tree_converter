@@ -232,6 +232,7 @@ class _UnionFind:
 def read_trees(
     input_path: str,
     n_trees: int | None = None,
+    sim_params: dict | None = None,
 ) -> dict[int, dict]:
     """Read AHF/MergerTree ASCII trees into the SAGE LHaloTree schema.
 

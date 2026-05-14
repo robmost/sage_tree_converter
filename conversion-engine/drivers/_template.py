@@ -136,6 +136,7 @@ def convert(
 def read_trees(
     input_path: str,
     n_trees: int | None = None,
+    sim_params: dict | None = None,
 ) -> dict[int, dict]:
     """Read input trees into the SAGE LHaloTree schema without writing output.
 
@@ -149,6 +150,11 @@ def read_trees(
         Path to the input file or directory (format-dependent).
     n_trees : int or None
         If given, read only the first n_trees trees.
+    sim_params : dict or None
+        Simulation parameter overrides (same keys as --sim-config JSON). Used by
+        drivers that compute derived fields (e.g. SubhaloLen) from simulation
+        properties. Passed through from generate_all_plots() during semantic
+        validation.
 
     Returns
     -------

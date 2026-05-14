@@ -555,11 +555,24 @@ def _get_output_units(
 def read_trees(
     input_path: str,
     n_trees: int | None = None,
+    sim_params: dict | None = None,
 ) -> dict[int, dict]:
     """Read Consistent Trees ASCII files into the SAGE LHaloTree schema.
 
     Uses the same forest-level / tree-level routing as convert() so that
     the semantic-validation reference matches the converted output exactly.
+
+    Parameters
+    ----------
+    input_path : str
+        Path to a single tree_*.dat file or a directory containing them.
+    n_trees : int or None
+        If given, read only the first n_trees output units.
+    sim_params : dict or None
+        Simulation parameter overrides (same keys as --sim-config JSON).
+        Keys used: particle_mass_msun_per_h, n_particles_per_side,
+        box_size_mpc_per_h, omega_m. Must match what was passed to convert()
+        so that SubhaloLen values are consistent between input and output columns.
 
     Returns
     -------
@@ -571,7 +584,23 @@ def read_trees(
     input_dir = tree_files[0].parent
     header_text = _read_header_text(tree_files[0])
     omega_m, box_size = _parse_cosmology(header_text)
-    particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
+
+    _sp = sim_params or {}
+    if _sp.get("omega_m") is not None:
+        omega_m = float(_sp["omega_m"])
+    if _sp.get("box_size_mpc_per_h") is not None:
+        box_size = float(_sp["box_size_mpc_per_h"])
+    n_side_override = _sp.get("n_particles_per_side")
+
+    _pm_override = _sp.get("particle_mass_msun_per_h")
+    if _pm_override is not None:
+        particle_mass_msun_per_h = float(_pm_override)
+    elif n_side_override is not None:
+        particle_mass_msun_per_h = _compute_particle_mass(
+            omega_m, box_size, int(n_side_override)
+        )
+    else:
+        particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
 
     forests_list_path: Path | None = input_dir / "forests.list"
     locations_path: Path | None = input_dir / "locations.dat"

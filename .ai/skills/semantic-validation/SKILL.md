@@ -47,12 +47,20 @@ call `plt.savefig()` or `plt.close()` directly anywhere in the plotting code.
 
    Pass the appropriate format flags to `generate_all_plots()`:
    ```python
+   import json, glob as _glob
    from validation.semantic import generate_all_plots
+
+   # Load sim_params from assets/ if a sim_config JSON was used during conversion.
+   # Pass None if no sim_config was used — drivers fall back to auto-detection.
+   _sc = _glob.glob("assets/*sim_config*.json")
+   sim_params = json.load(open(_sc[0])) if _sc else None
+
    generate_all_plots(
        input_path="<original_input_path>",
        output_path="output/<base>_STC.0[.hdf5]",
        input_format="<see below>",          # format ID of the original input
        output_format="lhalo_hdf5",          # or "lhalo_binary" if binary output was chosen
+       sim_params=sim_params,
    )
    ```
 

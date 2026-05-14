@@ -368,6 +368,7 @@ def convert(
 def read_trees(
     input_path: str,
     n_trees: int | None = None,
+    sim_params: dict | None = None,
 ) -> dict[int, dict]:
     """Read trees into SAGE LHaloTree schema without writing output.
 
