@@ -70,6 +70,16 @@ Create `format-database/<format_id>.json` following `reference/format_database_t
 
 If any field in the template is not applicable, use `null`. Do not omit keys.
 
+If writing via Python, always use `ensure_ascii=False`:
+
+```python
+import json
+with open("format-database/<format_id>.json", "w") as f:
+    json.dump(entry, f, indent=2, ensure_ascii=False)
+```
+
+Without `ensure_ascii=False`, Python escapes every non-ASCII character to a `\uXXXX` sequence (e.g. `≈` → `≈`, `–` → `–`).
+
 After writing, validate the JSON is well-formed:
 
 ```bash

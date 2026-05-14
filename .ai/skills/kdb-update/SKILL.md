@@ -87,8 +87,10 @@ entry["pointer_reconstruction"]["method"] = "global_id_links"
 entry["caveats"].append("SubhaloSpin values are zero for satellite halos in this format version")
 
 with open("format-database/<format_id>.json", "w") as f:
-    json.dump(entry, f, indent=2)
+    json.dump(entry, f, indent=2, ensure_ascii=False)
 ```
+
+**Encoding note:** Always pass `ensure_ascii=False` to `json.dump()`. Without it, Python escapes every non-ASCII character to a `\uXXXX` sequence (e.g. `≈` → `≈`, `–` → `–`), corrupting existing Unicode in the file.
 
 After writing, validate the JSON is well-formed and the updated fields match what was confirmed:
 
