@@ -32,10 +32,12 @@ import re
 import sys
 from io import BufferedReader
 from pathlib import Path
+from typing import Any
 
 import h5py
 import numpy as np
 from tqdm import tqdm
+
 from utils import binary_writer, hdf5_writer
 
 # Dark matter particle mass for the Millennium / mini-Millennium simulation
@@ -93,7 +95,7 @@ def _discover_files(input_path: str) -> list[Path]:
     raise ValueError(f"Input path '{input_path}' is neither a file nor a directory.")
 
 
-def _read_file_header(fp) -> tuple[int, np.ndarray]:
+def _read_file_header(fp: BufferedReader) -> tuple[int, np.ndarray]:
     """Read NTrees, TotNHalos, and TreeNHalos from an open binary file.
 
     Returns (n_trees, tree_n_halos) where tree_n_halos is a 1-D int32 array
@@ -238,9 +240,7 @@ def convert(
                 header_bytes = 4 + 4 + n_trees_in_file * 4
             offset = header_bytes  # start of halo data
             for local_idx in range(n_trees_in_file):
-                work.append(
-                    (file_path, local_idx, int(tree_n_halos[local_idx]), offset)
-                )
+                work.append((file_path, local_idx, int(tree_n_halos[local_idx]), offset))
                 offset += int(tree_n_halos[local_idx]) * HALO_DTYPE.itemsize
 
         # Apply n_trees limit
@@ -255,7 +255,7 @@ def convert(
         # 2. Write output
         # ------------------------------------------------------------------
         # Helper: iterate work list, keeping input files open across their trees.
-        def _iter_trees(out_f, write_tree_fn):
+        def _iter_trees(out_f: Any, write_tree_fn: Any) -> None:
             current_file_path = None
             current_fp: BufferedReader | None = None
             global_tree_idx = 0

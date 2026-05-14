@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM python:3.13-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -7,8 +7,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         git \
         hdf5-tools \
-        python3 \
-        python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Node.js 20 LTS (required by Claude Code and Gemini CLI) ───────────────────
@@ -31,7 +29,7 @@ RUN git config --system safe.directory '*'
 
 # ── Python dependencies ────────────────────────────────────────────────────────
 COPY requirements.txt /tmp/requirements.txt
-RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # ── Runtime environment ────────────────────────────────────────────────────────
 ENV HOME=/tmp

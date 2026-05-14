@@ -23,6 +23,7 @@ have no HDF5 equivalents and are always written as -1 and 0.0 respectively.
 
 import struct
 import sys
+from typing import BinaryIO
 
 import numpy as np
 
@@ -75,9 +76,7 @@ def _pack_tree(fields: dict) -> bytes:
     nhifof = np.asarray(fields["NextHaloInFOFGroup"], dtype=np.int32)
     length = np.asarray(fields["SubhaloLen"], dtype=np.int32)
 
-    m_mean200 = np.asarray(
-        fields.get("Group_M_Mean200", np.zeros(n, np.float32)), dtype=np.float32
-    )
+    m_mean200 = np.asarray(fields.get("Group_M_Mean200", np.zeros(n, np.float32)), dtype=np.float32)
     mvir = np.asarray(fields["Group_M_Crit200"], dtype=np.float32)
     m_tophat = np.asarray(
         fields.get("Group_M_TopHat200", np.zeros(n, np.float32)), dtype=np.float32
@@ -94,9 +93,7 @@ def _pack_tree(fields: dict) -> bytes:
     if vel.ndim != 2 or vel.shape[1] != 3:
         raise ValueError(f"SubhaloVel must have shape (N, 3), got {vel.shape}.")
 
-    veldisp = np.asarray(
-        fields.get("SubhaloVelDisp", np.zeros(n, np.float32)), dtype=np.float32
-    )
+    veldisp = np.asarray(fields.get("SubhaloVelDisp", np.zeros(n, np.float32)), dtype=np.float32)
     vmax = np.asarray(fields["SubhaloVMax"], dtype=np.float32)
 
     # SubhaloSpin is in (kpc/h)(km/s) (HDF5 on-disk convention).
@@ -148,12 +145,12 @@ def _pack_tree(fields: dict) -> bytes:
 
 
 def write_header(
-    f,
+    f: BinaryIO,
     particle_mass: float,
     n_trees: int,
     total_halos: int,
     n_output_files: int,
-    tree_n_halos,
+    tree_n_halos: np.ndarray | list[int],
 ) -> None:
     """Write the binary file header (nforests, totnhalos, nhalos_per_forest[]).
 
@@ -175,9 +172,7 @@ def write_header(
     """
     tree_n_halos_arr = np.asarray(tree_n_halos, dtype=np.int32)
     if len(tree_n_halos_arr) != n_trees:
-        raise ValueError(
-            f"len(tree_n_halos)={len(tree_n_halos_arr)} != n_trees={n_trees}."
-        )
+        raise ValueError(f"len(tree_n_halos)={len(tree_n_halos_arr)} != n_trees={n_trees}.")
     if int(tree_n_halos_arr.sum()) != total_halos:
         raise ValueError(
             f"sum(tree_n_halos)={tree_n_halos_arr.sum()} != total_halos={total_halos}."
@@ -189,7 +184,7 @@ def write_header(
 
 
 def write_tree(
-    f,
+    f: BinaryIO,
     tree_idx: int,
     fields: dict,
 ) -> None:

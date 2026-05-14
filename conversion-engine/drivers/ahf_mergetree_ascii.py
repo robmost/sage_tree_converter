@@ -27,6 +27,7 @@ import os
 import re
 import sys
 from collections import defaultdict
+from collections.abc import Iterable
 from glob import glob
 from pathlib import Path
 
@@ -172,9 +173,7 @@ def _parse_croco_file(filepath: str) -> dict:
             if len(fields) == 3:
                 # Save previous block
                 if current_desc is not None and current_progs:
-                    progenitors[current_desc] = sorted(
-                        current_progs, key=lambda x: -x[0]
-                    )
+                    progenitors[current_desc] = sorted(current_progs, key=lambda x: -x[0])
                 try:
                     current_desc = int(fields[0])
                 except ValueError:
@@ -202,11 +201,11 @@ def _parse_croco_file(filepath: str) -> dict:
 class _UnionFind:
     __slots__ = ("parent", "rank")
 
-    def __init__(self, keys):
+    def __init__(self, keys: Iterable[int]) -> None:
         self.parent = {k: k for k in keys}
         self.rank = {k: 0 for k in keys}
 
-    def find(self, x):
+    def find(self, x: int) -> int:
         root = x
         while self.parent[root] != root:
             root = self.parent[root]
@@ -216,7 +215,7 @@ class _UnionFind:
             x = nxt
         return root
 
-    def union(self, x, y):
+    def union(self, x: int, y: int) -> None:
         rx, ry = self.find(x), self.find(y)
         if rx == ry:
             return
@@ -325,12 +324,10 @@ def read_trees(
     for hid in halo_props:
         tree_members[uf.find(hid)].append(hid)
 
-    def _tree_sort_key(root):
+    def _tree_sort_key(root: int) -> tuple[int, float]:
         members = tree_members[root]
         snap_max_m = [
-            halo_props[h]["Mhalo"]
-            for h in members
-            if halo_props[h]["snap_id"] == max_snap
+            halo_props[h]["Mhalo"] for h in members if halo_props[h]["snap_id"] == max_snap
         ]
         if snap_max_m:
             return (1, max(snap_max_m))
@@ -353,9 +350,7 @@ def read_trees(
 
     # --- Build per-tree field arrays ---
     result: dict[int, dict] = {}
-    for tree_idx, root in enumerate(
-        tqdm(sorted_roots[:n_trees_read], desc="Reading trees")
-    ):
+    for tree_idx, root in enumerate(tqdm(sorted_roots[:n_trees_read], desc="Reading trees")):
         ordered_hids = tree_halo_order[root]
         N = len(ordered_hids)
 
@@ -486,12 +481,8 @@ def convert(
         # 1. Discover input files
         # ------------------------------------------------------------------
         input_dir = Path(input_path)
-        halos_files = sorted(
-            glob(str(input_dir / "*.AHF_halos")), key=_snap_from_filename
-        )
-        croco_files = sorted(
-            glob(str(input_dir / "*.AHF_croco")), key=_snap_from_filename
-        )
+        halos_files = sorted(glob(str(input_dir / "*.AHF_halos")), key=_snap_from_filename)
+        croco_files = sorted(glob(str(input_dir / "*.AHF_croco")), key=_snap_from_filename)
 
         if not halos_files:
             print(f"ERROR: no .AHF_halos files found in {input_dir}", file=sys.stderr)
@@ -532,8 +523,7 @@ def convert(
                 reverse=True,
             )[:20]
             m_estimates = [
-                halo_props[hid]["Mhalo"] / max(halo_props[hid]["npart"], 1)
-                for hid in top_hids
+                halo_props[hid]["Mhalo"] / max(halo_props[hid]["npart"], 1) for hid in top_hids
             ]
             m_particle_msun = float(np.median(m_estimates)) if m_estimates else 1e7
         else:
@@ -621,12 +611,10 @@ def convert(
         # ------------------------------------------------------------------
         # 5. Order trees: highest-Mhalo snap_max root first
         # ------------------------------------------------------------------
-        def _tree_sort_key(root):
+        def _tree_sort_key(root: int) -> tuple[int, float]:
             members = tree_members[root]
             snap_max_m = [
-                halo_props[h]["Mhalo"]
-                for h in members
-                if halo_props[h]["snap_id"] == max_snap
+                halo_props[h]["Mhalo"] for h in members if halo_props[h]["snap_id"] == max_snap
             ]
             if snap_max_m:
                 return (1, max(snap_max_m))
@@ -635,9 +623,7 @@ def convert(
         sorted_roots = sorted(tree_members.keys(), key=_tree_sort_key, reverse=True)
 
         n_trees_total = len(sorted_roots)
-        n_trees_convert = (
-            min(n_trees, n_trees_total) if n_trees is not None else n_trees_total
-        )
+        n_trees_convert = min(n_trees, n_trees_total) if n_trees is not None else n_trees_total
         print(
             f"  Trees total / converting: {n_trees_total} / {n_trees_convert}",
             file=sys.stderr,

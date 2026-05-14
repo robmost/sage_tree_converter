@@ -222,7 +222,9 @@ def run_functional_validation(
     if not sage_binary:
         return {
             "status": "NOT_RUN",
-            "reason": "SAGE_BINARY_PATH is not set in the environment. Functional validation skipped.",
+            "reason": (
+                "SAGE_BINARY_PATH is not set in the environment. Functional validation skipped."
+            ),
             "returncode": None,
             "stdout": "",
             "stderr": "",
@@ -311,11 +313,7 @@ def run_functional_validation(
     if param_overrides:
         param_values.update(param_overrides)
 
-    template = (
-        _PARAM_TEMPLATE_BINARY
-        if output_format == "lhalo_binary"
-        else _PARAM_TEMPLATE_HDF5
-    )
+    template = _PARAM_TEMPLATE_BINARY if output_format == "lhalo_binary" else _PARAM_TEMPLATE_HDF5
     param_content = template.format(**param_values)
     param_file = assets_path / "test_sage_params.par"
     param_file.write_text(param_content)
@@ -351,7 +349,10 @@ def run_functional_validation(
     else:
         return {
             "status": "FAIL",
-            "reason": f"SAGE exited with non-zero status {proc.returncode}. See stdout/stderr for details.",
+            "reason": (
+                f"SAGE exited with non-zero status {proc.returncode}. "
+                "See stdout/stderr for details."
+            ),
             "returncode": proc.returncode,
             "stdout": proc.stdout,
             "stderr": proc.stderr,

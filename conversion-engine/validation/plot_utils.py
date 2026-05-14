@@ -6,12 +6,14 @@ plt.savefig() or plt.close() directly in any plotting code.
 """
 
 import os
+from collections.abc import Sequence
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def save_figure(fig, output_path: str, dpi: int = 150) -> None:
+def save_figure(fig: Any, output_path: str, dpi: int = 150) -> None:
     """Save a matplotlib figure to output_path and close it.
 
     Parameters
@@ -30,10 +32,10 @@ def save_figure(fig, output_path: str, dpi: int = 150) -> None:
 
 
 def make_3x3_figure(
-    row_labels=("Top 5", "Median 5", "Bottom 5"),
-    col_titles=("Input", "Output", "Relative difference"),
-    figsize=(12, 10),
-):
+    row_labels: Sequence[str] = ("Top 5", "Median 5", "Bottom 5"),
+    col_titles: Sequence[str] = ("Input", "Output", "Relative difference"),
+    figsize: tuple[float, float] = (12, 10),
+) -> tuple[Any, Any]:
     """Create a 3×3 figure with labelled columns and row labels on column 1.
 
     Returns
@@ -49,7 +51,9 @@ def make_3x3_figure(
     return fig, axes
 
 
-def make_1x3_figure(col_titles=("Input", "Output", "Relative difference")):
+def make_1x3_figure(
+    col_titles: Sequence[str] = ("Input", "Output", "Relative difference"),
+) -> tuple[Any, Any]:
     """Create a 1×3 figure with labelled columns.
 
     Returns
@@ -63,12 +67,12 @@ def make_1x3_figure(col_titles=("Input", "Output", "Relative difference")):
     return fig, axes
 
 
-def add_reldiff_hline(ax) -> None:
+def add_reldiff_hline(ax: Any) -> None:
     """Add a horizontal dashed line at y=0 to a relative difference panel."""
     ax.axhline(0, color="black", linestyle="--", linewidth=0.8, zorder=0)
 
 
-def set_reldiff_ylim(ax, rel_diff_array) -> None:
+def set_reldiff_ylim(ax: Any, rel_diff_array: Any) -> None:
     """Set symmetric y limits on a relative difference panel.
 
     Parameters
@@ -84,7 +88,7 @@ def set_reldiff_ylim(ax, rel_diff_array) -> None:
     ax.set_ylim(-abs_max * 1.1, abs_max * 1.1)
 
 
-def rel_diff(output, input_, fill_nan_where_zero=True):
+def rel_diff(output: Any, input_: Any, fill_nan_where_zero: bool = True) -> np.ndarray:
     """Compute (output - input) / input element-wise.
 
     Where input == 0, the result is NaN.

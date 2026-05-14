@@ -33,6 +33,7 @@ def _load_arr(group: h5py.Group, key: str) -> np.ndarray:
     ds: h5py.Dataset = group[key]  # type: ignore[assignment]
     return np.asarray(ds)  # type: ignore[arg-type]
 
+
 MANDATORY_FIELDS = frozenset(
     {
         "Descendant",
@@ -63,11 +64,11 @@ OPTIONAL_FIELDS = frozenset(
 ALL_KNOWN_FIELDS = MANDATORY_FIELDS | OPTIONAL_FIELDS
 
 
-def _PASS(detail=""):
+def _PASS(detail: str = "") -> dict:
     return {"passed": True, "detail": detail}
 
 
-def _FAIL(detail):
+def _FAIL(detail: str) -> dict:
     return {"passed": False, "detail": detail}
 
 
@@ -98,14 +99,10 @@ def _check_schema_compliance(f: h5py.File) -> dict:
     tree_n_halos = _load_arr(hdr, "TreeNHalos")
 
     if len(tree_n_halos) != n_trees_attr:
-        details.append(
-            f"len(TreeNHalos)={len(tree_n_halos)} != NtreesPerFile={n_trees_attr}"
-        )
+        details.append(f"len(TreeNHalos)={len(tree_n_halos)} != NtreesPerFile={n_trees_attr}")
 
     if int(tree_n_halos.sum()) != n_halos_attr:
-        details.append(
-            f"sum(TreeNHalos)={tree_n_halos.sum()} != NhalosPerFile={n_halos_attr}"
-        )
+        details.append(f"sum(TreeNHalos)={tree_n_halos.sum()} != NhalosPerFile={n_halos_attr}")
 
     tree_names = sorted([k for k in f.keys() if k.startswith("Tree")])
     if len(tree_names) != n_trees_attr:
@@ -208,16 +205,12 @@ def _check_spatial_pointers(f: h5py.File) -> dict:
         ]:
             bad = np.where((arr < -1) | (arr >= N))[0]
             if len(bad):
-                details.append(
-                    f"{tree_name}/{field_name}: {len(bad)} out-of-range values"
-                )
+                details.append(f"{tree_name}/{field_name}: {len(bad)} out-of-range values")
 
             mask = arr != -1
             idx = np.where(mask)[0]
             if len(idx) and np.any(snap[arr[mask]] != snap[idx]):
-                details.append(
-                    f"{tree_name}/{field_name}: cross-snapshot spatial pointer found"
-                )
+                details.append(f"{tree_name}/{field_name}: cross-snapshot spatial pointer found")
 
     if details:
         return _FAIL("; ".join(details))
@@ -237,9 +230,7 @@ def _check_snapshot_consistency(f: h5py.File, n_snapshots: int | None) -> dict:
             details.append(f"{tree_name}: SnapNum >= n_snapshots ({n_snapshots}) found")
 
     note = (
-        ""
-        if n_snapshots is not None
-        else " (upper bound not verified — n_snapshots not provided)"
+        "" if n_snapshots is not None else " (upper bound not verified — n_snapshots not provided)"
     )
     if details:
         return _FAIL("; ".join(details) + note)
@@ -318,9 +309,7 @@ def run_checks(hdf5_path: str, n_snapshots: int | None = None) -> CheckDict:
         result["checks"]["schema_compliance"] = _check_schema_compliance(f)
         result["checks"]["temporal_pointer_integrity"] = _check_temporal_pointers(f)
         result["checks"]["spatial_pointer_integrity"] = _check_spatial_pointers(f)
-        result["checks"]["snapshot_consistency"] = _check_snapshot_consistency(
-            f, n_snapshots
-        )
+        result["checks"]["snapshot_consistency"] = _check_snapshot_consistency(f, n_snapshots)
         result["checks"]["property_consistency"] = _check_property_consistency(f)
 
     result["overall"] = all(c["passed"] for c in result["checks"].values())
@@ -399,9 +388,7 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> Check
     # Check 2 — header internal consistency: sum(nhalos_per_forest) == totnhalos
     nforests, totnhalos = struct.unpack("<ii", header_bytes)
     if nforests <= 0:
-        result["checks"]["header_consistency"] = _FAIL(
-            f"nforests={nforests} must be positive."
-        )
+        result["checks"]["header_consistency"] = _FAIL(f"nforests={nforests} must be positive.")
         return result
 
     forest_index_size = nforests * 4
@@ -426,9 +413,7 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> Check
             f"sum(nhalos_per_forest)={actual_total} != totnhalos={totnhalos}."
         )
         return result
-    result["checks"]["header_consistency"] = _PASS(
-        f"nforests={nforests}, totnhalos={totnhalos}."
-    )
+    result["checks"]["header_consistency"] = _PASS(f"nforests={nforests}, totnhalos={totnhalos}.")
 
     # Check 3 — file size matches expected layout
     expected_size = 8 + forest_index_size + totnhalos * _BINARY_HALO_DTYPE.itemsize

@@ -159,7 +159,7 @@ def _read_header_text(filepath: Path) -> str:
 def _generate_trees(
     filepath: Path,
     n_trees_limit: int | None,
-) -> Generator[np.ndarray, None, None]:
+) -> Generator[np.ndarray]:
     """Yield one (N, _NCOLS) float64 ndarray per #tree block."""
     current_rows: list[list[float]] = []
     first_noncomment_seen = False
@@ -456,7 +456,7 @@ def _forest_mode_units(
     forests_list_path: Path,
     locations_path: Path,
     n_limit: int | None,
-) -> Generator[np.ndarray, None, None]:
+) -> Generator[np.ndarray]:
     """Yield one halo array per SAGE output tree using forest-level processing.
 
     Complete forests (all expected tree blocks present) are combined into a
@@ -516,7 +516,7 @@ def _forest_mode_units(
 def _tree_mode_units(
     tree_files: list[Path],
     n_limit: int | None,
-) -> Generator[np.ndarray, None, None]:
+) -> Generator[np.ndarray]:
     """Yield one halo array per #tree block (original tree-level behaviour)."""
     n_done = 0
     for tf in tree_files:
@@ -534,7 +534,7 @@ def _get_output_units(
     n_limit: int | None,
     forests_list_path: Path | None,
     locations_path: Path | None,
-) -> Generator[np.ndarray, None, None]:
+) -> Generator[np.ndarray]:
     """Route to forest-mode or tree-mode iterator based on ancillary files."""
     if (
         forests_list_path is not None

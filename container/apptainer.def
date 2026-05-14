@@ -1,5 +1,5 @@
 BootStrap: docker
-From: ubuntu:22.04
+From: python:3.13-slim
 
 %labels
     Maintainer Robert A. Mostoghiu Paun
@@ -14,9 +14,7 @@ From: ubuntu:22.04
     apt-get update && apt-get install -y --no-install-recommends \
         curl \
         git \
-        hdf5-tools \
-        python3 \
-        python3-pip
+        hdf5-tools
 
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     apt-get install -y --no-install-recommends nodejs
@@ -29,7 +27,7 @@ From: ubuntu:22.04
     done
 
     git config --system safe.directory '*'
-    pip3 install --no-cache-dir -r /tmp/requirements.txt
+    pip install --no-cache-dir -r /tmp/requirements.txt
 
     rm -rf /var/lib/apt/lists/* /tmp/requirements.txt
 

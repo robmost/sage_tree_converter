@@ -1,5 +1,0 @@
-{
-  "typeCheckingMode": "standard",
-  "extraPaths": ["conversion-engine"],
-  "exclude": ["audits/**", ".ai/**"]
-}

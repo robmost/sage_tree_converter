@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 exclude = [
     "audits",
     ".ai",
@@ -25,3 +25,9 @@ known-first-party = ["utils", "drivers", "validation"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+pythonVersion = "3.13"
+extraPaths = ["conversion-engine"]
+exclude = ["audits/**", ".ai/**"]

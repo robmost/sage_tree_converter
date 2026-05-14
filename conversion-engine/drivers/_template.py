@@ -37,6 +37,7 @@ import sys
 import h5py  # noqa: F401
 import numpy as np  # noqa: F401
 from tqdm import tqdm  # noqa: F401
+
 from utils import binary_writer, hdf5_writer  # noqa: F401
 
 

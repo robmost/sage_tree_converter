@@ -28,6 +28,7 @@ import importlib
 import json
 import logging
 import sys
+import types
 from datetime import datetime
 from pathlib import Path
 
@@ -87,7 +88,7 @@ def _auto_detect_format(input_path: str) -> str | None:
     return None
 
 
-def _import_driver(format_id: str):
+def _import_driver(format_id: str) -> types.ModuleType:
     """Import and return the driver module for the given format_id."""
     module_name = FORMAT_REGISTRY[format_id]
     # Ensure conversion-engine/ is on sys.path so 'drivers.<name>' resolves.

@@ -5,6 +5,8 @@ All conversion drivers must write output through these functions to guarantee
 dtype correctness and schema compliance with reference/sage_lhalotree_hdf5_schema.md.
 """
 
+from typing import Any
+
 import h5py
 import numpy as np
 
@@ -72,7 +74,7 @@ MANDATORY_FIELDS = frozenset(
 )
 
 
-def _cast(field_name: str, data) -> np.ndarray:
+def _cast(field_name: str, data: Any) -> np.ndarray:
     """Cast data to the canonical dtype for the given field name."""
     arr = np.asarray(data)
     if field_name in _INT32_FIELDS:
@@ -105,7 +107,7 @@ def write_header(
     n_trees: int,
     total_halos: int,
     n_output_files: int,
-    tree_n_halos,
+    tree_n_halos: np.ndarray | list[int],
 ) -> None:
     """Create the Header/ group with the four mandatory attributes and TreeNHalos dataset.
 
@@ -127,9 +129,7 @@ def write_header(
     """
     tree_n_halos_arr = np.asarray(tree_n_halos, dtype=np.int32)
     if len(tree_n_halos_arr) != n_trees:
-        raise ValueError(
-            f"len(tree_n_halos)={len(tree_n_halos_arr)} != n_trees={n_trees}."
-        )
+        raise ValueError(f"len(tree_n_halos)={len(tree_n_halos_arr)} != n_trees={n_trees}.")
     if int(tree_n_halos_arr.sum()) != total_halos:
         raise ValueError(
             f"sum(tree_n_halos)={tree_n_halos_arr.sum()} != total_halos={total_halos}."

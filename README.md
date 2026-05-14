@@ -94,7 +94,7 @@ flowchart LR
 
 - Docker (recommended) **or** Apptainer (for HPC) **or** Python 3.10+ with packages from `requirements.txt`
 - Claude Code CLI or Gemini CLI
-- An Anthropic API key (Claude) or Gemini API key
+- An Anthropic API key (Claude) or Gemini API key. Alternatively, web login to your Anthropic or Gemini account is also supported.
 
 ### Setup
 
@@ -285,8 +285,7 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 ├── reference/               # Static schema and style references
 ├── .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
 ├── Makefile                 # Shortcuts: make lint / fmt / typecheck / check
-├── pyproject.toml           # Ruff linter/formatter configuration
-├── pyrightconfig.json       # basedpyright type-checker configuration
+├── pyproject.toml           # Ruff + basedpyright configuration
 └── requirements.txt         # Python runtime dependencies
 ```
 

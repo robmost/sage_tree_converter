@@ -179,9 +179,7 @@ def _load_native_trees(
 
 def _find_lowest_snap(trees: dict) -> int:
     """Return the snapshot index of the lowest-redshift snapshot (highest SnapNum)."""
-    return max(
-        int(np.max(t["SnapNum"])) for t in trees.values() if len(t["SnapNum"]) > 0
-    )
+    return max(int(np.max(t["SnapNum"])) for t in trees.values() if len(t["SnapNum"]) > 0)
 
 
 def _root_halos_at_snap(tree: dict, snap: int) -> np.ndarray:
@@ -192,9 +190,12 @@ def _root_halos_at_snap(tree: dict, snap: int) -> np.ndarray:
     return np.where(mask)[0]
 
 
-def _select_mass_bins(
-    in_trees: dict, lowest_snap: int
-) -> tuple[list[int], list[int], list[int]]:
+def _heaviest_root(tree: dict, roots: np.ndarray) -> int:
+    """Return the flat index of the most massive root halo."""
+    return int(roots[np.argmax(tree["Group_M_Crit200"][roots])])
+
+
+def _select_mass_bins(in_trees: dict, lowest_snap: int) -> tuple[list[int], list[int], list[int]]:
     """Select top-5, median-5, and bottom-5 tree indices by root-halo mass.
 
     Trees with no root halo at lowest_snap, or with Group_M_Crit200 <= 0, are excluded.
@@ -326,8 +327,12 @@ def _plot_mah(
             if len(in_roots) == 0 or len(out_roots) == 0:
                 continue
 
-            in_snaps, in_masses = _main_progenitor_branch(in_tree, int(in_roots[0]))
-            out_snaps, out_masses = _main_progenitor_branch(out_tree, int(out_roots[0]))
+            in_snaps, in_masses = _main_progenitor_branch(
+                in_tree, _heaviest_root(in_tree, in_roots)
+            )
+            out_snaps, out_masses = _main_progenitor_branch(
+                out_tree, _heaviest_root(out_tree, out_roots)
+            )
 
             in_masses_pos = [m if m > 0 else np.nan for m in in_masses]
             out_masses_pos = [m if m > 0 else np.nan for m in out_masses]
@@ -402,8 +407,8 @@ def _plot_merger_rate(
             if len(in_roots) == 0 or len(out_roots) == 0:
                 continue
 
-            in_rate = _merger_rate_along_branch(in_tree, int(in_roots[0]))
-            out_rate = _merger_rate_along_branch(out_tree, int(out_roots[0]))
+            in_rate = _merger_rate_along_branch(in_tree, _heaviest_root(in_tree, in_roots))
+            out_rate = _merger_rate_along_branch(out_tree, _heaviest_root(out_tree, out_roots))
 
             in_snaps = sorted(in_rate)
             out_snaps = sorted(out_rate)
@@ -479,8 +484,10 @@ def _plot_angular_momentum(
             if len(in_roots) == 0 or len(out_roots) == 0:
                 continue
 
-            in_snaps, in_spins = _main_progenitor_spins(in_tree, int(in_roots[0]))
-            out_snaps, out_spins = _main_progenitor_spins(out_tree, int(out_roots[0]))
+            in_snaps, in_spins = _main_progenitor_spins(in_tree, _heaviest_root(in_tree, in_roots))
+            out_snaps, out_spins = _main_progenitor_spins(
+                out_tree, _heaviest_root(out_tree, out_roots)
+            )
 
             in_spins_pos = [s if s > 0 else np.nan for s in in_spins]
             out_spins_pos = [s if s > 0 else np.nan for s in out_spins]
@@ -493,9 +500,7 @@ def _plot_angular_momentum(
                 markersize=3,
                 label=f"Tree {tid}",
             )
-            axes[row_idx, 1].semilogy(
-                out_snaps, out_spins_pos, alpha=0.6, marker="o", markersize=3
-            )
+            axes[row_idx, 1].semilogy(out_snaps, out_spins_pos, alpha=0.6, marker="o", markersize=3)
 
             in_map = dict(zip(in_snaps, in_spins))
             common = sorted(set(in_snaps) & set(out_snaps))
@@ -543,9 +548,7 @@ def _collect_halos_at_snap(trees: dict, snap: int) -> dict[str, np.ndarray]:
             field_lists[field].append(arr[mask])
 
     return {
-        field: np.concatenate(arrays, axis=0)
-        for field, arrays in field_lists.items()
-        if arrays
+        field: np.concatenate(arrays, axis=0) for field, arrays in field_lists.items() if arrays
     }
 
 
@@ -573,9 +576,7 @@ def _plot_hmf(
         col_titles=("Input — HMF", "Output — HMF", "Relative difference"),
     )
 
-    axes[0].semilogy(
-        bin_centres, np.where(in_counts > 0, in_counts, np.nan), drawstyle="steps-mid"
-    )
+    axes[0].semilogy(bin_centres, np.where(in_counts > 0, in_counts, np.nan), drawstyle="steps-mid")
     axes[1].semilogy(
         bin_centres, np.where(out_counts > 0, out_counts, np.nan), drawstyle="steps-mid"
     )
@@ -671,9 +672,7 @@ def _plot_lifespan(
     if not in_lifespans or not out_lifespans:
         fig, axes = make_1x3_figure()
         for ax in axes:
-            ax.text(
-                0.5, 0.5, "No data", ha="center", va="center", transform=ax.transAxes
-            )
+            ax.text(0.5, 0.5, "No data", ha="center", va="center", transform=ax.transAxes)
         path = os.path.join(output_dir, "lifespan_dist.pdf")
         save_figure(fig, path)
         return path
@@ -813,9 +812,7 @@ def generate_all_plots(
     else:
         import warnings
 
-        warnings.warn(
-            f"Style file not found at '{style_path}'. Using matplotlib defaults."
-        )
+        warnings.warn(f"Style file not found at '{style_path}'. Using matplotlib defaults.")
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -866,12 +863,8 @@ def generate_all_plots(
     print("\nGenerating plots …")
 
     saved.append(_plot_mah(in_trees_shared, out_trees_shared, mass_bins, output_dir))
-    saved.append(
-        _plot_merger_rate(in_trees_shared, out_trees_shared, mass_bins, output_dir)
-    )
-    saved.append(
-        _plot_angular_momentum(in_trees_shared, out_trees_shared, mass_bins, output_dir)
-    )
+    saved.append(_plot_merger_rate(in_trees_shared, out_trees_shared, mass_bins, output_dir))
+    saved.append(_plot_angular_momentum(in_trees_shared, out_trees_shared, mass_bins, output_dir))
     saved.append(_plot_hmf(in_halos_lo, out_halos_lo, output_dir))
     saved.append(
         _plot_velocity_dist(in_halos_lo, out_halos_lo, output_dir)

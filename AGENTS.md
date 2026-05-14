@@ -270,8 +270,7 @@ The following files at the project root configure code quality tooling. Do not d
 
 | File | Purpose |
 | ---- | ------- |
-| `pyproject.toml` | Ruff linter/formatter config. Pins rules (`E,W,F,I,UP,ANN`), `line-length=100`, `quote-style="double"`. Excludes `audits/` and `.ai/`. |
-| `pyrightconfig.json` | basedpyright type-checker config. `typeCheckingMode="standard"`, extra path `conversion-engine/`. Excludes `audits/**` and `.ai/**`. Uses the active shell interpreter — no venv path hardcoded. |
+| `pyproject.toml` | Ruff linter/formatter config plus basedpyright config. Pins Ruff rules (`E,W,F,I,UP,ANN`), `line-length=100`, `quote-style="double"`; basedpyright uses `typeCheckingMode="standard"`, extra path `conversion-engine/`, and excludes `audits/**` and `.ai/**`. |
 | `Makefile` | Developer shortcuts: `make lint`, `make fmt`, `make typecheck`, `make check`. |
 | `.pre-commit-config.yaml` | Git pre-commit hooks. Runs `ruff check --fix` and `ruff format` on every commit, excluding `audits/` and `.ai/`. Requires `pre-commit` to be installed and activated with `pre-commit install`. |
 | `requirements.txt` | Python runtime dependencies for the conversion engine (h5py, numpy, tqdm). |

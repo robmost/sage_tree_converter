@@ -50,6 +50,7 @@ import warnings
 import h5py
 import numpy as np
 from tqdm import tqdm
+
 from utils import binary_writer, hdf5_writer
 
 _POS_SPIN_SCALE = np.float32(1000.0)
@@ -60,9 +61,7 @@ def _ds(group: h5py.Group, key: str) -> h5py.Dataset:
     return group[key]  # type: ignore[return-value]
 
 
-def _load_arr(
-    group: h5py.Group, key: str, sel: slice | None = None
-) -> np.ndarray:
+def _load_arr(group: h5py.Group, key: str, sel: slice | None = None) -> np.ndarray:
     """Load an h5py dataset field into a numpy array."""
     ds = _ds(group, key)
     return np.asarray(ds if sel is None else ds[sel])  # type: ignore[arg-type, index]
@@ -80,9 +79,9 @@ def _estimate_particle_mass(sub_mass: np.ndarray, sub_len: np.ndarray) -> float:
         return 0.0
     n_sample = max(1, int(valid.sum()) // 1000)
     top_idx = np.argpartition(sub_len[valid], -n_sample)[-n_sample:]
-    ratios = sub_mass[valid][top_idx].astype(np.float64) / sub_len[valid][
-        top_idx
-    ].astype(np.float64)
+    ratios = sub_mass[valid][top_idx].astype(np.float64) / sub_len[valid][top_idx].astype(
+        np.float64
+    )
     return float(np.median(ratios))
 
 
@@ -172,9 +171,7 @@ def _build_fof_pointers(
 
     is_new = np.empty(n, dtype=bool)
     is_new[0] = True
-    is_new[1:] = (sorted_snap[1:] != sorted_snap[:-1]) | (
-        sorted_gnr[1:] != sorted_gnr[:-1]
-    )
+    is_new[1:] = (sorted_snap[1:] != sorted_snap[:-1]) | (sorted_gnr[1:] != sorted_gnr[:-1])
 
     central_halos = sorted_halos[is_new]
     group_idx = np.cumsum(is_new) - 1
@@ -330,9 +327,7 @@ def convert(
                         tree_n_halos=tree_n_halos,
                     )
                     for tree_idx in tqdm(range(n_to_write), desc="Converting trees"):
-                        fields = _process_tree(
-                            th, int(starts[tree_idx]), int(lengths[tree_idx])
-                        )
+                        fields = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
                         hdf5_writer.write_tree(out_f, tree_idx, fields)
 
             elif output_format == "lhalo_binary":
@@ -346,15 +341,11 @@ def convert(
                         tree_n_halos=tree_n_halos,
                     )
                     for tree_idx in tqdm(range(n_to_write), desc="Converting trees"):
-                        fields = _process_tree(
-                            th, int(starts[tree_idx]), int(lengths[tree_idx])
-                        )
+                        fields = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
                         binary_writer.write_tree(out_f, tree_idx, fields)
 
             else:
-                print(
-                    f"ERROR: unknown output_format '{output_format}'.", file=sys.stderr
-                )
+                print(f"ERROR: unknown output_format '{output_format}'.", file=sys.stderr)
                 sys.exit(1)
 
     except SystemExit:
@@ -394,8 +385,6 @@ def read_trees(
 
         th: h5py.Group = in_f["TreeHalos"]  # type: ignore[assignment]
         for tree_idx in tqdm(range(n_to_read), desc="Reading trees"):
-            result[tree_idx] = _process_tree(
-                th, int(starts[tree_idx]), int(lengths[tree_idx])
-            )
+            result[tree_idx] = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
 
     return result
