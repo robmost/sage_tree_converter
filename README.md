@@ -208,10 +208,32 @@ $PYTHON_BIN conversion-engine/main_driver.py \
     --output-format lhalo_hdf5   # or lhalo_binary → output/<base>_STC.0
 ```
 
-Use `--sim-config <path/to/sim.json>` to supply simulation parameter overrides (particle
-mass, box size, cosmology). Copy `reference/sim_config_template.json`, fill in the values
-you want to override, and pass the file path as the argument. All keys are optional;
-drivers fall back to auto-detection or data estimation for any key that is absent or null.
+### Simulation parameter overrides (`--sim-config`)
+
+Some formats cannot supply all simulation properties from their file headers (e.g. Consistent Trees does not store particle count). Use `--sim-config` to pass a JSON file of overrides to both test and full conversions:
+
+```bash
+$PYTHON_BIN conversion-engine/main_driver.py \
+    --input  input/<dataset_name>/<file_or_dir> \
+    --output output/<base>_STC.0.hdf5 \
+    --format <format_id> \
+    --sim-config assets/my_sim.json
+```
+
+Copy `reference/sim_config_template.json` as a starting point:
+
+```json
+{
+  "particle_mass_msun_per_h": 8.6e8,
+  "n_particles_per_side": 2048,
+  "box_size_mpc_per_h": 250.0,
+  "omega_m": 0.307,
+  "omega_l": 0.693,
+  "h0": 0.68
+}
+```
+
+All keys are optional — set only the ones you need to override. Drivers fall back to auto-detection or data estimation for any absent or `null` key. The file is format-agnostic: every driver reads only the keys it uses.
 
 ### Syntactic validation
 
@@ -238,24 +260,29 @@ Both scripts exit with code `0` on full pass and `1` on any failure. `--n-snapsh
 Semantic validation has no standalone CLI script. Invoke the `generate_all_plots()` function from `conversion-engine/validation/semantic.py`:
 
 ```python
-import sys
+import json, sys
 sys.path.insert(0, "conversion-engine")
+import matplotlib.pyplot as plt
 from validation.semantic import generate_all_plots
 
+plt.style.use("reference/sage_validation.mplstyle")
+
+# If you used --sim-config during conversion, pass the same file here so that
+# read_trees() computes SubhaloLen with the same particle mass as the output.
+# Omit sim_params (or pass None) when no sim-config was used.
+with open("assets/my_sim.json") as f:
+    sim_params = json.load(f)
+
 generate_all_plots(
-    input_path="<reference_input_file>",
+    input_path="<original_input_path>",
     output_path="output/<base>_STC.0.hdf5",   # or _STC.0 for binary
-    input_format="lhalo_hdf5",            # or lhalo_binary
-    output_format="lhalo_hdf5",           # or lhalo_binary
+    input_format="rockstar_consistent_trees_ascii",  # driver format ID, or lhalo_hdf5 / lhalo_binary
+    output_format="lhalo_hdf5",                # or lhalo_binary
+    sim_params=sim_params,                     # omit or set to None if not needed
 )
 ```
 
-Plots are written to `assets/semantic_validation/`. Apply the project style sheet first:
-
-```python
-import matplotlib.pyplot as plt
-plt.style.use("reference/sage_validation.mplstyle")
-```
+Plots are written to `assets/semantic_validation/`.
 
 ### Functional validation (optional)
 
