@@ -1,7 +1,5 @@
 {
   "typeCheckingMode": "standard",
-  "venvPath": "/opt",
-  "venv": "anaconda3",
   "extraPaths": ["conversion-engine"],
-  "exclude": ["audits/**"]
+  "exclude": ["audits/**", ".ai/**"]
 }

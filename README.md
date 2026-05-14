@@ -115,17 +115,17 @@ cp .env.example .env
 ### Run
 
 ```bash
-# Docker (recommended)
-docker compose up
+# Docker (recommended) — run from the project root
+docker compose -f container/docker-compose.yml up
 
-# Apptainer (HPC)
+# Apptainer (HPC) — all commands run from the project root
 # 1) Build image (choose your own output path/name for the .sif file)
 module load apptainer
 # Use --fakeroot if your cluster requires it for package installation at build time.
-apptainer build sage-tree-converter.sif apptainer.def
+apptainer build sage-tree-converter.sif container/apptainer.def
 
 # 2) Load Docker-equivalent bind and env configuration
-source apptainer.env.sh
+source container/apptainer.env.sh
 
 # 3) Start an interactive shell
 apptainer shell --pwd /app sage-tree-converter.sif
@@ -139,15 +139,15 @@ claude
 
 Notes:
 
-- On OzSTAR, load Apptainer first with `module load apptainer`.
-- Apptainer implicitly binds `$PWD` by default, but this can vary by launch directory; `apptainer.env.sh` forces deterministic bind paths.
-- `apptainer.env.sh` sets deterministic bind mounts and container environment values so your run command stays short.
+- All container commands are run from the **project root**, not from inside `container/`.
+- Apptainer implicitly binds `$PWD` by default, but this can vary by launch directory; `container/apptainer.env.sh` forces deterministic bind paths.
+- `container/apptainer.env.sh` sets deterministic bind mounts and container environment values so your run command stays short.
 - For best filesystem performance in batch jobs, consider copying the `.sif` to local job temporary storage before running.
 
 Apptainer self-check (optional):
 
 ```bash
-# Run after: source apptainer.env.sh
+# Run after: source container/apptainer.env.sh
 apptainer exec --pwd /app sage-tree-converter.sif bash -lc '
     echo "[paths]";
     pwd;
@@ -268,6 +268,11 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 ├── AGENTS.md                # Master agent orchestration document
 ├── assets/                  # LLM working area for Stages 1–3
 ├── audits/                  # Archived audit files from completed sessions
+├── container/               # Container definitions (Docker and Apptainer)
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   ├── apptainer.def
+│   └── apptainer.env.sh
 ├── conversion-engine/
 │   ├── main_driver.py       # CLI entry point
 │   ├── drivers/             # Format-specific conversion modules
@@ -278,11 +283,11 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 ├── input/                   # Source merger trees, organised as input/<dataset_name>/
 ├── output/                  # Stage 3 writes converted files here
 ├── reference/               # Static schema and style references
-├── Dockerfile
-├── apptainer.def
-├── apptainer.env.sh
-├── docker-compose.yml
-└── requirements.txt
+├── .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
+├── Makefile                 # Shortcuts: make lint / fmt / typecheck / check
+├── pyproject.toml           # Ruff linter/formatter configuration
+├── pyrightconfig.json       # basedpyright type-checker configuration
+└── requirements.txt         # Python runtime dependencies
 ```
 
 ## Unit Conventions

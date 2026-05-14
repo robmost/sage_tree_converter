@@ -1,0 +1,27 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [
+    "audits",
+    ".ai",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import ordering)
+    "UP",  # pyupgrade
+    "ANN", # flake8-annotations (type hints)
+]
+ignore = [
+    "ANN401",  # use of Any type
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["utils", "drivers", "validation"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

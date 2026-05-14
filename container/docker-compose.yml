@@ -1,12 +1,14 @@
 services:
   sage-converter:
-    build: .
+    build:
+      context: ..
+      dockerfile: container/Dockerfile
     working_dir: /app
     stdin_open: true
     tty: true
     user: "${UID:-1000}:${GID:-1000}"
     env_file:
-      - .env
+      - ../.env
     environment:
       HOME: /tmp
       MPLCONFIGDIR: /tmp/matplotlib
@@ -17,6 +19,6 @@ services:
       SAGE_BINARY_PATH: "${SAGE_BINARY_PATH:-}"
       SAGE_MEMORY_MULTIPLIER: "${SAGE_MEMORY_MULTIPLIER:-3.0}"
     volumes:
-      - .:/app
-      - "${INPUT_DIR:-./input}:/app/input"
-      - "${OUTPUT_DIR:-./output}:/app/output"
+      - ..:/app
+      - "${INPUT_DIR:-../input}:/app/input"
+      - "${OUTPUT_DIR:-../output}:/app/output"

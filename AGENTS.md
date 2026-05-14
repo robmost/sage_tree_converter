@@ -261,3 +261,21 @@ Examples:
 The `_STC` suffix stands for **SAGE Tree Converter**. It is appended to all converted outputs (both Stage 2 and Stage 3) to distinguish them from the original input data. The `test_` prefix on Stage 2 outputs additionally marks them as partial (test) conversions.
 
 Derive `<base>` once, at the start of Stage 2. Use it unchanged in Stages 3 and 4.
+
+---
+
+## 14. Root-Level Tooling Files
+
+The following files at the project root configure code quality tooling. Do not delete or modify them during conversion work.
+
+| File | Purpose |
+| ---- | ------- |
+| `pyproject.toml` | Ruff linter/formatter config. Pins rules (`E,W,F,I,UP,ANN`), `line-length=100`, `quote-style="double"`. Excludes `audits/` and `.ai/`. |
+| `pyrightconfig.json` | basedpyright type-checker config. `typeCheckingMode="standard"`, extra path `conversion-engine/`. Excludes `audits/**` and `.ai/**`. Uses the active shell interpreter — no venv path hardcoded. |
+| `Makefile` | Developer shortcuts: `make lint`, `make fmt`, `make typecheck`, `make check`. |
+| `.pre-commit-config.yaml` | Git pre-commit hooks. Runs `ruff check --fix` and `ruff format` on every commit, excluding `audits/` and `.ai/`. Requires `pre-commit` to be installed and activated with `pre-commit install`. |
+| `requirements.txt` | Python runtime dependencies for the conversion engine (h5py, numpy, tqdm). |
+| `container/Dockerfile` | Container image definition (Ubuntu 22.04 + Python + Node.js + LLM CLIs). |
+| `container/docker-compose.yml` | Docker Compose orchestration. Run with `docker compose -f container/docker-compose.yml up` from the project root. |
+| `container/apptainer.def` | Apptainer (Singularity) container definition for HPC environments. Build with `apptainer build sage-tree-converter.sif container/apptainer.def` from the project root. |
+| `container/apptainer.env.sh` | Sets bind mounts and environment variables for Apptainer runs. Source with `source container/apptainer.env.sh` from the project root. |
