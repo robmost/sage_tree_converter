@@ -1,7 +1,8 @@
 """
 rockstar_consistent_trees_ascii.py — Driver for Rockstar + Consistent Trees ASCII format.
 
-Input:  a directory containing tree_*.dat files from Consistent Trees.
+Input:  a directory containing tree_*.dat files from Consistent Trees, and optionally
+        forests.list + locations.dat (standard CTrees ancillary files).
 Output: a single SAGE LHaloTree HDF5 or binary file.
 
 File structure of each tree_*.dat:
@@ -10,13 +11,13 @@ File structure of each tree_*.dat:
   #Omega_M = ...; h0 = ...    ← cosmology header (parsed for particle mass)
   ...more comments...
   #tree <Tree_root_ID>        ← tree-block delimiter
-  <halo row 0>                ← 59 space-separated values (depth-first order)
+  <halo row 0>                ← 59+ space-separated values (depth-first order)
   <halo row 1>
   ...
   #tree <next_Tree_root_ID>
   ...
 
-Column layout (0-based, 59 total):
+Column layout (0-based, 59 minimum; some outputs add extra trailing columns):
   0  scale      6  upid     12 rs      18 y    24 Jy   30 Orig_halo_ID
   1  id         7  desc_pid 13 vrms    19 z    25 Jz   31 Snap_num
   2  desc_scale 8  phantom  14 mmp?    20 vx   26 Spin 32 Next_coprog_DFI
@@ -24,18 +25,29 @@ Column layout (0-based, 59 total):
   4  num_prog   10 mvir     16 vmax    22 vz   28 DFI  34 Last_mainleaf_DFI
   5  pid        11 rvir     17 x       23 Jx   29 Tree_root_ID
   35 Tidal_Force 36 Tidal_ID 37 Rs_Klypin 38 Mvir_all 39 M200b 40 M200c
-  41 M500c 42 M2500c 43 Xoff 44 Voff 45 Spin_Bullock 46 b_to_a 47 c_to_a
-  48 A[x] 49 A[y] 50 A[z] 51 b_to_a(500c) 52 c_to_a(500c) 53-55 A(500c)
-  56 T/|U| 57 M_pe_Behroozi 58 M_pe_Diemer
+  ...
+  Extra trailing columns (e.g. Halfmass_Radius, rvmax in Shin-Uchuu / micro-uchuu)
+  are silently ignored.
 
 Pointer reconstruction (all O(N) or O(N log N)):
   Halos within each #tree block are in depth-first order.
-  Descendant:         desc_id → tree-local index via id→idx dict
+  Descendant:         desc_id → combined-array index via id→idx dict
   FirstProgenitor:    halos[i+1] if halos[i+1].desc_id == halos[i].id
-  NextProgenitor:     Next_coprog_DFI looked up in dfi→local_index dict (DFIs are global,
-                      not sequential within a tree block)
-  FirstHaloInFOFGroup: upid → tree-local index; self if upid==-1 or cross-forest
-  NextHaloInFOFGroup: group by (snap, central), sort by mvir desc, singly-linked list
+  NextProgenitor:     Next_coprog_DFI looked up in dfi→index dict (DFIs are global
+                      sequential integers assigned across all tree blocks in the file)
+  FirstHaloInFOFGroup: upid → combined-array index via id→idx dict; self if upid==-1
+                       or cross-forest reference (upid not in combined id set)
+  NextHaloInFOFGroup: group by (snap, central_idx), sort by mvir desc, singly-linked
+
+Forest-level processing (when forests.list + locations.dat are present):
+  Consistent Trees assigns each #tree block a forest ID via forests.list.  Within a
+  forest, halos in different tree blocks can share a FOF group at some snapshot, so
+  upid references cross tree-block boundaries.  The driver loads all tree blocks that
+  belong to the same *complete* forest together and calls _reconstruct_pointers on the
+  combined array, allowing all cross-tree upid references to resolve correctly.  A
+  forest is considered complete when every tree_root_id listed in forests.list for that
+  forest is present in locations.dat.  Incomplete forests (e.g. when only one file
+  shard of a multi-shard simulation is provided) fall back to per-tree processing.
 
 Field conversions:
   SubhaloLen   = round(mvir / particle_mass)   [estimated; see known_caveats]
@@ -47,11 +59,13 @@ import os
 import re
 import sys
 from collections import defaultdict
+from collections.abc import Generator
 from pathlib import Path
 
 import h5py
 import numpy as np
 from tqdm import tqdm
+
 from utils import binary_writer, hdf5_writer
 
 # ---------------------------------------------------------------------------
@@ -72,11 +86,9 @@ _C_NEXT_COPROG_DFI = 32
 _C_M200B = 39
 _C_M200C = 40
 
-_NCOLS_MIN = (
-    59  # minimum expected; some outputs (e.g. Shin-Uchuu) add extra trailing columns
-)
+_NCOLS_MIN = 59  # minimum expected; extra trailing columns are silently ignored
 _RHO_CRIT0_H2 = 2.775e11  # h^2 Msun / Mpc^3
-_N_SIDE_DEFAULT = 2048  # BolshoiP default
+_N_SIDE_DEFAULT = 2048  # default particle grid size (BolshoiP / micro-uchuu)
 
 
 # ---------------------------------------------------------------------------
@@ -115,14 +127,11 @@ def _parse_cosmology(header_text: str) -> tuple[float, float]:
     return omega_m, box_size
 
 
-def _compute_particle_mass(
-    omega_m: float, box_size: float, n_side: int = _N_SIDE_DEFAULT
-) -> float:
+def _compute_particle_mass(omega_m: float, box_size: float, n_side: int = _N_SIDE_DEFAULT) -> float:
     """Dark matter particle mass in Msun/h.
 
-    Derived from: m_p = Omega_M * rho_crit0 * L_box^3 / N_particles
-    where L_box is in Mpc/h and rho_crit0 = 2.775e11 h^2 Msun/Mpc^3,
-    giving units of Msun/h after the h factors cancel.
+    m_p = Omega_M * rho_crit0 * L_box^3 / N_particles
+    where L_box is in Mpc/h and rho_crit0 = 2.775e11 h^2 Msun/Mpc^3.
     """
     return omega_m * _RHO_CRIT0_H2 * (box_size**3) / (float(n_side) ** 3)
 
@@ -135,7 +144,7 @@ def _compute_particle_mass(
 def _read_header_text(filepath: Path) -> str:
     """Return the concatenated comment lines before the first #tree marker."""
     lines: list[str] = []
-    with open(filepath, "r") as fh:
+    with open(filepath) as fh:
         for raw in fh:
             line = raw.strip()
             if not line:
@@ -150,16 +159,13 @@ def _read_header_text(filepath: Path) -> str:
 def _generate_trees(
     filepath: Path,
     n_trees_limit: int | None,
-):
-    """Generator: yield one (N, _NCOLS) float64 ndarray per tree block.
-
-    Memory-efficient: only one tree's data is in memory at a time.
-    """
+) -> Generator[np.ndarray, None, None]:
+    """Yield one (N, _NCOLS) float64 ndarray per #tree block."""
     current_rows: list[list[float]] = []
     first_noncomment_seen = False
     n_yielded = 0
 
-    with open(filepath, "r") as fh:
+    with open(filepath) as fh:
         for raw in fh:
             line = raw.strip()
             if not line:
@@ -194,77 +200,18 @@ def _generate_trees(
         yield np.array(current_rows, dtype=np.float64)
 
 
-def _stream_trees(
-    filepath: Path,
-    n_trees_limit: int | None,
-) -> tuple[list[np.ndarray], str]:
-    """Stream a tree_*.dat file and return (tree_arrays, header_text).
-
-    Each element of tree_arrays is a 2-D float64 ndarray of shape (N_halos, _NCOLS).
-    header_text contains all comment lines before the first #tree marker.
-    Stops after n_trees_limit trees if given (None = all trees).
-    """
-    trees: list[np.ndarray] = []
-    header_lines: list[str] = []
-    current_rows: list[list[float]] = []
-    first_noncomment_seen = False
-    past_first_tree = False
-
-    with open(filepath, "r") as fh:
-        for raw in fh:
-            line = raw.strip()
-            if not line:
-                continue
-
-            if line.startswith("#tree"):
-                # Flush the completed tree block
-                if current_rows:
-                    trees.append(np.array(current_rows, dtype=np.float64))
-                    current_rows = []
-                    if n_trees_limit is not None and len(trees) >= n_trees_limit:
-                        return trees, "\n".join(header_lines)
-                past_first_tree = True
-                continue
-
-            if line.startswith("#"):
-                if not past_first_tree:
-                    header_lines.append(line)
-                continue
-
-            # First non-comment, non-blank line = total-tree-count integer; skip it
-            if not first_noncomment_seen:
-                first_noncomment_seen = True
-                continue
-
-            # Halo data row
-            try:
-                current_rows.append([float(v) for v in line.split()])
-            except ValueError as exc:
-                print(
-                    f"ERROR: failed to parse data row in '{filepath}': {line!r} — {exc}",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
-
-    # Flush the final tree block
-    if current_rows and (n_trees_limit is None or len(trees) < n_trees_limit):
-        trees.append(np.array(current_rows, dtype=np.float64))
-
-    return trees, "\n".join(header_lines)
-
-
 # ---------------------------------------------------------------------------
 # Pointer reconstruction
 # ---------------------------------------------------------------------------
 
 
 def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
-    """Build all five LHaloTree pointer arrays for one tree block.
+    """Build all five LHaloTree pointer arrays for a halo array.
 
     Parameters
     ----------
     halos : ndarray, shape (N, _NCOLS), dtype float64
-        Halo data for one #tree block in depth-first order.
+        Halo data — may span multiple #tree blocks when called in forest mode.
 
     Returns
     -------
@@ -284,8 +231,7 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
 
     # O(N) dicts for fast lookups
     id_to_idx: dict[int, int] = {int(ids[i]): i for i in range(n)}
-    # DFIs are NOT sequential within a tree block (they are global indices assigned
-    # across the whole forest). Build an explicit dfi→local_index map.
+    # DFIs are globally sequential across the file; unique within the combined array.
     dfi_to_idx: dict[int, int] = {int(dfis[i]): i for i in range(n)}
 
     # ---- Descendant --------------------------------------------------------
@@ -304,9 +250,9 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
             fp[i] = i + 1
 
     # ---- NextProgenitor ----------------------------------------------------
-    # Next_coprogenitor_DFI is the global DFI of the next sibling progenitor.
-    # DFIs are NOT sequential within a tree block, so look up via dfi_to_idx dict.
-    # If the DFI is absent (cross-forest reference), NextProgenitor stays -1.
+    # Next_coprogenitor_DFI is the globally-sequential DFI of the next sibling
+    # progenitor.  All co-progenitors of a halo are within the same #tree block,
+    # so references are always resolvable in the combined array.
     nxt_prog = np.full(n, -1, dtype=np.int32)
     for i in range(n):
         nc_dfi = int(next_coprog_dfis[i])
@@ -314,10 +260,11 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
             nxt_prog[i] = dfi_to_idx.get(nc_dfi, -1)
 
     # ---- FirstHaloInFOFGroup -----------------------------------------------
-    # upid is the most massive DIRECT host, which may be an intermediate satellite
-    # (sub-subhalo case). SAGE requires all halos to point to the ULTIMATE central
-    # (the one at the top of the upid chain with upid == -1).
-    # Use iterative path-compression traversal: O(N * alpha(N)).
+    # upid is the ID of the most massive host (ultimate central) at the same
+    # snapshot.  In forest mode the combined id_to_idx covers all trees in the
+    # forest, so cross-tree upid references resolve correctly.  References that
+    # still cannot be resolved (genuine cross-forest or cross-file links) fall
+    # back to self-pointer (halo treated as its own central).
     _UNVISITED = -2
     fhifof = np.full(n, _UNVISITED, dtype=np.int32)
 
@@ -337,18 +284,17 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
                 break
             parent = id_to_idx.get(upid, -1)
             if parent == -1:
-                # Cross-forest reference: treat this halo as its own central
+                # Cross-forest/cross-file reference: treat as own central
                 fhifof[current] = current
                 root = current
                 break
             path.append(current)
             current = parent
-        # Path compression: all halos visited point directly to root
         for h in path:
             fhifof[h] = root
 
     # ---- NextHaloInFOFGroup ------------------------------------------------
-    # Group halos by (snap, central_idx); sort each group by mvir descending;
+    # Group halos by (snap, central_idx); sort by mvir descending;
     # build singly-linked list: central → sat_0 → sat_1 → ... → -1.
     nhifof = np.full(n, -1, dtype=np.int32)
     groups: dict[tuple[int, int], list[tuple[float, int]]] = defaultdict(list)
@@ -357,11 +303,10 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
         groups[key].append((float(mvirs[i]), i))
 
     for members in groups.values():
-        members.sort(key=lambda x: x[0], reverse=True)  # mvir descending
+        members.sort(key=lambda x: x[0], reverse=True)
         idxs = [idx for _, idx in members]
         for j in range(len(idxs) - 1):
             nhifof[idxs[j]] = idxs[j + 1]
-        # idxs[-1] stays at -1 (already initialised)
 
     return {
         "Descendant": desc,
@@ -370,6 +315,236 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
         "FirstHaloInFOFGroup": fhifof,
         "NextHaloInFOFGroup": nhifof,
     }
+
+
+# ---------------------------------------------------------------------------
+# Forest-level support (forests.list + locations.dat)
+# ---------------------------------------------------------------------------
+
+
+def _parse_forests_list(
+    path: Path,
+) -> tuple[dict[int, int], dict[int, list[int]]]:
+    """Parse forests.list → (tree_to_forest, forest_to_trees).
+
+    forests.list format:
+        #TreeRootID ForestID
+        28456576    28437782
+    """
+    tree_to_forest: dict[int, int] = {}
+    forest_to_trees: dict[int, list[int]] = {}
+    with open(path) as f:
+        for line in f:
+            if line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            tid, fid = int(parts[0]), int(parts[1])
+            tree_to_forest[tid] = fid
+            if fid not in forest_to_trees:
+                forest_to_trees[fid] = []
+            forest_to_trees[fid].append(tid)
+    return tree_to_forest, forest_to_trees
+
+
+def _parse_locations(path: Path, input_dir: Path) -> tuple[dict[int, tuple[Path, int]], list[int]]:
+    """Parse locations.dat → (tree_offsets, ordered_tree_ids).
+
+    locations.dat format:
+        #TreeRootID FileID Offset Filename
+        28456576    0      3663   tree_0_0_0.dat
+
+    Returns
+    -------
+    tree_offsets     : tree_root_id → (filepath, byte_offset)
+    ordered_tree_ids : tree root IDs sorted by ascending byte offset
+                       (= file-appearance order)
+    """
+    records: list[tuple[int, Path, int]] = []  # (offset, filepath, tree_id)
+    with open(path) as f:
+        for line in f:
+            if line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) < 4:
+                continue
+            tid = int(parts[0])
+            offset = int(parts[2])
+            filename = parts[3]
+            filepath = input_dir / filename
+            records.append((offset, filepath, tid))
+    records.sort()  # ascending byte offset = file-appearance order
+    tree_offsets = {tid: (fp, off) for off, fp, tid in records}
+    ordered_tree_ids = [tid for _, _, tid in records]
+    return tree_offsets, ordered_tree_ids
+
+
+def _read_tree_at_offset(filepath: Path, offset: int) -> np.ndarray:
+    """Read one #tree block from filepath starting at byte offset.
+
+    The offset may point to the '#tree <root_id>' line itself or to the
+    first data line after it; both cases are handled.
+    """
+    rows: list[list[float]] = []
+    with open(filepath, "rb") as f:
+        f.seek(offset)
+        first_line = True
+        for raw in f:
+            line = raw.decode("utf-8", errors="replace").strip()
+            if not line:
+                continue
+            if line.startswith("#tree"):
+                if first_line:
+                    first_line = False
+                    continue  # skip our own #tree marker
+                break  # hit the next tree block — stop
+            if line.startswith("#"):
+                continue
+            first_line = False
+            try:
+                rows.append([float(v) for v in line.split()])
+            except ValueError:
+                pass
+    if not rows:
+        return np.empty((0, _NCOLS_MIN), dtype=np.float64)
+    return np.array(rows, dtype=np.float64)
+
+
+# ---------------------------------------------------------------------------
+# Shared field builder
+# ---------------------------------------------------------------------------
+
+
+def _build_fields(halos: np.ndarray, particle_mass_msun_per_h: float) -> dict:
+    """Reconstruct pointers and build the complete SAGE field dict."""
+    n = len(halos)
+    ptrs = _reconstruct_pointers(halos)
+    mvir = halos[:, _C_MVIR]
+    jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        inv_mvir = np.where(mvir > 0, 1.0 / mvir, 0.0)
+    spin = np.column_stack([jx * inv_mvir, jy * inv_mvir, jz * inv_mvir])
+    return {
+        **ptrs,
+        "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(np.int32),
+        "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
+        "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
+        "FileNr": np.full(n, -1, dtype=np.int32),
+        "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(np.float32),
+        "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
+        "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
+        "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
+        "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
+        "SubhaloPos": (
+            np.column_stack([halos[:, _C_X], halos[:, _C_Y], halos[:, _C_Z]]) * 1000.0
+        ).astype(np.float32),
+        "SubhaloVel": np.column_stack([halos[:, _C_VX], halos[:, _C_VY], halos[:, _C_VZ]]).astype(
+            np.float32
+        ),
+        "SubhaloSpin": (spin * 1000.0).astype(np.float32),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Output-unit iterators (forest mode / tree mode)
+# ---------------------------------------------------------------------------
+
+
+def _forest_mode_units(
+    tree_files: list[Path],
+    forests_list_path: Path,
+    locations_path: Path,
+    n_limit: int | None,
+) -> Generator[np.ndarray, None, None]:
+    """Yield one halo array per SAGE output tree using forest-level processing.
+
+    Complete forests (all expected tree blocks present) are combined into a
+    single array so that cross-tree upid references resolve in
+    _reconstruct_pointers.  Incomplete forests fall back to per-tree arrays.
+    """
+    input_dir = tree_files[0].parent
+    tree_to_forest, forest_to_trees = _parse_forests_list(forests_list_path)
+    tree_offsets, ordered_tree_ids = _parse_locations(locations_path, input_dir)
+
+    # Build ordered forest list in file-appearance order of each forest's first tree
+    seen_forests: set[int] = set()
+    forest_queue: list[tuple[int, list[int], int]] = []
+    for tid in ordered_tree_ids:
+        fid = tree_to_forest.get(tid, tid)
+        if fid in seen_forests:
+            continue
+        seen_forests.add(fid)
+        expected_trees = forest_to_trees.get(fid, [fid])
+        available_trees = [t for t in expected_trees if t in tree_offsets]
+        if available_trees:
+            forest_queue.append((fid, available_trees, len(expected_trees)))
+
+    n_done = 0
+    for fid, available_trees, expected_count in tqdm(
+        forest_queue, desc="Converting forests", unit="forest"
+    ):
+        if n_limit is not None and n_done >= n_limit:
+            break
+
+        is_complete = len(available_trees) == expected_count
+
+        if is_complete and expected_count > 1:
+            # Complete multi-tree forest: load all trees and combine so that
+            # cross-tree upid references resolve in _reconstruct_pointers.
+            arrays: list[np.ndarray] = []
+            for tid in available_trees:
+                fp, off = tree_offsets[tid]
+                arr = _read_tree_at_offset(fp, off)
+                if len(arr) > 0 and arr.shape[1] >= _NCOLS_MIN:
+                    arrays.append(arr)
+            if arrays:
+                yield np.concatenate(arrays, axis=0)
+                n_done += 1
+        else:
+            # Single-tree forest or incomplete forest: process trees individually.
+            for tid in available_trees:
+                if n_limit is not None and n_done >= n_limit:
+                    break
+                fp, off = tree_offsets[tid]
+                arr = _read_tree_at_offset(fp, off)
+                if len(arr) > 0 and arr.shape[1] >= _NCOLS_MIN:
+                    yield arr
+                    n_done += 1
+
+
+def _tree_mode_units(
+    tree_files: list[Path],
+    n_limit: int | None,
+) -> Generator[np.ndarray, None, None]:
+    """Yield one halo array per #tree block (original tree-level behaviour)."""
+    n_done = 0
+    for tf in tree_files:
+        remaining = None if n_limit is None else (n_limit - n_done)
+        if remaining is not None and remaining <= 0:
+            break
+        for halos in tqdm(_generate_trees(tf, remaining), desc="Converting trees", unit="tree"):
+            if len(halos) > 0 and halos.shape[1] >= _NCOLS_MIN:
+                yield halos
+                n_done += 1
+
+
+def _get_output_units(
+    tree_files: list[Path],
+    n_limit: int | None,
+    forests_list_path: Path | None,
+    locations_path: Path | None,
+) -> Generator[np.ndarray, None, None]:
+    """Route to forest-mode or tree-mode iterator based on ancillary files."""
+    if (
+        forests_list_path is not None
+        and forests_list_path.exists()
+        and locations_path is not None
+        and locations_path.exists()
+    ):
+        yield from _forest_mode_units(tree_files, forests_list_path, locations_path, n_limit)
+    else:
+        yield from _tree_mode_units(tree_files, n_limit)
 
 
 # ---------------------------------------------------------------------------
@@ -383,82 +558,55 @@ def read_trees(
 ) -> dict[int, dict]:
     """Read Consistent Trees ASCII files into the SAGE LHaloTree schema.
 
-    Reuses _discover_tree_files, _read_header_text, _parse_cosmology,
-    _generate_trees, and _reconstruct_pointers without writing any output.
-    Used by semantic validation to load the original input data as the
-    reference (input) column.
+    Uses the same forest-level / tree-level routing as convert() so that
+    the semantic-validation reference matches the converted output exactly.
 
     Returns
     -------
     dict[int, dict[str, np.ndarray]]
-        tree_idx (0-based, matching convert() write order) → field dict.
+        unit_idx (0-based) → field dict.
         SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s), masses in 1e10 Msun/h.
     """
     tree_files = _discover_tree_files(input_path)
+    input_dir = tree_files[0].parent
     header_text = _read_header_text(tree_files[0])
     omega_m, box_size = _parse_cosmology(header_text)
-    particle_mass_msun_per_h = _compute_particle_mass(
-        omega_m, box_size, _N_SIDE_DEFAULT
-    )
+    particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
+
+    forests_list_path: Path | None = input_dir / "forests.list"
+    locations_path: Path | None = input_dir / "locations.dat"
 
     result: dict[int, dict] = {}
-    global_tree_idx = 0
-    remaining = n_trees
+    for unit_idx, halos in enumerate(
+        _get_output_units(tree_files, n_trees, forests_list_path, locations_path)
+    ):
+        n = len(halos)
+        ptrs = _reconstruct_pointers(halos)
+        mvir = halos[:, _C_MVIR]
+        jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
+        with np.errstate(invalid="ignore", divide="ignore"):
+            inv_mvir = np.where(mvir > 0, 1.0 / mvir, 0.0)
+        spin = np.column_stack([jx * inv_mvir, jy * inv_mvir, jz * inv_mvir])
 
-    for tf in tree_files:
-        limit = remaining
-        for halos in tqdm(
-            _generate_trees(tf, limit), desc="Reading trees", unit="tree"
-        ):
-            n = len(halos)
-            if n == 0 or halos.shape[1] < _NCOLS_MIN:
-                continue
-
-            ptrs = _reconstruct_pointers(halos)
-            mvir = halos[:, _C_MVIR]
-            jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
-            with np.errstate(invalid="ignore", divide="ignore"):
-                inv_mvir = np.where(mvir > 0, 1.0 / mvir, 0.0)
-            spin = np.column_stack([jx * inv_mvir, jy * inv_mvir, jz * inv_mvir])
-
-            result[global_tree_idx] = {
-                **ptrs,
-                "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(
-                    np.int32
-                ),
-                "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
-                "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
-                "FileNr": np.full(n, -1, dtype=np.int32),
-                "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(np.float32),
-                "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
-                "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
-                "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
-                "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
-                "SubhaloPos": (
-                    np.column_stack(
-                        [
-                            halos[:, _C_X],
-                            halos[:, _C_Y],
-                            halos[:, _C_Z],
-                        ]
-                    )
-                    * 1000.0
-                ).astype(np.float32),
-                "SubhaloVel": np.column_stack(
-                    [
-                        halos[:, _C_VX],
-                        halos[:, _C_VY],
-                        halos[:, _C_VZ],
-                    ]
-                ).astype(np.float32),
-                "SubhaloSpin": (spin * 1000.0).astype(np.float32),
-            }
-            global_tree_idx += 1
-
-        if remaining is not None:
-            remaining -= global_tree_idx
-            if remaining <= 0:
-                break
+        result[unit_idx] = {
+            **ptrs,
+            "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(np.int32),
+            "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
+            "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
+            "FileNr": np.full(n, -1, dtype=np.int32),
+            "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(np.float32),
+            "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
+            "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
+            "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
+            "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
+            "SubhaloPos": (
+                np.column_stack([halos[:, _C_X], halos[:, _C_Y], halos[:, _C_Z]]) * 1000.0
+            ).astype(np.float32),
+            "SubhaloVel": np.column_stack(
+                [halos[:, _C_VX], halos[:, _C_VY], halos[:, _C_VZ]]
+            ).astype(np.float32),
+            "SubhaloSpin": (spin * 1000.0).astype(np.float32),
+        }
 
     return result
 
@@ -484,37 +632,41 @@ def convert(
     output_path : str
         Path for the output file.
     n_trees : int or None
-        If given, convert only the first n_trees trees (Stage 2 test mode).
+        If given, convert only the first n_trees output units (forests in
+        forest mode, individual trees in tree mode).  Used for Stage 2 tests.
     particle_mass : float or None
-        Dark matter particle mass in Msun/h. When supplied, overrides the value
-        computed from the file header cosmology and _N_SIDE_DEFAULT. Use this
-        when the simulation N_particles differs from the driver default (2048³).
+        Dark matter particle mass in Msun/h.  Overrides the value computed
+        from the file header cosmology and _N_SIDE_DEFAULT.
     output_format : str
-        'lhalo_hdf5' (default) writes HDF5 via utils.hdf5_writer.
-        'lhalo_binary' writes SAGE binary (TreeType=0) via utils.binary_writer.
-        Binary output accumulates all field dicts in memory before writing,
-        because the binary header must physically precede all halo data.
+        'lhalo_hdf5' (default) or 'lhalo_binary'.
     """
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
     try:
-        # ------------------------------------------------------------------
-        # 1. Discover input files and read cosmology from the first file header
-        # ------------------------------------------------------------------
         tree_files = _discover_tree_files(input_path)
         print(f"Found {len(tree_files)} tree file(s): {[f.name for f in tree_files]}")
 
-        header_text = _read_header_text(tree_files[0])
-        omega_m, box_size = _parse_cosmology(header_text)
-        if particle_mass is not None:
-            particle_mass_msun_per_h = particle_mass
+        input_dir = tree_files[0].parent
+        forests_list_path = input_dir / "forests.list"
+        locations_path = input_dir / "locations.dat"
+        use_forest_mode = forests_list_path.exists() and locations_path.exists()
+
+        if use_forest_mode:
             print(
-                f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h (user-supplied override)"
+                "Found forests.list and locations.dat — using forest-level mode "
+                "(cross-tree FOF groups resolved within each complete forest)."
             )
         else:
-            particle_mass_msun_per_h = _compute_particle_mass(
-                omega_m, box_size, _N_SIDE_DEFAULT
-            )
+            print("No forests.list / locations.dat found — using tree-level mode.")
+
+        header_text = _read_header_text(tree_files[0])
+        omega_m, box_size = _parse_cosmology(header_text)
+
+        if particle_mass is not None:
+            particle_mass_msun_per_h = particle_mass
+            print(f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h (user-supplied override)")
+        else:
+            particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
             print(
                 f"Particle mass computed from header (n_side={_N_SIDE_DEFAULT}): "
                 f"{particle_mass_msun_per_h:.3e} Msun/h — "
@@ -527,109 +679,34 @@ def convert(
             f"({particle_mass_1e10:.4f} × 10^10 Msun/h)"
         )
 
-        # ------------------------------------------------------------------
-        # 2. Conversion: parse trees and write output.
-        #    lhalo_hdf5:   streaming — write each tree immediately, header last.
-        #                  Peak memory = O(max single tree size).
-        #    lhalo_binary: accumulate all field dicts, then write header + trees.
-        #                  The binary header must physically precede halo data,
-        #                  so counts must be known before any halo data is written.
-        #                  Peak memory = O(total halos) ≈ output file size.
-        # ------------------------------------------------------------------
+        fl_path = forests_list_path if use_forest_mode else None
+        lo_path = locations_path if use_forest_mode else None
+
         tree_n_halos: list[int] = []
-        global_tree_idx = 0
-        remaining = n_trees
+        global_idx = 0
 
         if output_format == "lhalo_binary":
             all_fields: list[dict] = []
 
-            for tf in tree_files:
-                limit = remaining
-                for halos in tqdm(
-                    _generate_trees(tf, limit),
-                    desc="Reading trees (binary mode)",
-                    unit="tree",
-                ):
-                    n = len(halos)
-                    if n == 0:
-                        print(
-                            f"ERROR: tree {global_tree_idx} has zero halos.",
-                            file=sys.stderr,
-                        )
-                        sys.exit(1)
-
-                    if halos.shape[1] < _NCOLS_MIN:
-                        print(
-                            f"ERROR: tree {global_tree_idx}: expected at least {_NCOLS_MIN} columns, "
-                            f"got {halos.shape[1]}.",
-                            file=sys.stderr,
-                        )
-                        sys.exit(1)
-
-                    ptrs = _reconstruct_pointers(halos)
-                    mvir = halos[:, _C_MVIR]
-                    jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
-                    with np.errstate(invalid="ignore", divide="ignore"):
-                        inv_mvir = np.where(mvir > 0, 1.0 / mvir, 0.0)
-                    spin = np.column_stack(
-                        [jx * inv_mvir, jy * inv_mvir, jz * inv_mvir]
+            for halos in _get_output_units(tree_files, n_trees, fl_path, lo_path):
+                n = len(halos)
+                if n == 0:
+                    print(
+                        f"ERROR: output unit {global_idx} has zero halos.",
+                        file=sys.stderr,
                     )
+                    sys.exit(1)
+                all_fields.append(_build_fields(halos, particle_mass_msun_per_h))
+                tree_n_halos.append(n)
+                global_idx += 1
 
-                    fields = {
-                        **ptrs,
-                        "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(
-                            np.int32
-                        ),
-                        "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
-                        "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
-                        "FileNr": np.full(n, -1, dtype=np.int32),
-                        "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(
-                            np.float32
-                        ),
-                        "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(
-                            np.float32
-                        ),
-                        "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
-                        "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
-                        "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(
-                            np.float32
-                        ),
-                        "SubhaloPos": (
-                            np.column_stack(
-                                [
-                                    halos[:, _C_X],
-                                    halos[:, _C_Y],
-                                    halos[:, _C_Z],
-                                ]
-                            )
-                            * 1000.0
-                        ).astype(np.float32),
-                        "SubhaloVel": np.column_stack(
-                            [
-                                halos[:, _C_VX],
-                                halos[:, _C_VY],
-                                halos[:, _C_VZ],
-                            ]
-                        ).astype(np.float32),
-                        "SubhaloSpin": (spin * 1000.0).astype(np.float32),
-                    }
-
-                    all_fields.append(fields)
-                    tree_n_halos.append(n)
-                    global_tree_idx += 1
-
-                if remaining is not None:
-                    remaining -= global_tree_idx
-                    if remaining <= 0:
-                        break
-
-            n_trees_total = global_tree_idx
+            n_trees_total = global_idx
             if n_trees_total == 0:
                 print("ERROR: no trees found in input.", file=sys.stderr)
                 sys.exit(1)
 
             total_halos = sum(tree_n_halos)
-            print(f"\nConverted {n_trees_total} trees, {total_halos} halos total.")
+            print(f"\nConverted {n_trees_total} SAGE trees, {total_halos} halos total.")
 
             with open(output_path, "wb") as f:
                 binary_writer.write_header(
@@ -647,95 +724,27 @@ def convert(
 
         elif output_format == "lhalo_hdf5":
             with h5py.File(output_path, "w") as f:
-                for tf in tree_files:
-                    limit = remaining
-                    for halos in tqdm(
-                        _generate_trees(tf, limit),
-                        desc="Converting trees",
-                        unit="tree",
-                    ):
-                        n = len(halos)
-                        if n == 0:
-                            print(
-                                f"ERROR: tree {global_tree_idx} has zero halos.",
-                                file=sys.stderr,
-                            )
-                            sys.exit(1)
-
-                        if halos.shape[1] < _NCOLS_MIN:
-                            print(
-                                f"ERROR: tree {global_tree_idx}: expected at least {_NCOLS_MIN} columns, "
-                                f"got {halos.shape[1]}.",
-                                file=sys.stderr,
-                            )
-                            sys.exit(1)
-
-                        ptrs = _reconstruct_pointers(halos)
-                        mvir = halos[:, _C_MVIR]
-                        jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
-                        with np.errstate(invalid="ignore", divide="ignore"):
-                            inv_mvir = np.where(mvir > 0, 1.0 / mvir, 0.0)
-                        spin = np.column_stack(
-                            [jx * inv_mvir, jy * inv_mvir, jz * inv_mvir]
+                for halos in _get_output_units(tree_files, n_trees, fl_path, lo_path):
+                    n = len(halos)
+                    if n == 0:
+                        print(
+                            f"ERROR: output unit {global_idx} has zero halos.",
+                            file=sys.stderr,
                         )
+                        sys.exit(1)
+                    fields = _build_fields(halos, particle_mass_msun_per_h)
+                    hdf5_writer.write_tree(f, global_idx, fields)
+                    tree_n_halos.append(n)
+                    global_idx += 1
 
-                        fields = {
-                            **ptrs,
-                            "SubhaloLen": np.round(
-                                mvir / particle_mass_msun_per_h
-                            ).astype(np.int32),
-                            "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
-                            "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
-                            "FileNr": np.full(n, -1, dtype=np.int32),
-                            "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(
-                                np.float32
-                            ),
-                            "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(
-                                np.float32
-                            ),
-                            "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
-                            "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
-                            "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(
-                                np.float32
-                            ),
-                            "SubhaloPos": (
-                                np.column_stack(
-                                    [
-                                        halos[:, _C_X],
-                                        halos[:, _C_Y],
-                                        halos[:, _C_Z],
-                                    ]
-                                )
-                                * 1000.0
-                            ).astype(np.float32),
-                            "SubhaloVel": np.column_stack(
-                                [
-                                    halos[:, _C_VX],
-                                    halos[:, _C_VY],
-                                    halos[:, _C_VZ],
-                                ]
-                            ).astype(np.float32),
-                            "SubhaloSpin": (spin * 1000.0).astype(np.float32),
-                        }
-
-                        hdf5_writer.write_tree(f, global_tree_idx, fields)
-                        tree_n_halos.append(n)
-                        global_tree_idx += 1
-
-                    if remaining is not None:
-                        remaining -= global_tree_idx
-                        if remaining <= 0:
-                            break
-
-                n_trees_total = global_tree_idx
+                n_trees_total = global_idx
                 if n_trees_total == 0:
                     print("ERROR: no trees found in input.", file=sys.stderr)
                     sys.exit(1)
 
                 total_halos = sum(tree_n_halos)
-                print(f"\nConverted {n_trees_total} trees, {total_halos} halos total.")
+                print(f"\nConverted {n_trees_total} SAGE trees, {total_halos} halos total.")
 
-                # Write header after all trees so counts are exact
                 hdf5_writer.write_header(
                     f,
                     particle_mass=particle_mass_1e10,

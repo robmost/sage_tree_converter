@@ -75,10 +75,17 @@ call `plt.savefig()` or `plt.close()` directly anywhere in the plotting code.
 3. At that snapshot, collect all halos with `Group_M_Crit200 > 0`. **Exclude** halos
    with `Group_M_Crit200 <= 0` before any sampling.
 4. For the 3×3 evolution plots, select three mass bins from the surviving halos:
-   - **Top-5**: 5 trees whose root halo has the highest `Group_M_Crit200` at the
-     lowest-redshift snapshot.
-   - **Median-5**: 5 trees whose root halo is nearest the median `Group_M_Crit200`.
-   - **Bottom-5**: 5 trees whose root halo has the lowest `Group_M_Crit200` (still > 0).
+   - **Top-5**: 5 trees ranked by the **maximum** `Group_M_Crit200` across all their
+     root halos at the lowest-redshift snapshot.
+   - **Median-5**: 5 trees nearest the median of that per-tree maximum mass.
+   - **Bottom-5**: 5 trees with the lowest per-tree maximum mass (still > 0).
+
+   A tree may have **multiple root halos** (e.g. CTrees forest mode combines many
+   `#tree` blocks into one SAGE tree, each contributing its own `Descendant == -1`
+   halo at the final snapshot). When walking the progenitor branch for the evolution
+   plots, always use the **most massive root** — `roots[argmax(Group_M_Crit200[roots])]`
+   — not `roots[0]`. Using the first root selects an arbitrary satellite sub-tree
+   and produces flat-zero merger rates even for cluster-mass forests.
 5. **Use the exact same tree indices** for both the input and output columns. Never
    sample input and output independently.
 
@@ -164,3 +171,7 @@ The following errors have occurred in past sessions and are explicitly forbidden
     source data and pass the driver format ID as `input_format` (e.g.
     `input_format="ahf_mergetree_ascii"`). Using converted data in both columns
     defeats the purpose of semantic validation.
+11. **Do not** use `roots[0]` to select the root halo for evolution plot traversal.
+    Always use the most massive root: `roots[np.argmax(tree["Group_M_Crit200"][roots])]`.
+    Using the first root produces flat-zero merger rates for any format that combines
+    multiple sub-trees into one SAGE tree (e.g. CTrees forest mode).

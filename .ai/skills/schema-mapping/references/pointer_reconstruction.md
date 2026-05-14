@@ -43,29 +43,84 @@ for desc_idx, prog_list in progenitors.items():
 
 ---
 
-## Case B: Scale-Factor-Indexed Links (Consistent Trees)
+## Case B: Depth-First Index Links (Consistent Trees)
 
-Consistent Trees stores links as `(scale_factor, halo_id)` pairs, where the
-scale factor identifies the snapshot and the halo ID identifies the halo within
-that snapshot.
+Consistent Trees pre-computes depth-first index (DFI) fields that make temporal
+pointer reconstruction O(N) without building explicit link maps. Halos within each
+`#tree` block are stored in depth-first order. FOF group membership is encoded via
+`upid` (col 6), the global halo ID of the ultimate host central at the same snapshot.
 
-### Hint Case B: Algorithm (O(N log N))
+Key columns: `id` (1), `desc_id` (3), `upid` (6), `Depth_first_ID` (28),
+`Next_coprogenitor_depthfirst_ID` (32).
+
+### Hint Case B: Algorithm (O(N))
 
 ```python
-# Build (scale, id) → flat_index map
+# Build lookup maps (O(N))
+id_to_idx  = {int(ids[i]):  i for i in range(N)}  # global halo ID → flat index
+dfi_to_idx = {int(dfis[i]): i for i in range(N)}  # DFI → flat index
+
+# Descendant — desc_id is the global ID of the descendant halo
+for i in range(N):
+    desc[i] = id_to_idx.get(int(desc_ids[i]), -1)  # -1 when desc_id == -1
+
+# FirstProgenitor — depth-first ordering: halos[i+1] is the first progenitor
+# of halos[i] iff halos[i+1].desc_id == halos[i].id. No map needed.
+for i in range(N - 1):
+    if int(desc_ids[i + 1]) == int(ids[i]):
+        FirstProgenitor[i] = i + 1
+
+# NextProgenitor — Next_coprogenitor_depthfirst_ID (col 32) is the globally-
+# sequential DFI of the next sibling progenitor. DFIs are unique across the
+# whole file; all co-progenitors of a halo are within the same #tree block.
+for i in range(N):
+    nc_dfi = int(next_coprog_dfis[i])
+    NextProgenitor[i] = dfi_to_idx.get(nc_dfi, -1)  # -1 when nc_dfi == -1
+
+# FirstHaloInFOFGroup — upid is the global ID of the ultimate host central.
+# Self-pointer when upid == -1 (halo is its own central).
+# Unresolved upid (cross-forest or cross-file reference) also falls back to self.
+for i in range(N):
+    uid = int(upids[i])
+    FirstHaloInFOFGroup[i] = i if uid == -1 else id_to_idx.get(uid, i)
+
+# NextHaloInFOFGroup — group by (snap, central_idx); sort by mvir desc; link
 from collections import defaultdict
-snap_id_to_idx = {}
+groups = defaultdict(list)
 for i in range(N):
-    snap_id_to_idx[(snap[i], halo_id[i])] = i
-
-# Descendant
-for i in range(N):
-    key = (desc_scale[i], desc_id[i])
-    Descendant[i] = snap_id_to_idx.get(key, -1)
-
-# FirstProgenitor / NextProgenitor: same grouping as Case A, applied after
-# Descendant is reconstructed.
+    groups[(int(snaps[i]), int(FirstHaloInFOFGroup[i]))].append(i)
+for members in groups.values():
+    members.sort(key=lambda i: mvirs[i], reverse=True)
+    for j in range(len(members) - 1):
+        NextHaloInFOFGroup[members[j]] = members[j + 1]
 ```
+
+### Forest-level processing — required for correct FOF group links
+
+`upid` frequently references halos in **other** `#tree` blocks within the same
+Consistent Trees forest. Processing each block independently causes those lookups
+to fail, silently treating every affected satellite as its own central — this
+produces a systematic deficit of massive galaxies after SAGE (~4× in practice).
+
+**Fix:** when `forests.list` and `locations.dat` are present, combine all `#tree`
+blocks of a complete forest into one array before calling reconstruction.
+`id_to_idx` then covers the full forest, resolving all cross-tree `upid` references.
+
+```python
+# forests.list: TreeRootID → ForestID
+# locations.dat: TreeRootID → (filepath, byte_offset)  ← O(1) random access
+
+combined = np.vstack([
+    read_tree_at_offset(path, offset)
+    for tree_id in forest_to_trees[forest_id]
+    for path, offset in [tree_to_offset[tree_id]]
+])
+pointers = reconstruct_pointers(combined)  # cross-tree upid now resolved
+```
+
+A forest is *complete* when every tree listed in `forests.list` for it has an entry
+in `locations.dat`. Incomplete forests (e.g. a single-shard Bolshoi file where most
+forests span multiple files) fall back to per-tree processing automatically.
 
 ---
 
