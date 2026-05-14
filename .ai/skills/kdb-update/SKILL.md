@@ -157,6 +157,7 @@ skill) and must be archived alongside the other Stage 2 products:
 ```bash
 mv assets/*_snaplist.txt           "$AUDIT_DIR/" 2>/dev/null || true
 mv assets/*_snaplist.dat           "$AUDIT_DIR/" 2>/dev/null || true
+mv assets/*sim_config*.json        "$AUDIT_DIR/" 2>/dev/null || true
 ```
 
 If the functional-validation skill placed the snaplist under a different name or extension,
