@@ -63,6 +63,16 @@ If a full match is found:
 
 Do not proceed to Stage 2 until the user confirms.
 
+After the user confirms (G1 passed), copy the matched KDB entry to
+`assets/proposed_mapping_<format_id>.json`:
+
+```bash
+cp format-database/<format_id>.json assets/proposed_mapping_<format_id>.json
+```
+
+This satisfies the Stage 2 entry condition (AGENTS.md §4) and ensures the confirmed
+mapping is available for Stage 4 archiving.
+
 ### 4. On no match: report and hand off to web-discovery
 
 If no full match is found after scanning all entries in `format-database/`:

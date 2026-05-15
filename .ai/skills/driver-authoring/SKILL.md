@@ -63,6 +63,7 @@ The `read_trees()` signature is:
 def read_trees(
     input_path: str,
     n_trees: int | None = None,
+    sim_params: dict | None = None,
 ) -> dict[int, dict]:
     """Read input trees into the SAGE LHaloTree schema without writing output.
 
@@ -70,6 +71,12 @@ def read_trees(
     conversions and pointer reconstruction, but accumulates results in memory
     instead of writing to disk. Called by semantic validation so the original
     source data can be used as the reference (input) column.
+
+    Parameters
+    ----------
+    sim_params : dict or None
+        Same simulation parameter overrides as convert(). Pass through to any
+        private helper that reads particle_mass or box_size from sim_params.
 
     Returns
     -------
@@ -173,10 +180,9 @@ with h5py.File(output_path, "w") as out_f:
 
 ### 7. Reference the template driver
 
-When Phase 3 is complete, `conversion-engine/drivers/_template.py` will be
-available as a skeleton. Read it before writing a new driver to reuse its HDF5
-writing utilities. If it is not yet present, follow the output structure in step 2
-directly.
+Read `conversion-engine/drivers/_template.py` as a skeleton before writing the
+new driver. It documents the required function signatures, import patterns, and
+HDF5/binary writing utilities in a self-contained example.
 
 ### 8. Verify Python dependencies before first run
 
@@ -196,3 +202,32 @@ pip install h5py numpy tqdm
 Outside the container (development only), use `pip install --user` or a virtual
 environment. **Do not modify `requirements.txt`** — that file governs the container
 image and is not part of a conversion session.
+
+### 9. Run the Stage 2 test conversion
+
+The driver lives in `assets/drivers/` and is not yet registered in
+`conversion-engine/main_driver.py` (registration happens in Stage 4 via `kdb-extend`).
+Do **not** attempt to invoke it through `main_driver.py`. Instead, invoke it directly
+by prepending `conversion-engine/` to `sys.path` (so `from utils import ...` resolves)
+and calling `convert()` as a library function:
+
+```bash
+$PYTHON_BIN - <<'EOF'
+import sys
+sys.path.insert(0, "conversion-engine")
+sys.path.insert(0, "assets")
+from drivers.<format_id> import convert
+convert(
+    "input/<base>/",
+    "assets/test_<base>_STC.0.hdf5",
+    n_trees=100,
+    sim_params=None,
+    output_format="lhalo_hdf5",
+)
+EOF
+```
+
+Replace `<format_id>` and `<base>` with the actual values. For `lhalo_binary` output,
+change the output path to `"assets/test_<base>_STC.0"` and `output_format` to
+`"lhalo_binary"`. Pass a `sim_params` dict if a `--sim-config` JSON was supplied by
+the user; otherwise `None` is correct.

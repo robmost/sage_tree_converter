@@ -17,7 +17,7 @@ Both `convert()` and `read_trees()` are public functions every driver module mus
 
 ```python
 from drivers.<format_id> import convert
-convert(input_path, output_path, n_trees=n_trees, sim_params=sim_params)
+convert(input_path, output_path, n_trees=n_trees, sim_params=sim_params, output_format=output_format)
 ```
 
 Do not rename it, add required positional arguments, or add return values.
@@ -119,7 +119,7 @@ with h5py.File(output_path, "w") as f:
 ## binary_writer pattern (lhalo_binary)
 
 ```python
-from conversion_engine.utils import binary_writer  # or adjust import path
+from utils import binary_writer
 
 bw = binary_writer.BinaryWriter(output_path)
 bw.write_header(n_trees=n_trees, tree_nhalos=tree_n_halos_array)
@@ -163,7 +163,13 @@ import h5py
 from tqdm import tqdm
 
 
-def convert(input_path: str, output_path: str, n_trees: int | None = None) -> None:
+def convert(
+    input_path: str,
+    output_path: str,
+    n_trees: int | None = None,
+    sim_params: dict | None = None,
+    output_format: str = "lhalo_hdf5",
+) -> None:
     # 1. Read input
     # 2. Apply field mapping and unit conversions
     # 3. Reconstruct pointers
@@ -171,7 +177,11 @@ def convert(input_path: str, output_path: str, n_trees: int | None = None) -> No
     ...
 
 
-def read_trees(input_path: str, n_trees: int | None = None) -> dict[int, dict]:
+def read_trees(
+    input_path: str,
+    n_trees: int | None = None,
+    sim_params: dict | None = None,
+) -> dict[int, dict]:
     # Same parsing logic as convert() but accumulates into a dict instead of writing.
     # Returns {tree_idx: {field_name: np.ndarray}} with SAGE LHaloTree HDF5 units.
     ...

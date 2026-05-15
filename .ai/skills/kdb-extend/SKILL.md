@@ -43,18 +43,16 @@ Do not modify the driver after copying. The version in `assets/drivers/` is the 
 
 ### Step 2 — Register the driver in the format registry
 
-Open `conversion-engine/main_driver.py` and locate the format registry (a dict mapping `format_id` strings to driver module imports). Add the new entry:
+Open `conversion-engine/main_driver.py` and locate `FORMAT_REGISTRY` (a `dict[str, str]` mapping `format_id` strings to driver module **names**). Add the new entry:
 
 ```python
-from conversion_engine.drivers import <format_id>
-
-FORMAT_REGISTRY = {
+FORMAT_REGISTRY: dict[str, str] = {
     # ... existing entries ...
-    "<format_id>": <format_id>.convert,
+    "<format_id>": "<format_id>",
 }
 ```
 
-Follow the exact naming convention already in the file. Do not alter any existing registry entries.
+The value is the module filename without the `.py` extension. `_import_driver()` resolves the module dynamically via `importlib.import_module(f"drivers.{module_name}")` — do not add a static import. Follow the exact naming convention already in the file. Do not alter any existing registry entries.
 
 ---
 
