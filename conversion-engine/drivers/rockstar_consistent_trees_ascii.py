@@ -42,12 +42,13 @@ Pointer reconstruction (all O(N) or O(N log N)):
 Forest-level processing (when forests.list + locations.dat are present):
   Consistent Trees assigns each #tree block a forest ID via forests.list.  Within a
   forest, halos in different tree blocks can share a FOF group at some snapshot, so
-  upid references cross tree-block boundaries.  The driver loads all tree blocks that
-  belong to the same *complete* forest together and calls _reconstruct_pointers on the
-  combined array, allowing all cross-tree upid references to resolve correctly.  A
-  forest is considered complete when every tree_root_id listed in forests.list for that
-  forest is present in locations.dat.  Incomplete forests (e.g. when only one file
-  shard of a multi-shard simulation is provided) fall back to per-tree processing.
+  upid references cross tree-block boundaries.  The driver loads all available tree
+  blocks for a forest together, concatenates them into one array, sorts the combined
+  array by DFI unconditionally (even for single-tree forests, where file order may
+  not be strict DFI order), and calls _reconstruct_pointers on the sorted array.
+  Forests are processed in forests.list appearance order so that Stage 2 test clips
+  are consistent with reference implementations.  Each .dat file is opened once and
+  its handle is reused across all reads.
 
 Field conversions:
   SubhaloLen   = round(mvir / particle_mass)   [estimated; see known_caveats]
@@ -60,7 +61,9 @@ import re
 import sys
 from collections import defaultdict
 from collections.abc import Generator
+from contextlib import ExitStack
 from pathlib import Path
+from typing import BinaryIO
 
 import h5py
 import numpy as np
@@ -316,15 +319,19 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
 
 def _parse_forests_list(
     path: Path,
-) -> tuple[dict[int, int], dict[int, list[int]]]:
-    """Parse forests.list → (tree_to_forest, forest_to_trees).
+) -> tuple[dict[int, int], dict[int, list[int]], list[int]]:
+    """Parse forests.list → (tree_to_forest, forest_to_trees, forest_order).
 
     forests.list format:
         #TreeRootID ForestID
         28456576    28437782
+
+    forest_order preserves forests.list first-appearance order so that
+    Stage 2 test clips are consistent with reference implementations.
     """
     tree_to_forest: dict[int, int] = {}
     forest_to_trees: dict[int, list[int]] = {}
+    forest_order: list[int] = []
     with open(path) as f:
         for line in f:
             if line.startswith("#"):
@@ -336,8 +343,9 @@ def _parse_forests_list(
             tree_to_forest[tid] = fid
             if fid not in forest_to_trees:
                 forest_to_trees[fid] = []
+                forest_order.append(fid)
             forest_to_trees[fid].append(tid)
-    return tree_to_forest, forest_to_trees
+    return tree_to_forest, forest_to_trees, forest_order
 
 
 def _parse_locations(path: Path, input_dir: Path) -> tuple[dict[int, tuple[Path, int]], list[int]]:
@@ -372,32 +380,32 @@ def _parse_locations(path: Path, input_dir: Path) -> tuple[dict[int, tuple[Path,
     return tree_offsets, ordered_tree_ids
 
 
-def _read_tree_at_offset(filepath: Path, offset: int) -> np.ndarray:
-    """Read one #tree block from filepath starting at byte offset.
+def _read_tree_block(fh: BinaryIO, offset: int) -> np.ndarray:
+    """Read one #tree block from an open binary file handle at byte offset.
 
     The offset may point to the '#tree <root_id>' line itself or to the
-    first data line after it; both cases are handled.
+    first data line after it; both cases are handled.  Stops at the first
+    blank line or any '#' line after the initial '#tree' marker.
     """
     rows: list[list[float]] = []
-    with open(filepath, "rb") as f:
-        f.seek(offset)
-        first_line = True
-        for raw in f:
-            line = raw.decode("utf-8", errors="replace").strip()
-            if not line:
-                continue
-            if line.startswith("#tree"):
-                if first_line:
-                    first_line = False
-                    continue  # skip our own #tree marker
-                break  # hit the next tree block — stop
-            if line.startswith("#"):
-                continue
-            first_line = False
-            try:
-                rows.append([float(v) for v in line.split()])
-            except ValueError:
-                pass
+    fh.seek(offset)
+    first_line = True
+    for raw in fh:
+        line = raw.decode("utf-8", errors="replace").strip()
+        if not line:
+            break  # blank line terminates the block
+        if line.startswith("#tree"):
+            if first_line:
+                first_line = False
+                continue  # skip our own #tree marker
+            break  # hit the next tree block — stop
+        if line.startswith("#"):
+            break  # any other comment after the header terminates the block
+        first_line = False
+        try:
+            rows.append([float(v) for v in line.split()])
+        except ValueError:
+            pass
     if not rows:
         return np.empty((0, _NCOLS_MIN), dtype=np.float64)
     return np.array(rows, dtype=np.float64)
@@ -451,63 +459,56 @@ def _forest_mode_units(
 ) -> Generator[np.ndarray]:
     """Yield one halo array per SAGE output tree using forest-level processing.
 
-    Complete forests (all expected tree blocks present) are combined into a
-    single array so that cross-tree upid references resolve in
-    _reconstruct_pointers.  Incomplete forests fall back to per-tree arrays.
+    All available tree blocks for a forest are concatenated and DFI-sorted
+    before pointer reconstruction — unconditionally, including single-tree
+    forests where file order may not be strict DFI order.  Forests are
+    visited in forests.list appearance order.  Each .dat file is opened once
+    and its handle is reused across all tree blocks it contains.
     """
     input_dir = tree_files[0].parent
-    tree_to_forest, forest_to_trees = _parse_forests_list(forests_list_path)
-    tree_offsets, ordered_tree_ids = _parse_locations(locations_path, input_dir)
+    tree_to_forest, forest_to_trees, forest_order = _parse_forests_list(forests_list_path)
+    tree_offsets, _ = _parse_locations(locations_path, input_dir)
 
-    # Build ordered forest list in file-appearance order of each forest's first tree
-    seen_forests: set[int] = set()
-    forest_queue: list[tuple[int, list[int], int]] = []
-    for tid in ordered_tree_ids:
-        fid = tree_to_forest.get(tid, tid)
-        if fid in seen_forests:
-            continue
-        seen_forests.add(fid)
+    # Build forest queue in forests.list appearance order.
+    forest_queue: list[tuple[int, list[int]]] = []
+    for fid in forest_order:
         expected_trees = forest_to_trees.get(fid, [fid])
         available_trees = [
             t for t in expected_trees
             if t in tree_offsets and tree_offsets[t][0].exists()
         ]
         if available_trees:
-            forest_queue.append((fid, available_trees, len(expected_trees)))
+            forest_queue.append((fid, available_trees))
+
+    # Collect all .dat files needed and open each once for the duration of the loop.
+    needed_files: set[Path] = {
+        tree_offsets[tid][0]
+        for _, available_trees in forest_queue
+        for tid in available_trees
+    }
 
     n_done = 0
-    for fid, available_trees, expected_count in tqdm(
-        forest_queue, desc="Converting forests", unit="forest"
-    ):
-        if n_limit is not None and n_done >= n_limit:
-            break
+    with ExitStack() as stack:
+        file_handles: dict[Path, BinaryIO] = {
+            fp: stack.enter_context(open(fp, "rb"))  # noqa: SIM115
+            for fp in needed_files
+        }
 
-        is_complete = len(available_trees) == expected_count
+        for _fid, available_trees in tqdm(forest_queue, desc="Converting forests", unit="forest"):
+            if n_limit is not None and n_done >= n_limit:
+                break
 
-        if is_complete and expected_count > 1:
-            # Complete multi-tree forest: load all trees and combine so that
-            # cross-tree upid references resolve in _reconstruct_pointers.
             arrays: list[np.ndarray] = []
             for tid in available_trees:
                 fp, off = tree_offsets[tid]
-                arr = _read_tree_at_offset(fp, off)
+                arr = _read_tree_block(file_handles[fp], off)
                 if len(arr) > 0 and arr.shape[1] >= _NCOLS_MIN:
                     arrays.append(arr)
+
             if arrays:
                 combined = np.concatenate(arrays, axis=0)
-                sort_idx = np.argsort(combined[:, _C_DFI])
-                yield combined[sort_idx]
+                yield combined[np.argsort(combined[:, _C_DFI])]
                 n_done += 1
-        else:
-            # Single-tree forest or incomplete forest: process trees individually.
-            for tid in available_trees:
-                if n_limit is not None and n_done >= n_limit:
-                    break
-                fp, off = tree_offsets[tid]
-                arr = _read_tree_at_offset(fp, off)
-                if len(arr) > 0 and arr.shape[1] >= _NCOLS_MIN:
-                    yield arr
-                    n_done += 1
 
 
 def _tree_mode_units(
