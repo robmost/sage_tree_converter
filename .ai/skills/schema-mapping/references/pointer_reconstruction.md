@@ -107,20 +107,25 @@ blocks of a complete forest into one array before calling reconstruction.
 `id_to_idx` then covers the full forest, resolving all cross-tree `upid` references.
 
 ```python
-# forests.list: TreeRootID → ForestID
+# forests.list: TreeRootID → ForestID (iterate in forests.list appearance order)
 # locations.dat: TreeRootID → (filepath, byte_offset)  ← O(1) random access
 
 combined = np.vstack([
-    read_tree_at_offset(path, offset)
+    read_tree_block(file_handle, offset)
     for tree_id in forest_to_trees[forest_id]
-    for path, offset in [tree_to_offset[tree_id]]
+    for file_handle, offset in [tree_to_handle_and_offset[tree_id]]
 ])
+# DFI sort is unconditional — applies even to single-tree forests, because
+# file order is not guaranteed to be strict DFI order and the FirstProgenitor
+# i+1 rule requires it.
+combined = combined[np.argsort(combined[:, _C_DFI])]
 pointers = reconstruct_pointers(combined)  # cross-tree upid now resolved
 ```
 
 A forest is *complete* when every tree listed in `forests.list` for it has an entry
-in `locations.dat`. Incomplete forests (e.g. a single-shard Bolshoi file where most
-forests span multiple files) fall back to per-tree processing automatically.
+in `locations.dat`. When a forest is incomplete (e.g. a single-shard Bolshoi file
+where most forests span multiple files), the driver concatenates and DFI-sorts
+whatever blocks are available — there is no per-tree fallback path.
 
 ---
 
