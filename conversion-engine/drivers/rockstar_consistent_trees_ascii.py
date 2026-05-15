@@ -602,6 +602,16 @@ def read_trees(
     forests_list_path: Path | None = input_dir / "forests.list"
     locations_path: Path | None = input_dir / "locations.dat"
 
+    if not (forests_list_path.exists() and locations_path.exists()):
+        print(
+            "WARNING: forests.list / locations.dat not found — falling back to per-tree mode. "
+            "Cross-tree upid references cannot be resolved: satellites whose host central "
+            "resides in a different #tree block will be treated as isolated centrals, "
+            "producing incorrect FOF group pointers and underproducing massive galaxies in SAGE. "
+            "Re-run Consistent Trees with the -F flag to generate these files.",
+            file=sys.stderr,
+        )
+
     result: dict[int, dict] = {}
     for unit_idx, halos in enumerate(
         _get_output_units(tree_files, n_trees, forests_list_path, locations_path)
@@ -685,7 +695,14 @@ def convert(
                 "(cross-tree FOF groups resolved within each complete forest)."
             )
         else:
-            print("No forests.list / locations.dat found — using tree-level mode.")
+            print(
+                "WARNING: forests.list / locations.dat not found — falling back to per-tree mode. "
+                "Cross-tree upid references cannot be resolved: satellites whose host central "
+                "resides in a different #tree block will be treated as isolated centrals, "
+                "producing incorrect FOF group pointers and underproducing massive galaxies "
+                "in SAGE. Re-run Consistent Trees with the -F flag to generate these files.",
+                file=sys.stderr,
+            )
 
         header_text = _read_header_text(tree_files[0])
         omega_m, box_size = _parse_cosmology(header_text)
