@@ -231,7 +231,6 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
 
     # O(N) dicts for fast lookups
     id_to_idx: dict[int, int] = {int(ids[i]): i for i in range(n)}
-    # DFIs are globally sequential across the file; unique within the combined array.
     dfi_to_idx: dict[int, int] = {int(dfis[i]): i for i in range(n)}
 
     # ---- Descendant --------------------------------------------------------
@@ -250,9 +249,6 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
             fp[i] = i + 1
 
     # ---- NextProgenitor ----------------------------------------------------
-    # Next_coprogenitor_DFI is the globally-sequential DFI of the next sibling
-    # progenitor.  All co-progenitors of a halo are within the same #tree block,
-    # so references are always resolvable in the combined array.
     nxt_prog = np.full(n, -1, dtype=np.int32)
     for i in range(n):
         nc_dfi = int(next_coprog_dfis[i])
@@ -260,11 +256,7 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
             nxt_prog[i] = dfi_to_idx.get(nc_dfi, -1)
 
     # ---- FirstHaloInFOFGroup -----------------------------------------------
-    # upid is the ID of the most massive host (ultimate central) at the same
-    # snapshot.  In forest mode the combined id_to_idx covers all trees in the
-    # forest, so cross-tree upid references resolve correctly.  References that
-    # still cannot be resolved (genuine cross-forest or cross-file links) fall
-    # back to self-pointer (halo treated as its own central).
+    # Unresolvable upid references (cross-forest / cross-file) become self-pointers.
     _UNVISITED = -2
     fhifof = np.full(n, _UNVISITED, dtype=np.int32)
 
@@ -476,7 +468,10 @@ def _forest_mode_units(
             continue
         seen_forests.add(fid)
         expected_trees = forest_to_trees.get(fid, [fid])
-        available_trees = [t for t in expected_trees if t in tree_offsets]
+        available_trees = [
+            t for t in expected_trees
+            if t in tree_offsets and tree_offsets[t][0].exists()
+        ]
         if available_trees:
             forest_queue.append((fid, available_trees, len(expected_trees)))
 
@@ -499,7 +494,9 @@ def _forest_mode_units(
                 if len(arr) > 0 and arr.shape[1] >= _NCOLS_MIN:
                     arrays.append(arr)
             if arrays:
-                yield np.concatenate(arrays, axis=0)
+                combined = np.concatenate(arrays, axis=0)
+                sort_idx = np.argsort(combined[:, _C_DFI])
+                yield combined[sort_idx]
                 n_done += 1
         else:
             # Single-tree forest or incomplete forest: process trees individually.
@@ -605,6 +602,16 @@ def read_trees(
     forests_list_path: Path | None = input_dir / "forests.list"
     locations_path: Path | None = input_dir / "locations.dat"
 
+    if not (forests_list_path.exists() and locations_path.exists()):
+        print(
+            "WARNING: forests.list / locations.dat not found — falling back to per-tree mode. "
+            "Cross-tree upid references cannot be resolved: satellites whose host central "
+            "resides in a different #tree block will be treated as isolated centrals, "
+            "producing incorrect FOF group pointers and underproducing massive galaxies in SAGE. "
+            "Re-run Consistent Trees with the -F flag to generate these files.",
+            file=sys.stderr,
+        )
+
     result: dict[int, dict] = {}
     for unit_idx, halos in enumerate(
         _get_output_units(tree_files, n_trees, forests_list_path, locations_path)
@@ -688,7 +695,14 @@ def convert(
                 "(cross-tree FOF groups resolved within each complete forest)."
             )
         else:
-            print("No forests.list / locations.dat found — using tree-level mode.")
+            print(
+                "WARNING: forests.list / locations.dat not found — falling back to per-tree mode. "
+                "Cross-tree upid references cannot be resolved: satellites whose host central "
+                "resides in a different #tree block will be treated as isolated centrals, "
+                "producing incorrect FOF group pointers and underproducing massive galaxies "
+                "in SAGE. Re-run Consistent Trees with the -F flag to generate these files.",
+                file=sys.stderr,
+            )
 
         header_text = _read_header_text(tree_files[0])
         omega_m, box_size = _parse_cosmology(header_text)
