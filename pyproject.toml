@@ -2,6 +2,13 @@
 name = "sage-tree-converter"
 version = "1.0.0"
 requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "h5py",
+    "pandas",
+    "matplotlib",
+    "tqdm",
+]
 
 [project.scripts]
 sage-convert = "cli.batch_runner:main"
