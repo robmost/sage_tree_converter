@@ -7,7 +7,7 @@ Usage (single job):
 Usage (all jobs):
     $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml
 
-Usage (parallel, future):
+Usage (parallel):
     $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml --workers 4
 
 After `pip install -e .` the installed entry point is also available:

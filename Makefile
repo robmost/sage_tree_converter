@@ -1,4 +1,5 @@
 PYTHON ?= python3
+CONFIG ?= cli/conversion_config.toml
 SOURCES = conversion-engine/ assets/ cli/
 
 .PHONY: lint fmt typecheck check convert

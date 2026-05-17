@@ -178,7 +178,8 @@ $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml
 # Run only one named job from the config
 $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml --job my_dataset
 
-# After pip install -e . the installed entry point is also available:
+# After pip install -e . from the repo checkout, the entry point is also available:
+# (editable install only,  non-editable pip install . is not supported)
 sage-convert cli/conversion_config.toml
 ```
 

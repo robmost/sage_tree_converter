@@ -123,7 +123,7 @@ def convert_one(
     log.info("Input : %s", input_path)
     log.info("Output: %s", output_path)
     log.info("Output format: %s", output_format)
-    if n_trees:
+    if n_trees is not None:
         log.info("Mode  : test (first %d trees)", n_trees)
 
     # -----------------------------------------------------------------------

@@ -4,7 +4,7 @@
 #   $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml
 #   $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml --job my_dataset
 #
-# After `pip install -e .`:
+# After `pip install -e .` from the repo checkout (editable install only):
 #   sage-convert cli/conversion_config.toml
 #
 # ─────────────────────────────────────────────────────────────────────────────
