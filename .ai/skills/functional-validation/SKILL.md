@@ -30,7 +30,7 @@ Functional validation: NOT RUN
 Reason: SAGE_BINARY_PATH not set in .env. Skipping functional validation.
 ```
 
-Record this in the validation log and proceed to Gate G2 without running SAGE.
+Record this in `assets/validation_log.md` and proceed to Gate G2 without running SAGE.
 Do not treat this as a FAIL.
 
 ### 2. Extract the snapshot scale-factor list
@@ -172,7 +172,7 @@ Capture both stdout and any log file SAGE produces (look for files matching
 SAGE exits with status 0 **and** no error messages appear in `assets/sage_stdout.log`
 or any log files SAGE produces.
 
-Record in the validation log:
+Record in `assets/validation_log.md`:
 ```text
 Functional validation: PASS
 SAGE exit code: 0

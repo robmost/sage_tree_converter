@@ -34,7 +34,7 @@ Two path prefixes are used in this skill:
 - **`reference/<file>` (project root)** — files in the project-root `reference/` directory (e.g. `reference/sage_lhalotree_hdf5_schema.md`).
 
 Run all six checks in order. Each check produces an explicit **PASS** or **FAIL**.
-There are no partial passes. Record each result for the validation log.
+There are no partial passes. Record each result in `assets/validation_log.md`.
 
 Run the deterministic script first:
 

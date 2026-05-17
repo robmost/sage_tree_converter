@@ -12,11 +12,11 @@ Usage:
         output_hdf5="output/converted.hdf5",
     )
 
-PROHIBITIONS (enforced in code):
-  - Never use output data in the input column.
-  - Never plot SubhaloVMax as the velocity distribution (always use |SubhaloVel|).
-  - Never call plt.savefig() or plt.close() directly — always use save_figure().
-  - Never use different halo/tree samples for input and output columns.
+Invariants (enforced in code):
+  - The input column always uses the unconverted file; never the output.
+  - Velocity distribution plots always use |SubhaloVel|, never SubhaloVMax.
+  - Figures are always saved via save_figure(), not plt.savefig()/plt.close() directly.
+  - The same halo/tree sample is used for both input and output columns.
 """
 
 import os
@@ -608,7 +608,6 @@ def _plot_velocity_dist(
     if os.path.isfile(style_path):
         plt.style.use(style_path)
 
-    # PROHIBITION ENFORCED: using SubhaloVel, NOT SubhaloVMax
     in_vel_mag = np.linalg.norm(in_halos["SubhaloVel"], axis=1)
     out_vel_mag = np.linalg.norm(out_halos["SubhaloVel"], axis=1)
 
@@ -807,7 +806,7 @@ def generate_all_plots(
     list[str]
         Paths of all saved plot files (7 items).
     """
-    # PROHIBITION ENFORCED: input_path → input column; output_path → output column.
+    # Guard: comparing a file with itself would produce a trivially identical plot.
     if os.path.abspath(input_path) == os.path.abspath(output_path):
         raise ValueError(
             "input_path and output_path point to the same file. "
@@ -842,7 +841,7 @@ def generate_all_plots(
     if not out_trees:
         raise ValueError(f"No trees found in output file: {output_path}")
 
-    # Use the same tree IDs for both columns (PROHIBITION ENFORCED).
+    # Use the same tree IDs for both columns — comparing different subsets would be meaningless.
     shared_ids = sorted(set(in_trees) & set(out_trees))
     if not shared_ids:
         raise ValueError(
@@ -862,7 +861,7 @@ def generate_all_plots(
         f"bottom: {len(mass_bins[2])} trees"
     )
 
-    # Collect halos at lowest-redshift snapshot (PROHIBITION: same sample for both columns)
+    # Collect halos at lowest-redshift snapshot — same sample for both columns.
     in_halos_lo = _collect_halos_at_snap(in_trees_shared, lowest_snap)
     out_halos_lo = _collect_halos_at_snap(out_trees_shared, lowest_snap)
 

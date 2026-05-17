@@ -66,7 +66,7 @@ Stage 2 validation is complete. Summary:
 - Syntactic validation: PASS / FAIL (details)
 - Functional validation: PASS / FAIL / NOT RUN (details)
 
-Validation log written to: assets/<log_filename>.md
+Validation log written to: assets/validation_log.md
 
 Proceed to full conversion (Stage 3)?
 Reply YES to proceed, or provide instructions.

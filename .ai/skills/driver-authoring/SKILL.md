@@ -46,7 +46,7 @@ def convert(
     output_path : str
         Path for the output file.
     n_trees : int or None
-        If given, convert only the first n_trees trees (Stage 2 test mode).
+        If given, convert only the first n_trees trees. Used for test runs.
     sim_params : dict or None
         Simulation parameter overrides loaded from --sim-config JSON.
         Recognised keys: particle_mass_msun_per_h, n_particles_per_side,

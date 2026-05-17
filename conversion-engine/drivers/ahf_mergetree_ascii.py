@@ -5,7 +5,7 @@ Input:  directory containing .AHF_halos and .AHF_croco files
 Output: SAGE LHaloTree HDF5 (lhalo_hdf5) or binary (lhalo_binary)
 
 Format ID: ahf_mergetree_ascii
-Schema:    assets/proposed_mapping_ahf_mergetree_ascii.json
+Schema:    format-database/ahf_mergetree_ascii.json
 
 Halo ID encoding (SUSSING2013, MPI mode):
     ID = snap_id * 1e16 + mpi_rank * 1e10 + halo_1based_index
@@ -474,7 +474,7 @@ def convert(
     output_format : str
         'lhalo_hdf5' or 'lhalo_binary'.
     """
-    import h5py  # imported here to mirror template style
+    import h5py
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
