@@ -3,12 +3,12 @@
 main_driver.py — Entry point for all SAGE merger tree conversions.
 
 Usage:
-    Stage 2 (test, 100 trees):
+    Test run (100 trees):
         $PYTHON_BIN conversion-engine/main_driver.py --input <path> \
             --output assets/test_<base>_STC.0.hdf5 --n-trees 100 [--format <format_id>] \
             [--output-format {lhalo_hdf5,lhalo_binary}] [--sim-config <path.json>]
 
-    Stage 3 (full conversion):
+    Full conversion:
         $PYTHON_BIN conversion-engine/main_driver.py --input <path> \
             --output output/<base>_STC.0.hdf5 [--format <format_id>] \
             [--output-format {lhalo_hdf5,lhalo_binary}] [--sim-config <path.json>]
@@ -34,7 +34,6 @@ from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Format registry — maps format_id to the driver module filename (no .py).
-# Updated during Stage 4 when new drivers are registered.
 # ---------------------------------------------------------------------------
 FORMAT_REGISTRY: dict[str, str] = {
     "subfind_lhalotree_binary": "subfind_lhalotree_binary",
@@ -46,12 +45,15 @@ FORMAT_REGISTRY: dict[str, str] = {
 KDB_DIR = "format-database"
 
 
-def _setup_logging() -> None:
+def setup_logging() -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+
+
+_VALID_OUTPUT_FORMATS = frozenset({"lhalo_hdf5", "lhalo_binary"})
 
 
 def _auto_detect_format(input_path: str) -> str | None:
@@ -119,6 +121,12 @@ def convert_one(
     """
     log = logging.getLogger(__name__)
 
+    if output_format not in _VALID_OUTPUT_FORMATS:
+        raise RuntimeError(
+            f"Invalid output_format {output_format!r}. "
+            f"Valid values: {sorted(_VALID_OUTPUT_FORMATS)}"
+        )
+
     log.info("SAGE merger tree converter starting — %s", datetime.now().isoformat())
     log.info("Input : %s", input_path)
     log.info("Output: %s", output_path)
@@ -132,6 +140,11 @@ def convert_one(
     resolved_format = format_id
 
     if resolved_format is None:
+        if Path(input_path).is_dir():
+            raise RuntimeError(
+                f"Auto-detection is not supported for directory inputs. "
+                f"Specify --format (or format_id) explicitly for {input_path!r}."
+            )
         log.info("format_id not supplied; attempting auto-detection …")
         resolved_format = _auto_detect_format(input_path)
         if resolved_format is None:
@@ -144,7 +157,7 @@ def convert_one(
         log.info("Format: %s (user-specified)", resolved_format)
 
     if resolved_format not in FORMAT_REGISTRY:
-        known = sorted(FORMAT_REGISTRY.keys()) or ["(none — add drivers in Stage 4)"]
+        known = sorted(FORMAT_REGISTRY.keys()) or ["(none registered)"]
         raise RuntimeError(
             f"Unknown format {resolved_format!r}. Registered formats: {known}"
         )
@@ -185,7 +198,7 @@ def convert_one(
 
 
 def main() -> None:
-    _setup_logging()
+    setup_logging()
     log = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser(
@@ -213,7 +226,7 @@ def main() -> None:
         type=int,
         default=None,
         metavar="N",
-        help="Convert only the first N trees (Stage 2 test mode).",
+        help="Convert only the first N trees (test mode).",
     )
     parser.add_argument(
         "--sim-config",

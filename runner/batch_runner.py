@@ -31,7 +31,10 @@ _ENGINE_DIR = str(Path(__file__).parent.parent / "conversion-engine")
 if _ENGINE_DIR not in sys.path:
     sys.path.insert(0, _ENGINE_DIR)
 
-from main_driver import FORMAT_REGISTRY, _setup_logging, convert_one  # noqa: E402
+# Repo root: used to resolve relative paths in config files regardless of CWD.
+_REPO_ROOT = Path(__file__).parent.parent
+
+from main_driver import FORMAT_REGISTRY, convert_one, setup_logging  # noqa: E402
 
 _DEFAULT_OUTPUT_FORMAT = "lhalo_hdf5"
 
@@ -65,6 +68,14 @@ class JobResult:
 # ---------------------------------------------------------------------------
 
 
+def _resolve(p: str) -> Path:
+    """Return an absolute Path: absolute strings pass through; relative ones are
+    resolved against the repo root so paths like 'input/foo' always work regardless
+    of the working directory from which sage-convert is invoked."""
+    path = Path(p)
+    return path if path.is_absolute() else _REPO_ROOT / path
+
+
 def load_config(config_path: Path) -> list[ConversionJob]:
     """Parse a TOML config file and return one ConversionJob per [job.<name>] section."""
     with open(config_path, "rb") as fh:
@@ -81,8 +92,8 @@ def load_config(config_path: Path) -> list[ConversionJob]:
             ConversionJob(
                 name=name,
                 format_id=spec["format_id"],
-                input=Path(spec["input"]),
-                output=Path(spec["output"]),
+                input=_resolve(spec["input"]),
+                output=_resolve(spec["output"]),
                 output_format=spec.get("output_format", global_fmt),
                 n_trees=spec.get("n_trees"),
                 sim_params=spec.get("sim_params", {}),
@@ -106,7 +117,7 @@ def run_job(job: ConversionJob) -> JobResult:
     if _ENGINE_DIR not in sys.path:
         sys.path.insert(0, _ENGINE_DIR)
 
-    _setup_logging()
+    setup_logging()
     try:
         convert_one(
             input_path=str(job.input),
@@ -167,7 +178,7 @@ def batch_run(jobs: list[ConversionJob], workers: int = 1) -> list[JobResult]:
 
 
 def main() -> int:
-    _setup_logging()
+    setup_logging()
 
     parser = argparse.ArgumentParser(
         prog="sage-convert",

@@ -109,7 +109,7 @@ flowchart LR
 
 ### Prerequisites
 
-- Docker (recommended) **or** Apptainer (for HPC) **or** Python 3.10+ with packages from `requirements.txt`
+- Docker (recommended) **or** Apptainer (for HPC) **or** Python 3.11+ with packages from `requirements.txt`
 - Claude Code CLI or Gemini CLI (agent workflow only)
 - An Anthropic or Gemini API key, or web login to the respective account.
 

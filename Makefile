@@ -1,6 +1,6 @@
 PYTHON ?= python3
-CONFIG ?= cli/conversion_config.toml
-SOURCES = conversion-engine/ assets/ cli/
+CONFIG ?= runner/conversion_config.toml
+SOURCES = conversion-engine/ assets/ runner/
 
 .PHONY: lint fmt typecheck check convert
 
@@ -12,9 +12,9 @@ fmt:
 	ruff check --fix $(SOURCES)
 
 typecheck:
-	basedpyright conversion-engine/ cli/
+	basedpyright conversion-engine/ runner/
 
 check: lint typecheck
 
 convert:
-	$(PYTHON) cli/batch_runner.py $(CONFIG)
+	$(PYTHON) runner/batch_runner.py $(CONFIG)
