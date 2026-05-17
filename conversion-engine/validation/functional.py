@@ -28,7 +28,7 @@ import numpy as np
 
 _PARAM_TEMPLATE_HDF5 = """\
 % ================================================
-% SAGE parameter file — Stage 2 functional validation dry run
+% SAGE parameter file — functional validation dry run
 % Generated automatically by validation/functional.py
 % ================================================
 
@@ -73,7 +73,7 @@ FileWithSnapList
 
 _PARAM_TEMPLATE_BINARY = """\
 % ================================================
-% SAGE parameter file — Stage 2 functional validation dry run (binary trees)
+% SAGE parameter file — functional validation dry run (binary trees)
 % Generated automatically by validation/functional.py
 % ================================================
 

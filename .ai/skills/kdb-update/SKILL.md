@@ -117,7 +117,7 @@ Create `conversation-examples/<format_id>_example_<DDMMYYYY>.json` (date = today
 }
 ```
 
-If the format was already in the KDB but the session found no errors (no update needed), set `kdb_action` to `"no_change"` and omit the conversation example write (no file needed).
+If the format was already in the KDB but the session found no errors (no update needed), set `kdb_action` to `"no_change"` and omit the conversation example write (no file needed). Even when no update is needed, proceed with Step 5 — archiving the session products is still required to close the session cleanly.
 
 ---
 

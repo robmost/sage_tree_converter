@@ -1,10 +1,27 @@
 # SAGE Universal Merger Tree Converter
 
-An LLM-driven toolkit for converting N-body simulation merger trees from various formats into SAGE-compatible LHaloTree files.
+A toolkit for converting N-body simulation merger trees from various formats into SAGE-compatible LHaloTree files. It operates in two modes: **agent workflow** (LLM-orchestrated, for new or unknown formats) and **direct conversion** (script-based, for pre-registered formats).
 
 ## Overview
 
-The converter translates merger tree outputs from common halo finders and tree-building codes into the SAGE LHaloTree format (HDF5 or binary). It is orchestrated by an LLM CLI (Claude Code or Gemini CLI) following a four-stage, human-in-the-loop gated workflow that prioritises correctness: every conversion passes syntactic, functional, and semantic validation before being approved. A built-in Knowledge Database (KDB) caches schema mappings for known formats so that previously converted formats require no manual re-mapping.
+The converter translates merger tree outputs from common halo finders and tree-building codes into the SAGE LHaloTree format (HDF5 or binary). A built-in Knowledge Database (KDB) caches schema mappings for known formats so that previously converted formats require no re-mapping.
+
+## Modes of Operation
+
+| | Agent workflow | Direct conversion |
+|---|---|---|
+| Entry point | `claude` / `gemini` CLI | `runner/batch_runner.py` or `conversion-engine/main_driver.py` |
+| Requires LLM CLI | Yes | No |
+| Handles unknown formats | Yes | No — registered formats only |
+| Validation pipeline | Automatic (syntactic + functional + semantic) | Manual (invoke scripts explicitly) |
+| Multiple jobs per session | No | Yes (TOML batch config) |
+| Parallel jobs | No | Yes (`--workers N`) |
+| KDB registration | Yes (Stage 4) | No |
+| Human-in-the-loop gates | Yes (G1–G4) | No |
+
+**Agent workflow** is for formats that are new or unknown to the KDB. The LLM CLI (Claude Code or Gemini CLI) orchestrates a four-stage, human-in-the-loop gated pipeline: it discovers the format schema, maps fields, authors a new driver if needed, validates the output (syntactic + functional + semantic), and registers the result in the KDB. One conversion per session; validation gates cannot be skipped.
+
+**Direct conversion** is for formats that already have a registered driver. You invoke the conversion engine directly (single job via `main_driver.py`, or one or many jobs via the TOML batch runner). Validation scripts exist but must be invoked manually. Parallel execution is supported.
 
 ## Supported Formats
 
@@ -24,7 +41,7 @@ The converter translates merger tree outputs from common halo finders and tree-b
 | `lhalo_hdf5` | SAGE LHaloTree HDF5 (`TreeType=1`) — default |
 | `lhalo_binary` | SAGE LHaloTree flat binary (`TreeType=0`, 104 bytes/halo) |
 
-## Workflow
+## Workflow (Agent Workflow)
 
 ```mermaid
 ---
@@ -92,9 +109,9 @@ flowchart LR
 
 ### Prerequisites
 
-- Docker (recommended) **or** Apptainer (for HPC) **or** Python 3.10+ with packages from `requirements.txt`
-- Claude Code CLI or Gemini CLI
-- An Anthropic API key (Claude) or Gemini API key. Alternatively, web login to your Anthropic or Gemini account is also supported.
+- Docker (recommended) **or** Apptainer (for HPC) **or** Python 3.11+ with packages from `requirements.txt`
+- Claude Code CLI or Gemini CLI (agent workflow only)
+- An Anthropic or Gemini API key, or web login to the respective account.
 
 ### Setup
 
@@ -112,7 +129,7 @@ cp .env.example .env
 #    Files placed directly in input/ (not in a subdirectory) are not supported.
 ```
 
-### Run
+### Run — Agent Workflow
 
 ```bash
 # Docker (recommended) — run from the project root
@@ -163,9 +180,44 @@ Expected result:
 - `HOME=/tmp` and `MPLCONFIGDIR=/tmp/matplotlib` are set.
 - `PYTHON_BIN` and `SAGE_MEMORY_MULTIPLIER` reflect your `.env` values (or defaults).
 
-The LLM CLI will guide you through all four stages interactively, presenting each gate prompt before advancing.
+In agent workflow mode, the LLM CLI guides you through all four stages interactively, presenting each gate prompt before advancing.
 
-## Manual Mode Reference
+For running conversions directly without an LLM session, see [Direct Conversion](#direct-conversion).
+
+## Direct Conversion
+
+Direct conversion is for **registered formats only** (formats already in the KDB with an existing driver). It does not run the four-stage agent workflow; there are no discovery, mapping, or validation gates.
+
+### Batch runner
+
+The batch runner lets you drive one or more conversions from a single TOML config file. Jobs run in order by default; use `--workers N` for parallel execution.
+
+```bash
+# Run all jobs declared in the config
+$PYTHON_BIN runner/batch_runner.py runner/conversion_config.toml
+
+# Run only one named job from the config
+$PYTHON_BIN runner/batch_runner.py runner/conversion_config.toml --job my_dataset
+
+# After `pip install -e .` from the repo checkout, the entry point is also available:
+# (editable install only,  non-editable `pip install .` is not supported)
+sage-convert runner/conversion_config.toml
+```
+
+Edit `runner/conversion_config.toml` to declare your jobs. Each `[job.<name>]` section maps to one conversion run:
+
+| Key | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `format_id` | yes | — | Must be a registered format ID (see table in [Direct Conversion — Script Reference](#direct-conversion--script-reference)) |
+| `input` | yes | — | Path to the input file or directory |
+| `output` | yes | — | Path for the converted output file |
+| `output_format` | no | `"lhalo_hdf5"` | `"lhalo_hdf5"` or `"lhalo_binary"` |
+| `n_trees` | no | `null` | Convert only the first N trees (test mode) |
+| `[job.<name>.sim_params]` | no | `{}` | Simulation parameter overrides (same keys as `--sim-config` JSON) |
+
+A `[global]` section sets defaults inherited by all jobs. Individual jobs override global values by declaring the same key.
+
+## Direct Conversion — Script Reference
 
 If you already have a schema mapping and a driver, you can run the converter and its validation scripts directly without an LLM session.
 
@@ -296,26 +348,29 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 .
 ├── .ai/skills/              # Skill definitions (kdb-lookup, driver-authoring, validation, …)
 ├── AGENTS.md                # Master agent orchestration document
-├── assets/                  # LLM working area for Stages 1–3
+├── assets/                  # Agent workflow working area for Stages 1–3
 ├── audits/                  # Archived audit files from completed sessions
+├── runner/
+│   ├── batch_runner.py      # Direct conversion batch runner (reads TOML config)
+│   └── conversion_config.toml  # Template: declare one or more conversion jobs
 ├── container/               # Container definitions (Docker and Apptainer)
 │   ├── Dockerfile
 │   ├── docker-compose.yml
 │   ├── apptainer.def
 │   └── apptainer.env.sh
 ├── conversion-engine/
-│   ├── main_driver.py       # CLI entry point
+│   ├── main_driver.py       # Single-job direct conversion entry point
 │   ├── drivers/             # Format-specific conversion modules
 │   ├── utils/               # HDF5 and binary writers
 │   └── validation/          # Syntactic, functional, and semantic validation
-├── conversation-examples/   # Few-shot examples for the LLM KDB
+├── conversation-examples/   # Few-shot examples for the agent workflow KDB
 ├── format-database/         # KDB: JSON schema mappings per input format
 ├── input/                   # Source merger trees, organised as input/<dataset_name>/
 ├── output/                  # Stage 3 writes converted files here
 ├── reference/               # Static schema and style references
 ├── .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
-├── Makefile                 # Shortcuts: make lint / fmt / typecheck / check
-├── pyproject.toml           # Ruff + basedpyright configuration
+├── Makefile                 # Shortcuts: make lint / fmt / typecheck / check / convert
+├── pyproject.toml           # Ruff + basedpyright configuration; sage-convert entry point
 └── requirements.txt         # Python runtime dependencies
 ```
 
@@ -340,4 +395,5 @@ Notes:
 ## Documentation
 
 - `AGENTS.md` — agent orchestration rules, stage entry conditions, and gating protocol
+- `runner/` — Batch runner and TOML config template for direct multi-job conversion
 - `reference/` — LHaloTree HDF5 and binary schema references, validation log style guide

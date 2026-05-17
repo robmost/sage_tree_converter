@@ -1,6 +1,6 @@
 # SAGE Universal Merger Tree Converter — Agent Orchestration
 
-This codebase converts N-body simulation merger trees from various formats (AHF/MergerTree ASCII, Rockstar/Consistent Trees ASCII, FOF+Subfind/LHaloTree HDF5, Gadget-4 binary/HDF5) into SAGE-compatible LHaloTree HDF5 or binary files. The workflow is divided into four sequential stages (Discovery → Test Engine → Full Engine → Knowledge Base Update), each separated by an explicit human-in-the-loop gate. The LLM CLI follows this file as its primary instruction source. All implementation detail lives in the skills under `.ai/skills/`.
+This codebase converts N-body simulation merger trees from various formats (AHF/MergerTree ASCII, Rockstar/Consistent Trees ASCII, FOF+Subfind/LHaloTree HDF5, Gadget-4 binary/HDF5) into SAGE-compatible LHaloTree HDF5 or binary files. In agent workflow mode, the LLM CLI orchestrates four sequential stages (Discovery → Test Engine → Full Engine → Knowledge Base Update), each separated by an explicit human-in-the-loop gate. The LLM CLI follows this file as its primary instruction source. All implementation detail lives in the skills under `.ai/skills/`.
 
 ---
 
@@ -11,6 +11,7 @@ The LLM may only write to the directories marked **Write** for the current stage
 | Directory                | Stages 1–3 Access | Stage 4 Access |
 | ------------------------ | ----------------- | -------------- |
 | `assets/`                | Read + Write      | Read + Write   |
+| `runner/`                | Read only         | Read only      |
 | `input/`                 | Read only         | Read only      |
 | `output/`                | Read only †       | Read only      |
 | `reference/`             | Read only         | Read only      |
@@ -65,7 +66,7 @@ Stage 2 validation is complete. Summary:
 - Syntactic validation: PASS / FAIL (details)
 - Functional validation: PASS / FAIL / NOT RUN (details)
 
-Validation log written to: assets/<log_filename>.md
+Validation log written to: assets/validation_log.md
 
 Proceed to full conversion (Stage 3)?
 Reply YES to proceed, or provide instructions.
@@ -274,6 +275,8 @@ The following files at the project root configure code quality tooling. Do not d
 | `Makefile` | Developer shortcuts: `make lint`, `make fmt`, `make typecheck`, `make check`. |
 | `.pre-commit-config.yaml` | Git pre-commit hooks. Runs `ruff check --fix` and `ruff format` on every commit, excluding `audits/` and `.ai/`. Requires `pre-commit` to be installed and activated with `pre-commit install`. |
 | `requirements.txt` | Python runtime dependencies for the conversion engine (h5py, numpy, tqdm). |
+| `runner/batch_runner.py` | Direct conversion batch runner. Reads a TOML config file and runs one or more conversions sequentially (or in parallel with `--workers N`). Independent of the four-stage agent workflow; operates on already-registered formats only. |
+| `runner/conversion_config.toml` | Template TOML config for the batch runner. Copy, rename, and edit to declare conversion jobs. Do not modify during an active agent workflow session. |
 | `container/Dockerfile` | Container image definition (Ubuntu 22.04 + Python + Node.js + LLM CLIs). |
 | `container/docker-compose.yml` | Docker Compose orchestration. Run with `docker compose -f container/docker-compose.yml up` from the project root. |
 | `container/apptainer.def` | Apptainer (Singularity) container definition for HPC environments. Build with `apptainer build sage-tree-converter.sif container/apptainer.def` from the project root. |

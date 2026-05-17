@@ -6,8 +6,8 @@ Supports both lhalo_hdf5 (run_checks) and lhalo_binary (run_binary_checks).
 Implements the same six checks as .ai/skills/syntactic-validation/scripts/run_syntactic_checks.py
 but as a callable Python API (no stdout, structured return value).
 
-The LLM should run the script directly during a session for human-readable output.
 This module is used by the main driver and tests for programmatic access.
+For human-readable output, run the script at .ai/skills/syntactic-validation/scripts/run_syntactic_checks.py directly.
 
 Usage:
     from validation.syntactic import run_checks

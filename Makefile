@@ -1,7 +1,8 @@
 PYTHON ?= python3
-SOURCES = conversion-engine/ assets/
+CONFIG ?= runner/conversion_config.toml
+SOURCES = conversion-engine/ assets/ runner/
 
-.PHONY: lint fmt typecheck check
+.PHONY: lint fmt typecheck check convert
 
 lint:
 	ruff check $(SOURCES)
@@ -11,6 +12,9 @@ fmt:
 	ruff check --fix $(SOURCES)
 
 typecheck:
-	basedpyright conversion-engine/
+	basedpyright conversion-engine/ runner/
 
 check: lint typecheck
+
+convert:
+	$(PYTHON) runner/batch_runner.py $(CONFIG)

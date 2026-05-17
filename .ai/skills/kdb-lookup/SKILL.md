@@ -49,6 +49,10 @@ Partial match found: format-database/<entry>.json
 I am treating this as NO MATCH. Please confirm or provide the missing identifier.
 ```
 
+Wait for the user's response. If the user supplies the missing identifier and all three
+criteria now agree, proceed with Step 3 (full match path). If the user cannot confirm
+or the mismatch remains, proceed with Step 4 (no-match path, invoke web-discovery).
+
 See `.ai/skills/kdb-lookup/references/matching_criteria.md` for the full match definition and edge cases.
 
 ### 3. On full match: present the mapping and request confirmation

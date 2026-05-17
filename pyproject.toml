@@ -1,3 +1,26 @@
+[project]
+name = "sage-tree-converter"
+version = "1.0.0"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "h5py",
+    "pandas",
+    "matplotlib",
+    "tqdm",
+]
+
+[project.scripts]
+sage-convert = "runner.batch_runner:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["runner*"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py313"
@@ -20,7 +43,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["utils", "drivers", "validation"]
+known-first-party = ["utils", "drivers", "validation", "runner"]
 
 [tool.ruff.format]
 quote-style = "double"

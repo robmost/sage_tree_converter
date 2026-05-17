@@ -46,7 +46,7 @@ Forest-level processing (when forests.list + locations.dat are present):
   blocks for a forest together, concatenates them into one array, sorts the combined
   array by DFI unconditionally (even for single-tree forests, where file order may
   not be strict DFI order), and calls _reconstruct_pointers on the sorted array.
-  Forests are processed in forests.list appearance order so that Stage 2 test clips
+  Forests are processed in forests.list appearance order so that test clips
   are consistent with reference implementations.  Each .dat file is opened once and
   its handle is reused across all reads.
 
@@ -327,7 +327,7 @@ def _parse_forests_list(
         28456576    28437782
 
     forest_order preserves forests.list first-appearance order so that
-    Stage 2 test clips are consistent with reference implementations.
+    test clips are consistent with reference implementations.
     """
     tree_to_forest: dict[int, int] = {}
     forest_to_trees: dict[int, list[int]] = {}
@@ -670,7 +670,7 @@ def convert(
         Path for the output file.
     n_trees : int or None
         If given, convert only the first n_trees output units (forests in
-        forest mode, individual trees in tree mode).  Used for Stage 2 tests.
+        forest mode, individual trees in tree mode).
     sim_params : dict or None
         Simulation parameter overrides from --sim-config JSON.
         Keys used: particle_mass_msun_per_h (Msun/h), n_particles_per_side,

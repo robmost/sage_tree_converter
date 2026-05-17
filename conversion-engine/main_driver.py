@@ -3,12 +3,12 @@
 main_driver.py — Entry point for all SAGE merger tree conversions.
 
 Usage:
-    Stage 2 (test, 100 trees):
+    Test run (100 trees):
         $PYTHON_BIN conversion-engine/main_driver.py --input <path> \
             --output assets/test_<base>_STC.0.hdf5 --n-trees 100 [--format <format_id>] \
             [--output-format {lhalo_hdf5,lhalo_binary}] [--sim-config <path.json>]
 
-    Stage 3 (full conversion):
+    Full conversion:
         $PYTHON_BIN conversion-engine/main_driver.py --input <path> \
             --output output/<base>_STC.0.hdf5 [--format <format_id>] \
             [--output-format {lhalo_hdf5,lhalo_binary}] [--sim-config <path.json>]
@@ -34,7 +34,6 @@ from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Format registry — maps format_id to the driver module filename (no .py).
-# Updated during Stage 4 when new drivers are registered.
 # ---------------------------------------------------------------------------
 FORMAT_REGISTRY: dict[str, str] = {
     "subfind_lhalotree_binary": "subfind_lhalotree_binary",
@@ -46,12 +45,15 @@ FORMAT_REGISTRY: dict[str, str] = {
 KDB_DIR = "format-database"
 
 
-def _setup_logging() -> None:
+def setup_logging() -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+
+
+_VALID_OUTPUT_FORMATS = frozenset({"lhalo_hdf5", "lhalo_binary"})
 
 
 def _auto_detect_format(input_path: str) -> str | None:
@@ -98,8 +100,105 @@ def _import_driver(format_id: str) -> types.ModuleType:
     return importlib.import_module(f"drivers.{module_name}")
 
 
+def convert_one(
+    input_path: str,
+    output_path: str,
+    format_id: str | None = None,
+    n_trees: int | None = None,
+    sim_params: dict | None = None,
+    output_format: str = "lhalo_hdf5",
+) -> None:
+    """Run one conversion. Raises RuntimeError on failure (does not sys.exit).
+
+    Parameters
+    ----------
+    input_path:    Path to the input file or directory.
+    output_path:   Path for the converted output file.
+    format_id:     KDB format identifier. Auto-detected from file extension if None.
+    n_trees:       Convert only the first N trees (test mode). None = all trees.
+    sim_params:    Simulation parameter overrides (same keys as --sim-config JSON).
+    output_format: "lhalo_hdf5" (default) or "lhalo_binary".
+    """
+    log = logging.getLogger(__name__)
+
+    if output_format not in _VALID_OUTPUT_FORMATS:
+        raise RuntimeError(
+            f"Invalid output_format {output_format!r}. "
+            f"Valid values: {sorted(_VALID_OUTPUT_FORMATS)}"
+        )
+
+    log.info("SAGE merger tree converter starting — %s", datetime.now().isoformat())
+    log.info("Input : %s", input_path)
+    log.info("Output: %s", output_path)
+    log.info("Output format: %s", output_format)
+    if n_trees is not None:
+        log.info("Mode  : test (first %d trees)", n_trees)
+
+    # -----------------------------------------------------------------------
+    # Resolve format
+    # -----------------------------------------------------------------------
+    resolved_format = format_id
+
+    if resolved_format is None:
+        if Path(input_path).is_dir():
+            raise RuntimeError(
+                f"Auto-detection is not supported for directory inputs. "
+                f"Specify --format (or format_id) explicitly for {input_path!r}."
+            )
+        log.info("format_id not supplied; attempting auto-detection …")
+        resolved_format = _auto_detect_format(input_path)
+        if resolved_format is None:
+            raise RuntimeError(
+                f"Auto-detection failed. No matching format found in {KDB_DIR!r} "
+                f"for input {input_path!r}. Supply format_id explicitly."
+            )
+        log.info("Auto-detected format: %s", resolved_format)
+    else:
+        log.info("Format: %s (user-specified)", resolved_format)
+
+    if resolved_format not in FORMAT_REGISTRY:
+        known = sorted(FORMAT_REGISTRY.keys()) or ["(none registered)"]
+        raise RuntimeError(
+            f"Unknown format {resolved_format!r}. Registered formats: {known}"
+        )
+
+    # -----------------------------------------------------------------------
+    # Import driver
+    # -----------------------------------------------------------------------
+    try:
+        driver = _import_driver(resolved_format)
+        log.info("Driver imported: drivers.%s", FORMAT_REGISTRY[resolved_format])
+    except ImportError as exc:
+        raise RuntimeError(f"Failed to import driver for {resolved_format!r}: {exc}") from exc
+
+    module_name = FORMAT_REGISTRY[resolved_format]
+    if not hasattr(driver, "convert"):
+        raise RuntimeError(
+            f"Driver module 'drivers.{module_name}' does not expose a 'convert' function."
+        )
+
+    # -----------------------------------------------------------------------
+    # Run conversion
+    # -----------------------------------------------------------------------
+    log.info("Conversion started.")
+    try:
+        driver.convert(
+            input_path,
+            output_path,
+            n_trees=n_trees,
+            sim_params=sim_params or {},
+            output_format=output_format,
+        )
+    except SystemExit as exc:
+        raise RuntimeError("Driver exited with an error. See messages above.") from exc
+    except Exception as exc:
+        raise RuntimeError(f"Conversion failed with unhandled exception: {exc}") from exc
+
+    log.info("Conversion complete. Output: %s", output_path)
+
+
 def main() -> None:
-    _setup_logging()
+    setup_logging()
     log = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser(
@@ -127,7 +226,7 @@ def main() -> None:
         type=int,
         default=None,
         metavar="N",
-        help="Convert only the first N trees (Stage 2 test mode).",
+        help="Convert only the first N trees (test mode).",
     )
     parser.add_argument(
         "--sim-config",
@@ -150,61 +249,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    log.info("SAGE merger tree converter starting — %s", datetime.now().isoformat())
-    log.info("Input : %s", args.input)
-    log.info("Output: %s", args.output)
-    log.info("Output format: %s", args.output_format)
-    if args.n_trees:
-        log.info("Mode  : test (first %d trees)", args.n_trees)
-
-    # -----------------------------------------------------------------------
-    # Resolve format
-    # -----------------------------------------------------------------------
-    format_id = args.format
-
-    if format_id is None:
-        log.info("--format not supplied; attempting auto-detection …")
-        format_id = _auto_detect_format(args.input)
-        if format_id is None:
-            log.error(
-                "Auto-detection failed. No matching format found in %s "
-                "for input '%s'. Use --format to specify the format explicitly.",
-                KDB_DIR,
-                args.input,
-            )
-            sys.exit(1)
-        log.info("Auto-detected format: %s", format_id)
-    else:
-        log.info("Format: %s (user-specified)", format_id)
-
-    if format_id not in FORMAT_REGISTRY:
-        log.error(
-            "Unknown format '%s'. Registered formats: %s",
-            format_id,
-            sorted(FORMAT_REGISTRY.keys()) or ["(none — add drivers in Stage 4)"],
-        )
-        sys.exit(1)
-
-    # -----------------------------------------------------------------------
-    # Import driver
-    # -----------------------------------------------------------------------
-    try:
-        driver = _import_driver(format_id)
-        log.info("Driver imported: drivers.%s", FORMAT_REGISTRY[format_id])
-    except ImportError as exc:
-        log.error("Failed to import driver for '%s': %s", format_id, exc)
-        sys.exit(1)
-
-    if not hasattr(driver, "convert"):
-        log.error(
-            "Driver module 'drivers.%s' does not expose a 'convert' function.",
-            FORMAT_REGISTRY[format_id],
-        )
-        sys.exit(1)
-
-    # -----------------------------------------------------------------------
-    # Load simulation parameter overrides
-    # -----------------------------------------------------------------------
     sim_params: dict = {}
     if args.sim_config is not None:
         try:
@@ -215,26 +259,18 @@ def main() -> None:
             log.error("Failed to load --sim-config '%s': %s", args.sim_config, exc)
             sys.exit(1)
 
-    # -----------------------------------------------------------------------
-    # Run conversion
-    # -----------------------------------------------------------------------
-    log.info("Conversion started.")
     try:
-        driver.convert(
-            args.input,
-            args.output,
+        convert_one(
+            input_path=args.input,
+            output_path=args.output,
+            format_id=args.format,
             n_trees=args.n_trees,
             sim_params=sim_params,
             output_format=args.output_format,
         )
-    except SystemExit:
-        log.error("Driver exited with an error. See messages above.")
+    except RuntimeError as exc:
+        log.error("%s", exc)
         sys.exit(1)
-    except Exception as exc:
-        log.error("Conversion failed with unhandled exception: %s", exc)
-        sys.exit(1)
-
-    log.info("Conversion complete. Output: %s", args.output)
 
 
 if __name__ == "__main__":
