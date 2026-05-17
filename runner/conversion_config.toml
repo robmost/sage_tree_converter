@@ -1,11 +1,11 @@
 # SAGE Tree Converter — conversion config
 #
 # Run with:
-#   $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml
-#   $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml --job my_dataset
+#   $PYTHON_BIN runner/batch_runner.py runner/conversion_config.toml
+#   $PYTHON_BIN runner/batch_runner.py runner/conversion_config.toml --job my_dataset
 #
 # After `pip install -e .` from the repo checkout (editable install only):
-#   sage-convert cli/conversion_config.toml
+#   sage-convert runner/conversion_config.toml
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # [global]  Optional. Sets defaults inherited by every job.
@@ -19,7 +19,7 @@ output_format = "lhalo_hdf5"   # "lhalo_hdf5" (default) or "lhalo_binary"
 # [job.<name>]  One section per conversion run.
 #
 # Required keys:
-#   format_id  — Registered driver ID (see README §Manual Mode Reference).
+#   format_id  — Registered driver ID (see README §Direct Conversion — Script Reference).
 #   input      — Path to the input file or directory (relative to project root).
 #   output     — Path for the converted output file.
 #

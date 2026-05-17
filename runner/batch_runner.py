@@ -2,16 +2,16 @@
 """batch_runner.py — Drive SAGE merger tree conversions from a TOML config file.
 
 Usage (single job):
-    $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml --job my_dataset
+    $PYTHON_BIN runner/batch_runner.py runner/conversion_config.toml --job my_dataset
 
 Usage (all jobs):
-    $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml
+    $PYTHON_BIN runner/batch_runner.py runner/conversion_config.toml
 
 Usage (parallel):
-    $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml --workers 4
+    $PYTHON_BIN runner/batch_runner.py runner/conversion_config.toml --workers 4
 
 After `pip install -e .` the installed entry point is also available:
-    sage-convert cli/conversion_config.toml
+    sage-convert runner/conversion_config.toml
 """
 
 from __future__ import annotations
@@ -175,9 +175,9 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "examples:\n"
-            "  %(prog)s cli/conversion_config.toml\n"
-            "  %(prog)s cli/conversion_config.toml --job my_dataset\n"
-            "  %(prog)s cli/conversion_config.toml --workers 4\n"
+            "  %(prog)s runner/conversion_config.toml\n"
+            "  %(prog)s runner/conversion_config.toml --job my_dataset\n"
+            "  %(prog)s runner/conversion_config.toml --workers 4\n"
         ),
     )
     parser.add_argument("config", type=Path, help="Path to the TOML config file.")

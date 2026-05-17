@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-sage-convert = "cli.batch_runner:main"
+sage-convert = "runner.batch_runner:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -19,7 +19,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["cli*"]
+include = ["runner*"]
 
 [tool.ruff]
 line-length = 100
@@ -43,7 +43,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["utils", "drivers", "validation", "cli"]
+known-first-party = ["utils", "drivers", "validation", "runner"]
 
 [tool.ruff.format]
 quote-style = "double"
