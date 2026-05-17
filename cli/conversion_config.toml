@@ -1,0 +1,60 @@
+# SAGE Tree Converter — conversion config
+#
+# Run with:
+#   $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml
+#   $PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml --job my_dataset
+#
+# After `pip install -e .`:
+#   sage-convert cli/conversion_config.toml
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# [global]  Optional. Sets defaults inherited by every job.
+#           Individual [job.<name>] sections override these values.
+# ─────────────────────────────────────────────────────────────────────────────
+
+[global]
+output_format = "lhalo_hdf5"   # "lhalo_hdf5" (default) or "lhalo_binary"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [job.<name>]  One section per conversion run.
+#
+# Required keys:
+#   format_id  — Registered driver ID (see README §Manual Mode Reference).
+#   input      — Path to the input file or directory (relative to project root).
+#   output     — Path for the converted output file.
+#
+# Optional keys:
+#   output_format  — "lhalo_hdf5" or "lhalo_binary". Inherits [global] default.
+#   n_trees        — Convert only the first N trees (test mode). Omit for full run.
+#
+# Optional sub-table:
+#   [job.<name>.sim_params]  — Simulation parameter overrides. All keys optional;
+#                              set only what your format cannot supply from its header.
+#                              Keys: omega_m, omega_l, h0, box_size_mpc_per_h,
+#                                    particle_mass_msun_per_h, n_particles_per_side
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Example 1 — full conversion, HDF5 output (inherits [global] output_format)
+[job.my_dataset]
+format_id = "rockstar_consistent_trees_ascii"
+input     = "input/my_dataset"
+output    = "output/my_dataset_STC.0.hdf5"
+# n_trees = 100   # uncomment to limit to first N trees (test mode)
+
+[job.my_dataset.sim_params]
+# omega_m            = 0.307115
+# omega_l            = 0.692885
+# h0                 = 0.6777
+# box_size_mpc_per_h = 250.0
+# particle_mass_msun_per_h = 1.55e8
+# n_particles_per_side     = 2048
+
+# Example 2 — full conversion, binary output
+[job.my_other_dataset]
+format_id     = "ahf_mergetree_ascii"
+input         = "input/my_other_dataset"
+output        = "output/my_other_dataset_STC.0"
+output_format = "lhalo_binary"   # overrides [global]
+
+[job.my_other_dataset.sim_params]
+# particle_mass_msun_per_h = 8.6e8

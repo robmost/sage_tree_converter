@@ -165,6 +165,38 @@ Expected result:
 
 The LLM CLI will guide you through all four stages interactively, presenting each gate prompt before advancing.
 
+For running conversions directly without an LLM session, see [Batch Conversion](#batch-conversion).
+
+## Batch Conversion
+
+The batch runner lets you drive conversions from a single TOML config file instead of invoking Python scripts manually for each stage. A config can declare one job or many — the runner executes them in order, printing a summary when done.
+
+```bash
+# Run all jobs declared in the config
+$PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml
+
+# Run only one named job from the config
+$PYTHON_BIN cli/batch_runner.py cli/conversion_config.toml --job my_dataset
+
+# After pip install -e . the installed entry point is also available:
+sage-convert cli/conversion_config.toml
+```
+
+Edit `cli/conversion_config.toml` to declare your jobs. Each `[job.<name>]` section maps to one conversion run:
+
+| Key | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `format_id` | yes | — | Must be a registered format ID (see table in [Manual Mode Reference](#manual-mode-reference)) |
+| `input` | yes | — | Path to the input file or directory |
+| `output` | yes | — | Path for the converted output file |
+| `output_format` | no | `"lhalo_hdf5"` | `"lhalo_hdf5"` or `"lhalo_binary"` |
+| `n_trees` | no | `null` | Convert only the first N trees (test mode) |
+| `[job.<name>.sim_params]` | no | `{}` | Simulation parameter overrides (same keys as `--sim-config` JSON) |
+
+A `[global]` section sets defaults inherited by all jobs. Individual jobs override global values by declaring the same key.
+
+The batch runner does **not** run the four-stage LLM workflow (no KDB lookup, no driver authoring, no validation gates). It executes conversions directly using existing drivers. Use it only for formats that already have a registered driver.
+
 ## Manual Mode Reference
 
 If you already have a schema mapping and a driver, you can run the converter and its validation scripts directly without an LLM session.
@@ -298,13 +330,16 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 ├── AGENTS.md                # Master agent orchestration document
 ├── assets/                  # LLM working area for Stages 1–3
 ├── audits/                  # Archived audit files from completed sessions
+├── cli/
+│   ├── batch_runner.py      # Batch conversion entry point (reads TOML config)
+│   └── conversion_config.toml  # Template: declare one or more conversion jobs
 ├── container/               # Container definitions (Docker and Apptainer)
 │   ├── Dockerfile
 │   ├── docker-compose.yml
 │   ├── apptainer.def
 │   └── apptainer.env.sh
 ├── conversion-engine/
-│   ├── main_driver.py       # CLI entry point
+│   ├── main_driver.py       # Single-job CLI entry point
 │   ├── drivers/             # Format-specific conversion modules
 │   ├── utils/               # HDF5 and binary writers
 │   └── validation/          # Syntactic, functional, and semantic validation
@@ -314,8 +349,8 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 ├── output/                  # Stage 3 writes converted files here
 ├── reference/               # Static schema and style references
 ├── .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
-├── Makefile                 # Shortcuts: make lint / fmt / typecheck / check
-├── pyproject.toml           # Ruff + basedpyright configuration
+├── Makefile                 # Shortcuts: make lint / fmt / typecheck / check / convert
+├── pyproject.toml           # Ruff + basedpyright configuration; sage-convert entry point
 └── requirements.txt         # Python runtime dependencies
 ```
 
@@ -340,4 +375,5 @@ Notes:
 ## Documentation
 
 - `AGENTS.md` — agent orchestration rules, stage entry conditions, and gating protocol
+- `cli/` — Batch runner and TOML config template for direct multi-job conversion
 - `reference/` — LHaloTree HDF5 and binary schema references, validation log style guide

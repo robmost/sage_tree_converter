@@ -11,6 +11,7 @@ The LLM may only write to the directories marked **Write** for the current stage
 | Directory                | Stages 1–3 Access | Stage 4 Access |
 | ------------------------ | ----------------- | -------------- |
 | `assets/`                | Read + Write      | Read + Write   |
+| `cli/`                   | Read only         | Read only      |
 | `input/`                 | Read only         | Read only      |
 | `output/`                | Read only †       | Read only      |
 | `reference/`             | Read only         | Read only      |
@@ -274,6 +275,8 @@ The following files at the project root configure code quality tooling. Do not d
 | `Makefile` | Developer shortcuts: `make lint`, `make fmt`, `make typecheck`, `make check`. |
 | `.pre-commit-config.yaml` | Git pre-commit hooks. Runs `ruff check --fix` and `ruff format` on every commit, excluding `audits/` and `.ai/`. Requires `pre-commit` to be installed and activated with `pre-commit install`. |
 | `requirements.txt` | Python runtime dependencies for the conversion engine (h5py, numpy, tqdm). |
+| `cli/batch_runner.py` | Batch conversion entry point. Reads a TOML config file and runs one or more conversions sequentially (or in parallel with `--workers N`). Independent of the four-stage LLM workflow; operates on already-registered formats only. |
+| `cli/conversion_config.toml` | Template TOML config for the batch runner. Copy, rename, and edit to declare conversion jobs. Do not modify during an active LLM conversion session. |
 | `container/Dockerfile` | Container image definition (Ubuntu 22.04 + Python + Node.js + LLM CLIs). |
 | `container/docker-compose.yml` | Docker Compose orchestration. Run with `docker compose -f container/docker-compose.yml up` from the project root. |
 | `container/apptainer.def` | Apptainer (Singularity) container definition for HPC environments. Build with `apptainer build sage-tree-converter.sif container/apptainer.def` from the project root. |
