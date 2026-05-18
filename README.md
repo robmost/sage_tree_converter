@@ -161,6 +161,19 @@ Notes:
 - `container/apptainer.env.sh` sets deterministic bind mounts and container environment values so your run command stays short.
 - For best filesystem performance in batch jobs, consider copying the `.sif` to local job temporary storage before running.
 
+#### SAGE Binary for Functional Validation (Optional)
+
+To enable Stage 2 functional validation inside a container, the directory that
+contains your compiled SAGE binary must be bind-mounted:
+
+- **Apptainer:** set `SAGE_BINARY_PATH` in `.env` as usual. `container/apptainer.env.sh`
+  automatically adds the binary's parent directory to the bind list.
+- **Docker:** additionally set `SAGE_BINARY_DIR` (= `dirname` of `SAGE_BINARY_PATH`) in
+  `.env` and uncomment the matching volume line in `container/docker-compose.yml`.
+
+If neither step is taken, functional validation is skipped (`NOT RUN`) without blocking
+the workflow.
+
 Apptainer self-check (optional):
 
 ```bash

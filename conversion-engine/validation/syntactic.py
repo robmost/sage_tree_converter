@@ -7,7 +7,8 @@ Implements the same six checks as .ai/skills/syntactic-validation/scripts/run_sy
 but as a callable Python API (no stdout, structured return value).
 
 This module is used by the main driver and tests for programmatic access.
-For human-readable output, run the script at .ai/skills/syntactic-validation/scripts/run_syntactic_checks.py directly.
+For human-readable output, run the script at
+.ai/skills/syntactic-validation/scripts/run_syntactic_checks.py directly.
 
 Usage:
     from validation.syntactic import run_checks

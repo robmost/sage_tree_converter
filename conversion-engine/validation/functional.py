@@ -232,6 +232,26 @@ def run_functional_validation(
         }
 
     if not os.path.isfile(sage_binary):
+        in_container = (
+            os.path.exists("/.dockerenv")
+            or "APPTAINER_CONTAINER" in os.environ
+            or "SINGULARITY_CONTAINER" in os.environ
+        )
+        if in_container:
+            return {
+                "status": "NOT_RUN",
+                "reason": (
+                    f"SAGE_BINARY_PATH='{sage_binary}' is set but the path is not "
+                    "accessible inside the container. To enable functional validation, "
+                    "bind-mount the directory containing the binary into the container. "
+                    "See README.md §Container Setup and container/docker-compose.yml for "
+                    "instructions."
+                ),
+                "returncode": None,
+                "stdout": "",
+                "stderr": "",
+                "log_path": None,
+            }
         return {
             "status": "FAIL",
             "reason": f"SAGE_BINARY_PATH='{sage_binary}' does not point to an existing file.",

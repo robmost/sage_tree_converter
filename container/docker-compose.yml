@@ -22,3 +22,10 @@ services:
       - ..:/app
       - "${INPUT_DIR:-../input}:/app/input"
       - "${OUTPUT_DIR:-../output}:/app/output"
+      # ── Optional: SAGE binary for Stage 2 functional validation ──────────────
+      # Uncomment and set SAGE_BINARY_DIR in .env to the directory that contains
+      # your compiled SAGE binary (same value as dirname of SAGE_BINARY_PATH).
+      # The directory is mounted read-only at the same host path so that
+      # SAGE_BINARY_PATH needs no changes.
+      #   SAGE_BINARY_DIR=/path/to/sage/build
+      # - "${SAGE_BINARY_DIR}:${SAGE_BINARY_DIR}:ro"

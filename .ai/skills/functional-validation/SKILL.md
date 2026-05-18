@@ -33,6 +33,11 @@ Reason: SAGE_BINARY_PATH not set in .env. Skipping functional validation.
 Record this in `assets/validation_log.md` and proceed to Gate G2 without running SAGE.
 Do not treat this as a FAIL.
 
+**Running inside Docker or Apptainer:** if `SAGE_BINARY_PATH` is set but the binary
+is not accessible inside the container, functional validation is also reported as
+`NOT RUN` (not `FAIL`). To enable it, bind-mount the SAGE binary directory — see
+`README.md` §SAGE Binary for Functional Validation.
+
 ### 2. Extract the snapshot scale-factor list
 
 **This step is mandatory.** SAGE rejects an empty `FileWithSnapList` with a fatal
