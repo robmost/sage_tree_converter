@@ -123,6 +123,7 @@ All keys are read from `.env` at the project root. See `.env.example` for the fu
 | --- | ------ |
 | `ANTHROPIC_API_KEY` | API key for Claude Code |
 | `GEMINI_API_KEY` | API key for Gemini CLI |
+| `OPENAI_API_KEY` | API key for Codex CLI |
 | `INPUT_DIR` | Override for the input data directory (default: `./input`) |
 | `OUTPUT_DIR` | Override for the output data directory (default: `./output`) |
 | `SAGE_BINARY_PATH` | Absolute path to a compiled SAGE binary. If set, Stage 2 runs functional validation. If absent, functional validation is skipped. **Container users:** the path must also be bind-mounted (Apptainer: automatic via `apptainer.env.sh`; Docker: requires `SAGE_BINARY_DIR` + an uncommented volume in `docker-compose.yml`). If the path is set but not accessible inside the container, functional validation is skipped (`NOT_RUN`) rather than failing. |

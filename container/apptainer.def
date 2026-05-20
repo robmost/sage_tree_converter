@@ -19,7 +19,7 @@ From: python:3.13-slim
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     apt-get install -y --no-install-recommends nodejs
 
-    npm install -g @anthropic-ai/claude-code @google/gemini-cli
+    npm install -g @anthropic-ai/claude-code @google/gemini-cli @openai/codex
 
     for uid in 501 502 1000 1001; do
         grep -q ":${uid}:" /etc/passwd || \

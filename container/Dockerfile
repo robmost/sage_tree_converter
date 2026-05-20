@@ -9,13 +9,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         hdf5-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Node.js 20 LTS (required by Claude Code and Gemini CLI) ───────────────────
+# ── Node.js 20 LTS (required by Claude Code, Gemini CLI, and Codex) ──────────
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # ── LLM CLIs ──────────────────────────────────────────────────────────────────
-RUN npm install -g @anthropic-ai/claude-code @google/gemini-cli
+RUN npm install -g @anthropic-ai/claude-code @google/gemini-cli @openai/codex
 
 # ── Register common host UIDs so Node.js os.userInfo() does not crash ─────────
 # Adds dummy passwd entries for UIDs 501/502 (macOS) and 1000/1001 (Linux).

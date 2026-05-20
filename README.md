@@ -10,7 +10,7 @@ The converter translates merger tree outputs from common halo finders and tree-b
 
 | | Agent workflow | Direct conversion |
 |---|---|---|
-| Entry point | `claude` / `gemini` CLI | `runner/batch_runner.py` or `conversion-engine/main_driver.py` |
+| Entry point | `claude` / `gemini` / `codex` CLI | `runner/batch_runner.py` or `conversion-engine/main_driver.py` |
 | Requires LLM CLI | Yes | No |
 | Handles unknown formats | Yes | No — registered formats only |
 | Validation pipeline | Automatic (syntactic + functional + semantic) | Manual (invoke scripts explicitly) |
@@ -19,7 +19,7 @@ The converter translates merger tree outputs from common halo finders and tree-b
 | KDB registration | Yes (Stage 4) | No |
 | Human-in-the-loop gates | Yes (G1–G4) | No |
 
-**Agent workflow** is for formats that are new or unknown to the KDB. The LLM CLI (Claude Code or Gemini CLI) orchestrates a four-stage, human-in-the-loop gated pipeline: it discovers the format schema, maps fields, authors a new driver if needed, validates the output (syntactic + functional + semantic), and registers the result in the KDB. One conversion per session; validation gates cannot be skipped.
+**Agent workflow** is for formats that are new or unknown to the KDB. The LLM CLI (Claude Code, Gemini CLI, or Codex) orchestrates a four-stage, human-in-the-loop gated pipeline: it discovers the format schema, maps fields, authors a new driver if needed, validates the output (syntactic + functional + semantic), and registers the result in the KDB. One conversion per session; validation gates cannot be skipped.
 
 **Direct conversion** is for formats that already have a registered driver. You invoke the conversion engine directly (single job via `main_driver.py`, or one or many jobs via the TOML batch runner). Validation scripts exist but must be invoked manually. Parallel execution is supported.
 
@@ -112,8 +112,8 @@ flowchart LR
 ### Prerequisites
 
 - Docker (recommended) **or** Apptainer (for HPC) **or** Python 3.11+ with packages from `requirements.txt`
-- Claude Code CLI or Gemini CLI (agent workflow only)
-- An Anthropic or Gemini API key, or web login to the respective account.
+- Claude Code CLI, Gemini CLI, or Codex CLI (agent workflow only)
+- An Anthropic, Gemini, or OpenAI API key, or web login to the respective account.
 
 ### Setup
 
@@ -150,10 +150,10 @@ source container/apptainer.env.sh
 apptainer shell --pwd /app sage-tree-converter.sif
 
 # then, inside the container shell:
-# claude   # or: gemini
+# claude   # or: gemini   # or: codex
 
-# Native shell (Claude Code)
-claude
+# Native shell
+claude   # or: gemini   # or: codex
 ```
 
 Notes:
@@ -185,7 +185,7 @@ apptainer exec --pwd /app sage-tree-converter.sif bash -lc '
     pwd;
     ls -ld /app /app/input /app/output;
     echo "[env]";
-    env | rg "^(HOME|MPLCONFIGDIR|PYTHON_BIN|SAGE_BINARY_PATH|SAGE_MEMORY_MULTIPLIER|ANTHROPIC_API_KEY|GEMINI_API_KEY)="
+    env | rg "^(HOME|MPLCONFIGDIR|PYTHON_BIN|SAGE_BINARY_PATH|SAGE_MEMORY_MULTIPLIER|ANTHROPIC_API_KEY|GEMINI_API_KEY|OPENAI_API_KEY)="
 '
 ```
 
