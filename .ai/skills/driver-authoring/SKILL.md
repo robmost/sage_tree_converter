@@ -8,6 +8,10 @@ description: Guides drafting or adapting a format-specific conversion driver for
 
 # Driver Authoring
 
+## Stage Preamble
+
+The Stage 2 preamble is output from AGENTS.md §15 at stage entry. Do not re-output it here — proceed directly to driver authoring.
+
 ## Instructions
 
 This skill is invoked in Stage 2 when `kdb-lookup` found no matching driver in

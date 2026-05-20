@@ -10,6 +10,21 @@ description: Searches the format-database/ KDB for a schema mapping that matches
 
 ## Instructions
 
+## Stage Preamble
+
+Output the following to the user verbatim before any other action:
+
+```
+Stage 1 — Discovery
+I'll identify your input format and map its fields to the SAGE LHaloTree schema.
+
+  1. Inspect input files
+  2. KDB lookup
+       - match    -> load schema mapping
+       - no match -> web discovery + schema mapping
+  3. [G1] Confirm mapping + select output format
+```
+
 ## Path Convention
 
 - **`.ai/skills/kdb-lookup/references/<file>`** — files in this skill's own `references/` subfolder.

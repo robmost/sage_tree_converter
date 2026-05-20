@@ -51,18 +51,22 @@ I have produced the following schema mapping for <format_id>:
 <mapping summary>
 
 Which output format do you want for the converted trees?
-  • lhalo_hdf5   — SAGE LHaloTree HDF5 (TreeType=1, default)
-  • lhalo_binary — SAGE LHaloTree binary (TreeType=0, no HDF5 overhead)
+  • hdf5   — SAGE LHaloTree HDF5 (TreeType=1, default)
+  • binary — SAGE LHaloTree flat binary (TreeType=0, 104 bytes/halo)
+
+If you already mentioned a format preference, confirm it here.
+If you have no preference, replying YES hdf5 selects the default.
+An explicit reply is required before Stage 2 begins.
 
 Do you confirm this mapping is correct and complete, and which output format would you like?
-Reply YES lhalo_hdf5 or YES lhalo_binary to proceed to Stage 2, or provide corrections.
+Reply YES hdf5 or YES binary to proceed to Stage 2, or provide corrections.
 ```
 
 ### G2 — Test Validation Sign-off (end of Stage 2)
 
 ```text
 Stage 2 validation is complete. Summary:
-- Output format: lhalo_hdf5 | lhalo_binary
+- Output format: hdf5 | binary
 - Syntactic validation: PASS / FAIL (details)
 - Functional validation: PASS / FAIL / NOT RUN (details)
 
@@ -92,8 +96,8 @@ Stage 4 is complete.
 - Full conversion output (final deliverable) remains in: output/
 - KDB action: [new driver added | existing entry updated | no change]
 
-Conversion session is now closed.
-Reply YES to confirm, or flag any issues.
+The conversion is complete — your SAGE-compatible merger tree is ready in output/.
+If anything looks off or you have questions, just reopen this session. You're all set!
 ```
 
 ---
@@ -271,13 +275,86 @@ The following files at the project root configure code quality tooling. Do not d
 
 | File | Purpose |
 | ---- | ------- |
-| `pyproject.toml` | Ruff linter/formatter config plus basedpyright config. Pins Ruff rules (`E,W,F,I,UP,ANN`), `line-length=100`, `quote-style="double"`; basedpyright uses `typeCheckingMode="standard"`, extra path `conversion-engine/`, and excludes `audits/**` and `.ai/**`. |
+| `pyproject.toml` | Ruff linter/formatter and basedpyright config. |
 | `Makefile` | Developer shortcuts: `make lint`, `make fmt`, `make typecheck`, `make check`. |
-| `.pre-commit-config.yaml` | Git pre-commit hooks. Runs `ruff check --fix` and `ruff format` on every commit, excluding `audits/` and `.ai/`. Requires `pre-commit` to be installed and activated with `pre-commit install`. |
-| `requirements.txt` | Python runtime dependencies for the conversion engine (h5py, numpy, tqdm). |
-| `runner/batch_runner.py` | Direct conversion batch runner. Reads a TOML config file and runs one or more conversions sequentially (or in parallel with `--workers N`). Independent of the four-stage agent workflow; operates on already-registered formats only. |
-| `runner/conversion_config.toml` | Template TOML config for the batch runner. Copy, rename, and edit to declare conversion jobs. Do not modify during an active agent workflow session. |
-| `container/Dockerfile` | Container image definition (Ubuntu 22.04 + Python + Node.js + LLM CLIs). |
-| `container/docker-compose.yml` | Docker Compose orchestration. Run with `docker compose -f container/docker-compose.yml up` from the project root. |
-| `container/apptainer.def` | Apptainer (Singularity) container definition for HPC environments. Build with `apptainer build sage-tree-converter.sif container/apptainer.def` from the project root. |
-| `container/apptainer.env.sh` | Sets bind mounts and environment variables for Apptainer runs. Source with `source container/apptainer.env.sh` from the project root. |
+| `.pre-commit-config.yaml` | Git pre-commit hooks (ruff check + format on every commit). |
+| `requirements.txt` | Python runtime dependencies (h5py, numpy, tqdm). |
+| `runner/batch_runner.py` | Direct conversion batch runner (independent of the agent workflow). |
+| `runner/conversion_config.toml` | Template TOML config for the batch runner. Do not modify during an active session. |
+| `container/Dockerfile` | Docker container image definition. |
+| `container/docker-compose.yml` | Docker Compose orchestration. |
+| `container/apptainer.def` | Apptainer container definition for HPC environments. |
+| `container/apptainer.env.sh` | Sets bind mounts and environment variables for Apptainer runs. |
+
+---
+
+## 15. Stage Preamble Protocol
+
+At the very beginning of each stage — before reading any skill files or running any commands — output the stage preamble below verbatim to the user. This is the first thing the user sees when a stage starts. Preambles are brief by design; do not expand them.
+
+### Stage 1 — Discovery
+
+```
+Stage 1 — Discovery
+I'll identify your input format and map its fields to the SAGE LHaloTree schema.
+
+  1. Inspect input files
+  2. KDB lookup
+       - match    -> load schema mapping
+       - no match -> web discovery + schema mapping
+  3. [G1] Confirm mapping + select output format
+```
+
+### Stage 2 — Test Engine
+
+```
+Stage 2 — Test Engine
+I'll run a test conversion on ~100 trees and validate the output structurally.
+
+  1. Driver check
+       - exists  -> proceed to step 2
+       - missing -> author driver -> proceed to step 2
+  2. Test conversion (~100 trees)
+  3. Syntactic validation (6 checks)
+  4. Functional validation
+       - SAGE binary set -> run SAGE dry-run
+       - not set         -> skip
+  5. [G2] Confirm test validation
+```
+
+### Stage 3 — Full Engine
+
+```
+Stage 3 — Full Engine
+I'll convert all trees and verify that physical properties are preserved.
+
+  1. Full conversion
+  2. Semantic validation (7 plots)
+  3. Auditor review (13 checks)
+  4. [G3] Approve plots
+```
+
+### Stage 4 — KDB Update
+
+```
+Stage 4 — KDB Update
+The conversion is validated. I'll register what we learned so this format is recognised immediately in future sessions.
+
+  1. KDB action
+       - new format      -> kdb-extend (add driver + JSON)
+       - existing format -> kdb-update (patch entry)
+  2. Archive session files
+  3. Done
+```
+
+---
+
+## 16. User-Provided Information Policy
+
+Users may supply format details, schema corrections, output format preferences, or external documentation in their first message. The following rules govern how this information is handled.
+
+1. **All four stages must be completed in order.** No stage may be skipped, regardless of what the user provides upfront.
+2. **Prior information is context, not gate confirmation.** Schema mappings, format preferences, quirks, or documentation shared before Stage 1 are retained and used — but they do not satisfy any gate condition. Each gate requires an explicit reply during the workflow.
+3. **Acknowledge prior information at the relevant gate.** If the user mentioned an output format or schema corrections before Stage 1, reference that explicitly at G1 (e.g., "You mentioned `hdf5` earlier — confirming that as your choice here."). Do not silently skip the question.
+4. **Handle skip requests gracefully.** If the user asks to skip a stage, briefly explain that the sequential order is required for validation integrity, then proceed normally. Do not repeat the explanation on subsequent turns.
+5. **Driver existence is the only exception.** If the user states that a compatible driver already exists in `conversion-engine/drivers/`, the LLM may verify this without authoring a new one. Syntactic and functional validation must still run.

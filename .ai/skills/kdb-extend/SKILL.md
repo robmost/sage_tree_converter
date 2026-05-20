@@ -15,6 +15,23 @@ This skill is invoked in Stage 4 when the input format was previously unknown an
 
 ---
 
+## Stage Preamble
+
+Output the following to the user verbatim before any other action:
+
+```
+Stage 4 — KDB Update
+The conversion is validated. I'll register what we learned so this format is recognised immediately in future sessions.
+
+  1. KDB action
+       - new format      -> kdb-extend (add driver + JSON)
+       - existing format -> kdb-update (patch entry)
+  2. Archive session files
+  3. Done
+```
+
+---
+
 ## Steps
 
 ## Path Convention

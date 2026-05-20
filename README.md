@@ -98,12 +98,14 @@ flowchart LR
     s3 --> s4
 ```
 
+**Stage preambles.** At the start of each stage the converter outputs a brief summary and step diagram of that stage's steps. These are informational only and do not require a response.
+
 ### **Gate legend**
 
-- `G1`: Schema confirmed
+- `G1`: Schema confirmed + output format selected
 - `G2`: Test conversion validated
 - `G3`: Semantic plots approved
-- `G4`: KDB updated and session closed.
+- `G4`: KDB updated; session complete (no confirmation reply needed).
 
 ## Quick Start
 

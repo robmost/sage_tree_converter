@@ -10,6 +10,20 @@ description: Generates the seven mandatory semantic validation plots comparing
 
 ## Instructions
 
+## Stage Preamble
+
+Output the following to the user verbatim before any other action:
+
+```
+Stage 3 — Full Engine
+I'll convert all trees and verify that physical properties are preserved.
+
+  1. Full conversion
+  2. Semantic validation (7 plots)
+  3. Auditor review (13 checks)
+  4. [G3] Approve plots
+```
+
 ## Path Convention
 
 Two path prefixes are used in this skill:
