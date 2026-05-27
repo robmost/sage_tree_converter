@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(kdb-lookup)",
+      "Bash(python3 *)",
+      "Bash(awk '/MemAvailable/ {printf \"%.1f GB\", $2/1024/1024}' /proc/meminfo)",
+      "Skill(syntactic-validation)",
+      "Bash(h5dump -n /app/assets/test_microUchuu_STC.0.hdf5)",
+      "Skill(semantic-validation)",
+      "Bash(2>&1)",
+      "Skill(auditor)",
+      "Bash(h5dump -n /app/output/microUchuu_STC.1.hdf5)",
+      "Skill(kdb-update)"
+    ]
+  }
+}

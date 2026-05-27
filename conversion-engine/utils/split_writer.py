@@ -230,7 +230,7 @@ class SplitWriter:
         assert self._current_handle is not None
         n_halos = len(fields["Descendant"])
         if isinstance(self._current_handle, h5py.File):
-            hdf5_writer.write_tree(self._current_handle, self._tree_idx_global, fields)
+            hdf5_writer.write_tree(self._current_handle, self._tree_idx_in_file, fields)
         else:
             binary_writer.write_tree(self._current_handle, self._tree_idx_in_file, fields)
 
