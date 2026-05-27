@@ -752,6 +752,7 @@ def convert(
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
     n_output_files: int = 1,
+    file_list: list[str] | None = None,
 ) -> None:
     """Convert Consistent Trees ASCII files to SAGE LHaloTree HDF5 or binary format.
 
@@ -759,6 +760,8 @@ def convert(
     ----------
     input_path : str
         Path to a single tree_*.dat file, or a directory containing them.
+        Ignored for file discovery when file_list is given; still used to
+        locate forests.list / locations.dat if file_list[0].parent fails.
     output_path : str
         Path for the first output file (index 0).  When n_output_files > 1,
         additional files are created by replacing the trailing index token
@@ -776,11 +779,20 @@ def convert(
     n_output_files : int
         Number of output files to produce (default 1).  Trees are distributed
         as evenly as possible across files.  Must be ≥ 1.
+    file_list : list[str] or None
+        Explicit list of tree_*.dat paths to process.  When given, overrides
+        _discover_tree_files(input_path).  forests.list / locations.dat are
+        looked up from Path(file_list[0]).parent.  Used by SLURM array jobs
+        where each task owns a subset of shards.
     """
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
     try:
-        tree_files = _discover_tree_files(input_path)
+        if file_list is not None:
+            tree_files = [Path(p) for p in file_list]
+            print(f"File-list mode: {len(tree_files)} shard(s) assigned to this task.")
+        else:
+            tree_files = _discover_tree_files(input_path)
         print(f"Found {len(tree_files)} tree file(s): {[f.name for f in tree_files]}")
 
         input_dir = tree_files[0].parent

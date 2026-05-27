@@ -13,6 +13,15 @@ Usage:
             --output output/<base>_STC.0.hdf5 [--format <format_id>] \
             [--output-format {lhalo_hdf5,lhalo_binary}] [--sim-config <path.json>]
 
+    SLURM array / multi-CPU (one task per shard subset):
+        $PYTHON_BIN conversion-engine/main_driver.py \
+            --file-list /tmp/task_042_files.txt \
+            --output output/<base>_shard042_STC.0.hdf5 [--format <format_id>] \
+            [--output-format {lhalo_hdf5,lhalo_binary}] [--sim-config <path.json>]
+        where task_042_files.txt contains one tree_*.dat path per line.
+        forests.list / locations.dat are looked up from the parent directory
+        of the first file in the list.
+
     <base> is the dataset directory name inside input/ (see AGENTS.md §13):
     - Directory input: base = Path(input_path).name
     - File input:      base = Path(input_path).parent.name
@@ -119,18 +128,25 @@ def convert_one(
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
     n_output_files: int = 1,
+    file_list: list[str] | None = None,
 ) -> None:
     """Run one conversion. Raises RuntimeError on failure (does not sys.exit).
 
     Parameters
     ----------
-    input_path:      Path to the input file or directory.
+    input_path:      Path to the input file or directory.  When file_list is
+                     given this is used only for format auto-detection and is
+                     ignored by the driver's file discovery.
     output_path:     Path for output file index 0.
     format_id:       KDB format identifier. Auto-detected from file extension if None.
     n_trees:         Convert only the first N trees (test mode). None = all trees.
     sim_params:      Simulation parameter overrides (same keys as --sim-config JSON).
     output_format:   "lhalo_hdf5" (default) or "lhalo_binary".
     n_output_files:  Number of output files to split across (must be >= 1).
+    file_list:       Explicit list of tree_*.dat paths to process.  When given,
+                     overrides file discovery inside the driver.  forests.list /
+                     locations.dat are looked up from the parent directory of
+                     file_list[0].
     """
     log = logging.getLogger(__name__)
 
@@ -196,6 +212,9 @@ def convert_one(
     # -----------------------------------------------------------------------
     log.info("Conversion started.")
     try:
+        extra: dict = {}
+        if file_list is not None:
+            extra["file_list"] = file_list
         driver.convert(
             input_path,
             output_path,
@@ -203,6 +222,7 @@ def convert_one(
             sim_params=sim_params or {},
             output_format=output_format,
             n_output_files=n_output_files,
+            **extra,
         )
     except SystemExit as exc:
         raise RuntimeError("Driver exited with an error. See messages above.") from exc
@@ -222,9 +242,22 @@ def main() -> None:
     )
     parser.add_argument(
         "--input",
-        required=True,
+        required=False,
+        default=None,
         metavar="PATH",
-        help="Path to the input file or directory.",
+        help="Path to the input file or directory. Mutually exclusive with --file-list.",
+    )
+    parser.add_argument(
+        "--file-list",
+        required=False,
+        default=None,
+        metavar="PATH",
+        help=(
+            "Text file with one tree_*.dat path per line. "
+            "Each SLURM task writes its shard subset here and passes it via this flag. "
+            "forests.list / locations.dat are resolved from the parent directory of "
+            "the first listed file. Mutually exclusive with --input."
+        ),
     )
     parser.add_argument(
         "--output", required=True, metavar="PATH", help="Path for the output HDF5 file."
@@ -271,6 +304,28 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    # Validate --input / --file-list
+    if args.input is None and args.file_list is None:
+        parser.error("one of --input or --file-list is required.")
+    if args.input is not None and args.file_list is not None:
+        parser.error("--input and --file-list are mutually exclusive.")
+
+    file_list: list[str] | None = None
+    if args.file_list is not None:
+        try:
+            with open(args.file_list) as fh:
+                file_list = [ln.strip() for ln in fh if ln.strip()]
+        except OSError as exc:
+            log.error("Failed to read --file-list '%s': %s", args.file_list, exc)
+            sys.exit(1)
+        if not file_list:
+            log.error("--file-list '%s' is empty.", args.file_list)
+            sys.exit(1)
+        # Derive input_path from the dataset directory (for auto-detect + driver)
+        args.input = str(Path(file_list[0]).parent)
+        log.info("File-list mode: %d shard(s), input dir inferred as %s",
+                 len(file_list), args.input)
+
     sim_params: dict = {}
     if args.sim_config is not None:
         try:
@@ -290,6 +345,7 @@ def main() -> None:
             sim_params=sim_params,
             output_format=args.output_format,
             n_output_files=args.n_output_files,
+            file_list=file_list,
         )
     except RuntimeError as exc:
         log.error("%s", exc)
