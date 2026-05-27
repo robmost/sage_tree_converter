@@ -51,7 +51,7 @@ import h5py
 import numpy as np
 from tqdm import tqdm
 
-from utils import binary_writer, hdf5_writer
+from utils.split_writer import SplitWriter
 
 _POS_SPIN_SCALE = np.float32(1000.0)
 
@@ -280,6 +280,7 @@ def convert(
     n_trees: int | None = None,
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
+    n_output_files: int = 1,
 ) -> None:
     """Convert Gadget-4 SubLink HDF5 merger trees to SAGE LHaloTree format.
 
@@ -332,40 +333,21 @@ def convert(
                 file=sys.stderr,
             )
 
-            tree_n_halos = lengths[:n_to_write].astype(np.int32)
-            total_halos_out = int(tree_n_halos.sum())
+            with SplitWriter(
+                output_path=output_path,
+                output_format=output_format,
+                n_output_files=n_output_files,
+                n_trees_total=n_to_write,
+                particle_mass=particle_mass,
+            ) as writer:
+                for tree_idx in tqdm(range(n_to_write), desc="Converting trees"):
+                    fields = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
+                    writer.write_tree(fields)
 
-            if output_format == "lhalo_hdf5":
-                with h5py.File(output_path, "w") as out_f:
-                    hdf5_writer.write_header(
-                        out_f,
-                        particle_mass=particle_mass,
-                        n_trees=n_to_write,
-                        total_halos=total_halos_out,
-                        n_output_files=1,
-                        tree_n_halos=tree_n_halos,
-                    )
-                    for tree_idx in tqdm(range(n_to_write), desc="Converting trees"):
-                        fields = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
-                        hdf5_writer.write_tree(out_f, tree_idx, fields)
-
-            elif output_format == "lhalo_binary":
-                with open(output_path, "wb") as out_f:
-                    binary_writer.write_header(
-                        out_f,
-                        particle_mass=particle_mass,
-                        n_trees=n_to_write,
-                        total_halos=total_halos_out,
-                        n_output_files=1,
-                        tree_n_halos=tree_n_halos,
-                    )
-                    for tree_idx in tqdm(range(n_to_write), desc="Converting trees"):
-                        fields = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
-                        binary_writer.write_tree(out_f, tree_idx, fields)
-
-            else:
-                print(f"ERROR: unknown output_format '{output_format}'.", file=sys.stderr)
-                sys.exit(1)
+            print(
+                f"  Done: {n_to_write} trees. Output: {writer.output_paths}",
+                file=sys.stderr,
+            )
 
     except SystemExit:
         raise
@@ -374,8 +356,6 @@ def convert(
 
         print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
-        if os.path.exists(output_path):
-            os.remove(output_path)
         sys.exit(1)
 
 

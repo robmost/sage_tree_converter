@@ -51,6 +51,7 @@ class ConversionJob:
     input: Path
     output: Path
     output_format: str = _DEFAULT_OUTPUT_FORMAT
+    n_output_files: int = 1
     n_trees: int | None = None
     sim_params: dict = field(default_factory=dict)
 
@@ -81,13 +82,24 @@ def load_config(config_path: Path) -> list[ConversionJob]:
     with open(config_path, "rb") as fh:
         raw = tomllib.load(fh)
 
-    global_fmt = raw.get("global", {}).get("output_format", _DEFAULT_OUTPUT_FORMAT)
+    global_cfg = raw.get("global", {})
+    global_fmt = global_cfg.get("output_format", _DEFAULT_OUTPUT_FORMAT)
+    global_n_files = global_cfg.get("n_output_files", 1)
+    if not isinstance(global_n_files, int) or global_n_files < 1:
+        raise ValueError(
+            f"[global] n_output_files must be an integer >= 1, got {global_n_files!r}."
+        )
 
     jobs: list[ConversionJob] = []
     for name, spec in raw.get("job", {}).items():
         missing = [k for k in ("format_id", "input", "output") if k not in spec]
         if missing:
             raise ValueError(f"Job {name!r} is missing required keys: {missing}")
+        job_n_files = spec.get("n_output_files", global_n_files)
+        if not isinstance(job_n_files, int) or job_n_files < 1:
+            raise ValueError(
+                f"Job {name!r}: n_output_files must be an integer >= 1, got {job_n_files!r}."
+            )
         jobs.append(
             ConversionJob(
                 name=name,
@@ -95,6 +107,7 @@ def load_config(config_path: Path) -> list[ConversionJob]:
                 input=_resolve(spec["input"]),
                 output=_resolve(spec["output"]),
                 output_format=spec.get("output_format", global_fmt),
+                n_output_files=job_n_files,
                 n_trees=spec.get("n_trees"),
                 sim_params=spec.get("sim_params", {}),
             )
@@ -126,6 +139,7 @@ def run_job(job: ConversionJob) -> JobResult:
             n_trees=job.n_trees,
             sim_params=job.sim_params or None,
             output_format=job.output_format,
+            n_output_files=job.n_output_files,
         )
         return JobResult(name=job.name, status="success", output=job.output)
     except RuntimeError as exc:

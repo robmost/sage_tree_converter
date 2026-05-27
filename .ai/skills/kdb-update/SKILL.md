@@ -127,12 +127,16 @@ Create `conversation-examples/<format_id>_example_<DDMMYYYY>.json` (date = today
   "session_date": "<DDMMYYYY>",
   "input_description": "<brief description of the input files>",
   "mapping_source": "kdb_match",
+  "output_format": "lhalo_hdf5",
+  "n_output_files": 1,
   "issues_encountered": ["<description of what was wrong in the existing entry>", ...],
   "resolutions": ["<what was corrected and how>", ...],
   "kdb_action": "updated_entry",
   "outcome": "success"
 }
 ```
+
+`output_format` and `n_output_files` record the G1 choices made in this session. They are session-level context; the `format-database/*.json` KDB entries are not affected.
 
 If the format was already in the KDB but the session found no errors (no update needed), set `kdb_action` to `"no_change"` and omit the conversation example write (no file needed). Even when no update is needed, proceed with Step 5 — archiving the session products is still required to close the session cleanly.
 

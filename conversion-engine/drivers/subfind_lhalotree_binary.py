@@ -32,13 +32,11 @@ import re
 import sys
 from io import BufferedReader
 from pathlib import Path
-from typing import Any
 
-import h5py
 import numpy as np
 from tqdm import tqdm
 
-from utils import binary_writer, hdf5_writer
+from utils.split_writer import SplitWriter
 
 # Dark matter particle mass for the Millennium / mini-Millennium simulation
 # (Springel et al. 2005). Units: 10^10 Msun/h.
@@ -203,6 +201,7 @@ def convert(
     n_trees: int | None = None,
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
+    n_output_files: int = 1,
 ) -> None:
     """Convert LHaloTree binary files to SAGE LHaloTree HDF5 or binary format.
 
@@ -253,17 +252,19 @@ def convert(
             work = work[:n_trees]
 
         total_trees = len(work)
-        total_halos = sum(entry[2] for entry in work)
-        tree_n_halos_out = np.array([entry[2] for entry in work], dtype=np.int32)
 
         # ------------------------------------------------------------------
         # 2. Write output
         # ------------------------------------------------------------------
-        # Helper: iterate work list, keeping input files open across their trees.
-        def _iter_trees(out_f: Any, write_tree_fn: Any) -> None:
-            current_file_path = None
-            current_fp: BufferedReader | None = None
-            global_tree_idx = 0
+        current_file_path = None
+        current_fp: BufferedReader | None = None
+        with SplitWriter(
+            output_path=output_path,
+            output_format=output_format,
+            n_output_files=n_output_files,
+            n_trees_total=total_trees,
+            particle_mass=effective_pm,
+        ) as writer:
             try:
                 for file_path, local_idx, n_halos, byte_offset in tqdm(
                     work, desc="Converting trees"
@@ -273,49 +274,22 @@ def convert(
                             current_fp.close()
                         current_fp = open(file_path, "rb")
                         current_file_path = file_path
-
                     assert current_fp is not None
                     current_fp.seek(byte_offset)
                     raw = current_fp.read(n_halos * HALO_DTYPE.itemsize)
                     halos = np.frombuffer(raw, dtype=HALO_DTYPE)
-                    write_tree_fn(out_f, global_tree_idx, _build_fields(halos))
-                    global_tree_idx += 1
+                    writer.write_tree(_build_fields(halos))
             finally:
                 if current_fp is not None:
                     current_fp.close()
 
-        if output_format == "lhalo_hdf5":
-            with h5py.File(output_path, "w") as f:
-                hdf5_writer.write_header(
-                    f,
-                    particle_mass=effective_pm,
-                    n_trees=total_trees,
-                    total_halos=total_halos,
-                    n_output_files=1,
-                    tree_n_halos=tree_n_halos_out,
-                )
-                _iter_trees(f, hdf5_writer.write_tree)
-
-        elif output_format == "lhalo_binary":
-            with open(output_path, "wb") as f:
-                binary_writer.write_header(
-                    f,
-                    particle_mass=effective_pm,
-                    n_trees=total_trees,
-                    total_halos=total_halos,
-                    n_output_files=1,
-                    tree_n_halos=tree_n_halos_out,
-                )
-                _iter_trees(f, binary_writer.write_tree)
-
-        else:
-            print(f"ERROR: unknown output_format '{output_format}'.", file=sys.stderr)
-            sys.exit(1)
+        print(
+            f"  Done: {total_trees} trees. Output: {writer.output_paths}",
+            file=sys.stderr,
+        )
 
     except SystemExit:
         raise
     except Exception as exc:
         print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
-        if os.path.exists(output_path):
-            os.remove(output_path)
         sys.exit(1)

@@ -113,12 +113,16 @@ Create `conversation-examples/<format_id>_example_<DDMMYYYY>.json` (date = today
   "session_date": "<DDMMYYYY>",
   "input_description": "<brief description of the input files>",
   "mapping_source": "web_discovery",
+  "output_format": "lhalo_hdf5",
+  "n_output_files": 1,
   "issues_encountered": ["<issue 1>", "<issue 2>", ...],
   "resolutions": ["<resolution 1>", "<resolution 2>", ...],
   "kdb_action": "new_driver",
   "outcome": "success"
 }
 ```
+
+`output_format` and `n_output_files` record the G1 choices made in this session. They are session-level context (the same format can be converted to different numbers of files for different datasets); the `format-database/*.json` KDB entries are not affected.
 
 The `issues_encountered` and `resolutions` lists must be in the same order (each resolution corresponds to the issue at the same index). If no issues were encountered, use empty lists `[]`.
 

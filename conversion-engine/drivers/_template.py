@@ -16,29 +16,40 @@ HOW TO USE THIS TEMPLATE
 INTERFACE CONTRACT
 ==================
 - Signature:  convert(input_path, output_path, n_trees=None, sim_params=None,
-                      output_format="lhalo_hdf5") -> None
-- On success: write a valid SAGE LHaloTree output file to output_path; return None.
+                      output_format="lhalo_hdf5", n_output_files=1) -> None
+- On success: write valid SAGE LHaloTree output file(s) derived from output_path;
+              return None.
 - On error:   print a message to stderr and call sys.exit(1).
-              Delete any partially-written output file before exiting.
+              SplitWriter.__exit__ deletes any partially-written output files
+              automatically; do NOT call os.remove() in the except handler.
 - n_trees:    when provided, convert only the first n_trees trees.
-              The output file must still be valid with correct internal indexing.
-- output_format: "lhalo_hdf5" writes HDF5 (SAGE TreeType=1) via utils.hdf5_writer.
-                 "lhalo_binary" writes binary (SAGE TreeType=0) via utils.binary_writer.
-                 For binary output, write_header() MUST be called before write_tree().
-                 If tree counts are not known upfront, accumulate all field dicts in
-                 memory first, then write header + trees sequentially.
+              The output file(s) must still be valid with correct internal indexing.
+- n_output_files: number of output files to split across (default 1).
+              SplitWriter derives file N paths from output_path by replacing the
+              trailing index token (e.g. output/sim_STC.0.hdf5 → .0, .1, …).
+              n_trees_total MUST be known before opening SplitWriter.  Obtain it:
+                - from a header scan (O(trees) line-count or H5 attribute read)
+                - from len(work_list) computed before any streaming starts
+                - NEVER require O(all halos) pre-pass; the scan must be cheap.
+- output_format: "lhalo_hdf5" writes HDF5 (SAGE TreeType=1).
+                 "lhalo_binary" writes binary (SAGE TreeType=0, 104 bytes/halo).
+                 Both formats are handled uniformly via SplitWriter — no
+                 format-conditional write blocks needed in the driver.
 - Performance: all tree-walking and pointer reconstruction must be O(N) or O(N log N).
                O(N²) is not acceptable.
+- Auxiliary index files (e.g. forests.list, locations.dat): if the driver loads
+  a format-wide index before streaming trees, filter it to only the root IDs
+  present in the current input file(s) to avoid O(all_simulation_trees) memory
+  usage in array-job contexts.
 """
 
 import os
 import sys
 
-import h5py  # noqa: F401
 import numpy as np  # noqa: F401
 from tqdm import tqdm  # noqa: F401
 
-from utils import binary_writer, hdf5_writer  # noqa: F401
+from utils.split_writer import SplitWriter  # noqa: F401
 
 
 def convert(
@@ -47,6 +58,7 @@ def convert(
     n_trees: int | None = None,
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
+    n_output_files: int = 1,
 ) -> None:
     """Convert input merger trees to SAGE LHaloTree HDF5 or binary format.
 
@@ -55,7 +67,8 @@ def convert(
     input_path : str
         Path to the input file or directory (format-dependent).
     output_path : str
-        Path for the output file. The parent directory is created if needed.
+        Path for output file index 0 (e.g. output/sim_STC.0.hdf5).
+        Additional files are derived by SplitWriter from the trailing index token.
     n_trees : int or None
         If given, convert only the first n_trees trees (Stage 2 test mode).
     sim_params : dict or None
@@ -65,6 +78,8 @@ def convert(
         fall back to auto-detection when absent.
     output_format : str
         'lhalo_hdf5' (default) or 'lhalo_binary'. See interface contract above.
+    n_output_files : int
+        Number of output files to distribute trees across (default 1).
     """
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
@@ -97,39 +112,30 @@ def convert(
         # Use O(N) algorithms (hash maps, sorting) — never O(N²) search loops.
 
         # ------------------------------------------------------------------
-        # 4. Write output via utils.hdf5_writer or utils.binary_writer
+        # 4. Write output via SplitWriter
         # ------------------------------------------------------------------
-        # TODO: build tree_n_halos, particle_mass_1e10, all_fields, then choose:
+        # TODO: n_trees_total MUST be known here (see interface contract for
+        # cheap ways to obtain it).  Replace the placeholders below:
         #
-        # lhalo_hdf5 (header may be written last if counts aren't known upfront):
+        #   with SplitWriter(
+        #       output_path=output_path,
+        #       output_format=output_format,
+        #       n_output_files=n_output_files,
+        #       n_trees_total=n_trees_to_convert,  # known upfront
+        #       particle_mass=particle_mass_1e10,
+        #   ) as writer:
+        #       for fields in tqdm(tree_stream, desc="Converting trees", unit="tree"):
+        #           writer.write_tree(fields)
         #
-        #   with h5py.File(output_path, "w") as f:
-        #       hdf5_writer.write_header(
-        #           f, particle_mass=particle_mass_1e10,
-        #           n_trees=n_trees_to_convert, total_halos=total_halos,
-        #           n_output_files=1, tree_n_halos=tree_n_halos,
-        #       )
-        #       for i in tqdm(range(n_trees_to_convert), desc="Writing trees"):
-        #           hdf5_writer.write_tree(f, i, all_fields[i])
+        #   output_paths = writer.output_paths  # list of all written file paths
         #
-        # lhalo_binary (header MUST be written first; accumulate field dicts
-        # in memory if counts aren't known before streaming starts):
-        #
-        #   with open(output_path, "wb") as f:
-        #       binary_writer.write_header(
-        #           f, particle_mass=particle_mass_1e10,
-        #           n_trees=n_trees_to_convert, total_halos=total_halos,
-        #           n_output_files=1, tree_n_halos=tree_n_halos,
-        #       )
-        #       for i in tqdm(range(n_trees_to_convert), desc="Writing trees"):
-        #           binary_writer.write_tree(f, i, all_fields[i])
+        # SplitWriter handles both HDF5 and binary transparently, distributes
+        # trees across n_output_files files, and deletes partial files on error.
 
     except NotImplementedError:
         raise
     except Exception as exc:
         print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
-        if os.path.exists(output_path):
-            os.remove(output_path)
         sys.exit(1)
 
 

@@ -13,7 +13,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 [global]
-output_format = "lhalo_hdf5"   # "lhalo_hdf5" (default) or "lhalo_binary"
+output_format   = "lhalo_hdf5"   # "lhalo_hdf5" (default) or "lhalo_binary"
+n_output_files  = 1               # integer >= 1; number of output files to split trees across
 
 # ─────────────────────────────────────────────────────────────────────────────
 # [job.<name>]  One section per conversion run.
@@ -21,11 +22,13 @@ output_format = "lhalo_hdf5"   # "lhalo_hdf5" (default) or "lhalo_binary"
 # Required keys:
 #   format_id  — Registered driver ID (see README §Direct Conversion — Script Reference).
 #   input      — Path to the input file or directory (relative to project root).
-#   output     — Path for the converted output file.
+#   output     — Path for output file index 0 (e.g. output/sim_STC.0.hdf5).
+#                Additional files are numbered automatically: .1.hdf5, .2.hdf5, …
 #
 # Optional keys:
-#   output_format  — "lhalo_hdf5" or "lhalo_binary". Inherits [global] default.
-#   n_trees        — Convert only the first N trees (test mode). Omit for full run.
+#   output_format   — "lhalo_hdf5" or "lhalo_binary". Inherits [global] default.
+#   n_output_files  — integer >= 1. Overrides [global] default for this job.
+#   n_trees         — Convert only the first N trees (test mode). Omit for full run.
 #
 # Optional sub-table:
 #   [job.<name>.sim_params]  — Simulation parameter overrides. All keys optional;
@@ -39,7 +42,8 @@ output_format = "lhalo_hdf5"   # "lhalo_hdf5" (default) or "lhalo_binary"
 format_id = "rockstar_consistent_trees_ascii"
 input     = "input/my_dataset"
 output    = "output/my_dataset_STC.0.hdf5"
-# n_trees = 100   # uncomment to limit to first N trees (test mode)
+# n_trees        = 100   # uncomment to limit to first N trees (test mode)
+# n_output_files = 4     # split across 4 files: …_STC.0.hdf5 … …_STC.3.hdf5
 
 [job.my_dataset.sim_params]
 # omega_m            = 0.307115

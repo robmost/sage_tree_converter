@@ -61,7 +61,7 @@ flowchart LR
         a(["Input files<br/>in input/"]) --> b{"KDB lookup"}
         b -- "Match found" --> c["Load schema<br/>mapping"]
         b -- "No match" --> d["Web discovery<br/>+ Schema mapping"]
-        c & d --> g1[["G1 · Confirm mapping<br/>+ Select output format"]]
+        c & d --> g1[["G1 · Confirm mapping<br/>+ Select output format + file count"]]
     end
 
     subgraph s2["Stage 2: Test Engine"]
@@ -102,7 +102,7 @@ flowchart LR
 
 ### **Gate legend**
 
-- `G1`: Schema confirmed + output format selected
+- `G1`: Schema confirmed + output format + file count selected
 - `G2`: Test conversion validated
 - `G3`: Semantic plots approved
 - `G4`: KDB updated; session complete (no confirmation reply needed).
@@ -227,6 +227,7 @@ Edit `runner/conversion_config.toml` to declare your jobs. Each `[job.<name>]` s
 | `input` | yes | — | Path to the input file or directory |
 | `output` | yes | — | Path for the converted output file |
 | `output_format` | no | `"lhalo_hdf5"` | `"lhalo_hdf5"` or `"lhalo_binary"` |
+| `n_output_files` | no | `1` | Split output across N numbered files (e.g. `_STC.0`, `_STC.1`, …). Clamped to tree count if larger. |
 | `n_trees` | no | `null` | Convert only the first N trees (test mode) |
 | `[job.<name>.sim_params]` | no | `{}` | Simulation parameter overrides (same keys as `--sim-config` JSON) |
 
@@ -256,6 +257,7 @@ $PYTHON_BIN conversion-engine/main_driver.py \
     --format <format_id> \
     --n-trees 100 \
     --output-format lhalo_hdf5   # or lhalo_binary → assets/test_<base>_STC.0
+    # --n-output-files 1         # default; always use 1 for test conversions
 ```
 
 > **Output naming:** `<base>` is the name of the dataset directory inside `input/`
@@ -273,7 +275,10 @@ $PYTHON_BIN conversion-engine/main_driver.py \
     --output output/<base>_STC.0.hdf5 \
     --format <format_id> \
     --output-format lhalo_hdf5   # or lhalo_binary → output/<base>_STC.0
+    --n-output-files 1           # number of output files (default 1); use >1 to split large outputs
 ```
+
+When `--n-output-files N` is greater than 1, output files are named `<base>_STC.0.hdf5`, `<base>_STC.1.hdf5`, …, `<base>_STC.N-1.hdf5`. Trees are distributed evenly across files.
 
 ### Simulation parameter overrides (`--sim-config`)
 

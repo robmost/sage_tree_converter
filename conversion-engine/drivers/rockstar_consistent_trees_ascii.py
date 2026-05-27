@@ -65,11 +65,10 @@ from contextlib import ExitStack
 from pathlib import Path
 from typing import BinaryIO
 
-import h5py
 import numpy as np
 from tqdm import tqdm
 
-from utils import binary_writer, hdf5_writer
+from utils.split_writer import SplitWriter
 
 # ---------------------------------------------------------------------------
 # Column indices (0-based)
@@ -111,6 +110,40 @@ def _discover_tree_files(input_path: str) -> list[Path]:
             raise ValueError(f"No tree_*.dat files found in '{input_path}'.")
         return found
     raise ValueError(f"'{input_path}' is neither a file nor a directory.")
+
+
+def _collect_root_ids_from_files(tree_files: list[Path]) -> set[int]:
+    """Scan tree files and return the set of tree root IDs found in #tree markers.
+
+    Reads only the comment lines; halo data rows are skipped.  Used to scope
+    forest.list / locations.dat loading to the trees actually present in this
+    task's input files (forest-scoped loading).
+    """
+    root_ids: set[int] = set()
+    for fp in tree_files:
+        with open(fp) as fh:
+            for line in fh:
+                if line.startswith("#tree"):
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        try:
+                            root_ids.add(int(parts[1]))
+                        except ValueError:
+                            pass
+    return root_ids
+
+
+def _count_trees_quick(tree_files: list[Path], n_limit: int | None = None) -> int:
+    """Count #tree markers across tree files without reading any halo data."""
+    count = 0
+    for fp in tree_files:
+        with open(fp) as fh:
+            for line in fh:
+                if line.startswith("#tree"):
+                    count += 1
+                    if n_limit is not None and count >= n_limit:
+                        return count
+    return count
 
 
 # ---------------------------------------------------------------------------
@@ -319,6 +352,7 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
 
 def _parse_forests_list(
     path: Path,
+    root_id_filter: set[int] | None = None,
 ) -> tuple[dict[int, int], dict[int, list[int]], list[int]]:
     """Parse forests.list → (tree_to_forest, forest_to_trees, forest_order).
 
@@ -328,6 +362,13 @@ def _parse_forests_list(
 
     forest_order preserves forests.list first-appearance order so that
     test clips are consistent with reference implementations.
+
+    Parameters
+    ----------
+    root_id_filter : set[int] or None
+        When provided, only load entries whose TreeRootID is in this set.
+        This scopes loading to the trees present in the current task's input
+        files, avoiding the full forests.list cost for SLURM array jobs.
     """
     tree_to_forest: dict[int, int] = {}
     forest_to_trees: dict[int, list[int]] = {}
@@ -340,6 +381,8 @@ def _parse_forests_list(
             if len(parts) < 2:
                 continue
             tid, fid = int(parts[0]), int(parts[1])
+            if root_id_filter is not None and tid not in root_id_filter:
+                continue
             tree_to_forest[tid] = fid
             if fid not in forest_to_trees:
                 forest_to_trees[fid] = []
@@ -348,12 +391,21 @@ def _parse_forests_list(
     return tree_to_forest, forest_to_trees, forest_order
 
 
-def _parse_locations(path: Path, input_dir: Path) -> tuple[dict[int, tuple[Path, int]], list[int]]:
+def _parse_locations(
+    path: Path,
+    input_dir: Path,
+    root_id_filter: set[int] | None = None,
+) -> tuple[dict[int, tuple[Path, int]], list[int]]:
     """Parse locations.dat → (tree_offsets, ordered_tree_ids).
 
     locations.dat format:
         #TreeRootID FileID Offset Filename
         28456576    0      3663   tree_0_0_0.dat
+
+    Parameters
+    ----------
+    root_id_filter : set[int] or None
+        When provided, only load entries whose TreeRootID is in this set.
 
     Returns
     -------
@@ -370,6 +422,8 @@ def _parse_locations(path: Path, input_dir: Path) -> tuple[dict[int, tuple[Path,
             if len(parts) < 4:
                 continue
             tid = int(parts[0])
+            if root_id_filter is not None and tid not in root_id_filter:
+                continue
             offset = int(parts[2])
             filename = parts[3]
             filepath = input_dir / filename
@@ -451,25 +505,29 @@ def _build_fields(halos: np.ndarray, particle_mass_msun_per_h: float) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def _forest_mode_units(
+def _prepare_forest_mode(
     tree_files: list[Path],
     forests_list_path: Path,
     locations_path: Path,
-    n_limit: int | None,
-) -> Generator[np.ndarray]:
-    """Yield one halo array per SAGE output tree using forest-level processing.
+) -> tuple[list[tuple[int, list[int]]], dict[int, tuple[Path, int]]]:
+    """Build forest queue and tree-offset map with forest-scoped loading.
 
-    All available tree blocks for a forest are concatenated and DFI-sorted
-    before pointer reconstruction — unconditionally, including single-tree
-    forests where file order may not be strict DFI order.  Forests are
-    visited in forests.list appearance order.  Each .dat file is opened once
-    and its handle is reused across all tree blocks it contains.
+    Scans the input tree files for #tree root IDs, then filters forests.list
+    and locations.dat to only the entries relevant to those IDs.  This keeps
+    memory proportional to the trees in the current task rather than the full
+    simulation, which is essential for SLURM array jobs where many tasks each
+    process a different subset of tree files.
+
+    Returns
+    -------
+    forest_queue : list of (forest_id, [tree_root_ids]) in forests.list order
+    tree_offsets : tree_root_id → (filepath, byte_offset)
     """
     input_dir = tree_files[0].parent
-    tree_to_forest, forest_to_trees, forest_order = _parse_forests_list(forests_list_path)
-    tree_offsets, _ = _parse_locations(locations_path, input_dir)
+    root_id_filter = _collect_root_ids_from_files(tree_files)
+    _, forest_to_trees, forest_order = _parse_forests_list(forests_list_path, root_id_filter)
+    tree_offsets, _ = _parse_locations(locations_path, input_dir, root_id_filter)
 
-    # Build forest queue in forests.list appearance order.
     forest_queue: list[tuple[int, list[int]]] = []
     for fid in forest_order:
         expected_trees = forest_to_trees.get(fid, [fid])
@@ -480,7 +538,37 @@ def _forest_mode_units(
         if available_trees:
             forest_queue.append((fid, available_trees))
 
-    # Collect all .dat files needed and open each once for the duration of the loop.
+    return forest_queue, tree_offsets
+
+
+def _forest_mode_units(
+    tree_files: list[Path],
+    forests_list_path: Path,
+    locations_path: Path,
+    n_limit: int | None,
+    _precomputed: tuple | None = None,
+) -> Generator[np.ndarray]:
+    """Yield one halo array per SAGE output tree using forest-level processing.
+
+    All available tree blocks for a forest are concatenated and DFI-sorted
+    before pointer reconstruction — unconditionally, including single-tree
+    forests where file order may not be strict DFI order.  Forests are
+    visited in forests.list appearance order.  Each .dat file is opened once
+    and its handle is reused across all tree blocks it contains.
+
+    Parameters
+    ----------
+    _precomputed : (forest_queue, tree_offsets) or None
+        Pass the output of _prepare_forest_mode() to skip the setup phase when
+        the caller has already computed these structures (e.g. convert()).
+    """
+    if _precomputed is not None:
+        forest_queue, tree_offsets = _precomputed
+    else:
+        forest_queue, tree_offsets = _prepare_forest_mode(
+            tree_files, forests_list_path, locations_path
+        )
+
     needed_files: set[Path] = {
         tree_offsets[tid][0]
         for _, available_trees in forest_queue
@@ -532,6 +620,7 @@ def _get_output_units(
     n_limit: int | None,
     forests_list_path: Path | None,
     locations_path: Path | None,
+    _precomputed: tuple | None = None,
 ) -> Generator[np.ndarray]:
     """Route to forest-mode or tree-mode iterator based on ancillary files."""
     if (
@@ -540,7 +629,10 @@ def _get_output_units(
         and locations_path is not None
         and locations_path.exists()
     ):
-        yield from _forest_mode_units(tree_files, forests_list_path, locations_path, n_limit)
+        yield from _forest_mode_units(
+            tree_files, forests_list_path, locations_path, n_limit,
+            _precomputed=_precomputed,
+        )
     else:
         yield from _tree_mode_units(tree_files, n_limit)
 
@@ -659,6 +751,7 @@ def convert(
     n_trees: int | None = None,
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
+    n_output_files: int = 1,
 ) -> None:
     """Convert Consistent Trees ASCII files to SAGE LHaloTree HDF5 or binary format.
 
@@ -667,7 +760,9 @@ def convert(
     input_path : str
         Path to a single tree_*.dat file, or a directory containing them.
     output_path : str
-        Path for the output file.
+        Path for the first output file (index 0).  When n_output_files > 1,
+        additional files are created by replacing the trailing index token
+        (e.g. "_STC.0" → "_STC.1", "_STC.2", …).
     n_trees : int or None
         If given, convert only the first n_trees output units (forests in
         forest mode, individual trees in tree mode).
@@ -678,6 +773,9 @@ def convert(
         used as fallback.
     output_format : str
         'lhalo_hdf5' (default) or 'lhalo_binary'.
+    n_output_files : int
+        Number of output files to produce (default 1).  Trees are distributed
+        as evenly as possible across files.  Must be ≥ 1.
     """
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
@@ -690,11 +788,18 @@ def convert(
         locations_path = input_dir / "locations.dat"
         use_forest_mode = forests_list_path.exists() and locations_path.exists()
 
+        # --- Determine total tree count and (for forest mode) pre-compute
+        #     the forest queue so we don't read forests.list twice. ---
         if use_forest_mode:
             print(
                 "Found forests.list and locations.dat — using forest-level mode "
                 "(cross-tree FOF groups resolved within each complete forest)."
             )
+            forest_queue, tree_offsets = _prepare_forest_mode(
+                tree_files, forests_list_path, locations_path
+            )
+            n_trees_available = len(forest_queue)
+            precomputed = (forest_queue, tree_offsets)
         else:
             print(
                 "WARNING: forests.list / locations.dat not found — falling back to per-tree mode. "
@@ -704,6 +809,8 @@ def convert(
                 "in SAGE. Re-run Consistent Trees with the -F flag to generate these files.",
                 file=sys.stderr,
             )
+            n_trees_available = _count_trees_quick(tree_files)
+            precomputed = None
 
         header_text = _read_header_text(tree_files[0])
         omega_m, box_size = _parse_cosmology(header_text)
@@ -741,89 +848,47 @@ def convert(
             f"({particle_mass_1e10:.4f} × 10^10 Msun/h)"
         )
 
+        n_trees_total = min(n_trees, n_trees_available) if n_trees else n_trees_available
+        if n_trees_total == 0:
+            print("ERROR: no trees found in input.", file=sys.stderr)
+            sys.exit(1)
+
         fl_path = forests_list_path if use_forest_mode else None
         lo_path = locations_path if use_forest_mode else None
 
-        tree_n_halos: list[int] = []
-        global_idx = 0
+        n_trees_written = 0
+        total_halos = 0
 
-        if output_format == "lhalo_binary":
-            all_fields: list[dict] = []
-
-            for halos in _get_output_units(tree_files, n_trees, fl_path, lo_path):
+        with SplitWriter(
+            output_path=output_path,
+            output_format=output_format,
+            n_output_files=n_output_files,
+            n_trees_total=n_trees_total,
+            particle_mass=particle_mass_1e10,
+        ) as writer:
+            tree_stream = _get_output_units(
+                tree_files, n_trees, fl_path, lo_path,
+                _precomputed=precomputed,
+            )
+            for halos in tree_stream:
                 n = len(halos)
                 if n == 0:
                     print(
-                        f"ERROR: output unit {global_idx} has zero halos.",
+                        f"ERROR: output unit {n_trees_written} has zero halos.",
                         file=sys.stderr,
                     )
                     sys.exit(1)
-                all_fields.append(_build_fields(halos, particle_mass_msun_per_h))
-                tree_n_halos.append(n)
-                global_idx += 1
+                writer.write_tree(_build_fields(halos, particle_mass_msun_per_h))
+                n_trees_written += 1
+                total_halos += n
 
-            n_trees_total = global_idx
-            if n_trees_total == 0:
-                print("ERROR: no trees found in input.", file=sys.stderr)
-                sys.exit(1)
-
-            total_halos = sum(tree_n_halos)
-            print(f"\nConverted {n_trees_total} SAGE trees, {total_halos} halos total.")
-
-            with open(output_path, "wb") as f:
-                binary_writer.write_header(
-                    f,
-                    particle_mass=particle_mass_1e10,
-                    n_trees=n_trees_total,
-                    total_halos=total_halos,
-                    n_output_files=1,
-                    tree_n_halos=tree_n_halos,
-                )
-                for idx, flds in enumerate(
-                    tqdm(all_fields, desc="Writing binary trees", unit="tree")
-                ):
-                    binary_writer.write_tree(f, idx, flds)
-
-        elif output_format == "lhalo_hdf5":
-            with h5py.File(output_path, "w") as f:
-                for halos in _get_output_units(tree_files, n_trees, fl_path, lo_path):
-                    n = len(halos)
-                    if n == 0:
-                        print(
-                            f"ERROR: output unit {global_idx} has zero halos.",
-                            file=sys.stderr,
-                        )
-                        sys.exit(1)
-                    fields = _build_fields(halos, particle_mass_msun_per_h)
-                    hdf5_writer.write_tree(f, global_idx, fields)
-                    tree_n_halos.append(n)
-                    global_idx += 1
-
-                n_trees_total = global_idx
-                if n_trees_total == 0:
-                    print("ERROR: no trees found in input.", file=sys.stderr)
-                    sys.exit(1)
-
-                total_halos = sum(tree_n_halos)
-                print(f"\nConverted {n_trees_total} SAGE trees, {total_halos} halos total.")
-
-                hdf5_writer.write_header(
-                    f,
-                    particle_mass=particle_mass_1e10,
-                    n_trees=n_trees_total,
-                    total_halos=total_halos,
-                    n_output_files=1,
-                    tree_n_halos=tree_n_halos,
-                )
-
-        else:
-            print(f"ERROR: unknown output_format '{output_format}'.", file=sys.stderr)
-            sys.exit(1)
+        print(
+            f"\nConverted {n_trees_written} SAGE trees, {total_halos} halos total. "
+            f"Output: {writer.output_paths}"
+        )
 
     except SystemExit:
         raise
     except Exception as exc:
         print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
-        if os.path.exists(output_path):
-            os.remove(output_path)
         sys.exit(1)
