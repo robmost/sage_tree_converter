@@ -1,7 +1,0 @@
-{
-  "particle_mass_msun_per_h": 8.97e5,
-  "n_particles_per_side": 6400,
-  "box_size_mpc_per_h": 140.0,
-  "omega_m": 0.30890,
-  "h0": 0.67740
-}

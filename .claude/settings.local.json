@@ -11,7 +11,11 @@
       "Skill(auditor)",
       "Bash(h5dump -n /app/output/microUchuu_STC.1.hdf5)",
       "Skill(kdb-update)",
-      "Bash(chmod +x /app/slurm/test_conversion.sh /app/slurm/full_conversion.sh)"
+      "Bash(chmod +x /app/slurm/test_conversion.sh /app/slurm/full_conversion.sh)",
+      "Bash(awk '{printf \"Available memory: %.1f GB\\\\n\", $2/1024/1024}')",
+      "Bash(tee assets/stage3_conversion.log)",
+      "Bash(pkill -f \"main_driver.py.*microUchuu\")",
+      "Bash(awk '{printf \"%.1f GB\\\\n\", $2/1024/1024}')"
     ]
   }
 }

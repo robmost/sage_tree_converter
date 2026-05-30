@@ -330,9 +330,16 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
         key = (int(snaps[i]), int(fhifof[i]))
         groups[key].append((float(mvirs[i]), i))
 
-    for members in groups.values():
+    for (_, central_idx), members in groups.items():
         members.sort(key=lambda x: x[0], reverse=True)
         idxs = [idx for _, idx in members]
+        # Central (fhifof[i]==i) must head the chain so SAGE's satellite
+        # iterator (which starts at Halo[central].NextHaloInFOFGroup) sees all
+        # satellites. A stripped central can be less massive than a satellite,
+        # which would otherwise push it off the head.
+        if idxs[0] != central_idx:
+            idxs.remove(central_idx)
+            idxs.insert(0, central_idx)
         for j in range(len(idxs) - 1):
             nhifof[idxs[j]] = idxs[j + 1]
 
@@ -343,6 +350,61 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
         "FirstHaloInFOFGroup": fhifof,
         "NextHaloInFOFGroup": nhifof,
     }
+
+
+def _apply_flyby_correction(
+    ptrs: dict[str, np.ndarray],
+    mvirs: np.ndarray,
+    snaps: np.ndarray,
+) -> dict[str, np.ndarray]:
+    """Merge multiple z=0 centrals in a forest into one FOF group.
+
+    Equivalent to SAGE's fix_flybys (ctrees_utils.c): when a Consistent Trees
+    forest contains more than one independent central (upid==-1) at the final
+    snapshot — a flyby event — all halos belonging to the smaller FOF groups
+    (both the flyby centrals and their satellites) are folded into the most
+    massive central's group.  Because fhifof is already path-compressed (every
+    halo points directly to its FOF root), checking fhifof[i] in flyby_idxs
+    catches centrals and their satellites in one O(N) pass with no recursion.
+    """
+    fhifof = ptrs["FirstHaloInFOFGroup"].copy()
+    nhifof = ptrs["NextHaloInFOFGroup"].copy()
+
+    final_snap = int(np.max(snaps))
+    n = len(snaps)
+
+    # All self-pointing centrals at the final snapshot
+    z0_centrals = [i for i in range(n) if int(snaps[i]) == final_snap and fhifof[i] == i]
+    if len(z0_centrals) <= 1:
+        return ptrs
+
+    host_idx = z0_centrals[int(np.argmax(mvirs[np.array(z0_centrals)]))]
+
+    flyby_idxs = {idx for idx in z0_centrals if idx != host_idx}
+
+    # Reassign all z=0 halos belonging to flyby FOF groups (both the flyby
+    # centrals and their existing satellites) to the main host.  Mirrors
+    # SAGE's fix_flybys which sets upid=fof_id for every z=0 halo.
+    for i in range(n):
+        if int(snaps[i]) == final_snap and int(fhifof[i]) in flyby_idxs:
+            fhifof[i] = host_idx
+
+    # Rebuild nhifof chain for the merged host group at the final snapshot.
+    # Members = halos at final_snap whose fhifof now points to host_idx.
+    host_group = [
+        i for i in range(n) if int(snaps[i]) == final_snap and int(fhifof[i]) == host_idx
+    ]
+    host_group.sort(key=lambda i: float(mvirs[i]), reverse=True)
+    if host_group[0] != host_idx:
+        host_group.remove(host_idx)
+        host_group.insert(0, host_idx)
+
+    for i in host_group:
+        nhifof[i] = -1
+    for j in range(len(host_group) - 1):
+        nhifof[host_group[j]] = host_group[j + 1]
+
+    return {**ptrs, "FirstHaloInFOFGroup": fhifof, "NextHaloInFOFGroup": nhifof}
 
 
 # ---------------------------------------------------------------------------
@@ -474,6 +536,7 @@ def _build_fields(halos: np.ndarray, particle_mass_msun_per_h: float) -> dict:
     """Reconstruct pointers and build the complete SAGE field dict."""
     n = len(halos)
     ptrs = _reconstruct_pointers(halos)
+    ptrs = _apply_flyby_correction(ptrs, halos[:, _C_MVIR], halos[:, _C_SNAP_NUM])
     mvir = halos[:, _C_MVIR]
     jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
     with np.errstate(invalid="ignore", divide="ignore"):

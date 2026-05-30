@@ -1,0 +1,22 @@
+{
+  "format_id": "rockstar_consistent_trees_ascii",
+  "session_date": "30052026",
+  "input_description": "Rockstar + Consistent Trees ASCII format. microUchuu simulation: 640^3 particles, 100 Mpc/h box, Omega_M=0.3089, h=0.6774, 50 snapshots. Single shard (tree_0_0_0.dat) with forests.list and locations.dat present. 440,651 forests, ~22.6M halos total. Output: lhalo_binary, 5 files.",
+  "mapping_source": "kdb_match",
+  "output_format": "lhalo_binary",
+  "n_output_files": 5,
+  "issues_encountered": [
+    "z=0 satellite count in converted LHaloTree output was systematically lower than the original ASCII trees when run through SAGE.",
+    "NextHaloInFOFGroup chain was sorted purely by descending mvir, placing the chain head at the most massive halo regardless of whether it was the FOF central. In stripped-central scenarios (satellite more massive than its upid==-1 central), SAGE's satellite iterator — which starts at Halo[central].NextHaloInFOFGroup — missed all halos listed before the central in the chain.",
+    "SAGE's ASCII reader applies fix_flybys (ctrees_utils.c) before processing each forest: when a forest contains multiple independent centrals at the final snapshot (a flyby event), all but the most massive are reassigned as satellites. The LHaloTree path had no equivalent step, so flyby groups remained as separate centrals, producing fewer z=0 satellites than the ASCII path.",
+    "Initial flyby correction only reassigned the flyby centrals themselves, not their existing satellites. Because fhifof is path-compressed (every halo points directly to its FOF root), a satellite of a flyby central had fhifof pointing to the flyby central's index. After moving the flyby central to the main host, those satellites retained a fhifof pointer to a halo that was no longer self-pointing, violating the LHaloTree invariant fhifof[fhifof[i]] == fhifof[i]."
+  ],
+  "resolutions": [
+    "Two driver fixes applied: (1) stripped-central chain fix in _reconstruct_pointers; (2) new _apply_flyby_correction post-processing step called from _build_fields.",
+    "After mass-sorting the FOF group members, the central (fhifof[i]==i) is unconditionally moved to position 0 of the list before the nhifof chain is linked. This ensures SAGE's satellite iterator always starts from the correct position.",
+    "Added _apply_flyby_correction(): at the final snapshot, find all self-pointing centrals; if more than one exists, fold all halos belonging to the smaller FOF groups into the most massive central's group and rebuild the nhifof chain. Mirrors fix_flybys behaviour.",
+    "Extended the flyby correction to also reassign satellites of flyby centrals: a single O(N) pass checks fhifof[i] in flyby_idxs (the set of flyby central indices). Because fhifof is path-compressed, this catches both the flyby centrals and all their sub-halos in one sweep with no recursion, restoring the LHaloTree pointer invariant."
+  ],
+  "kdb_action": "updated_entry",
+  "outcome": "success"
+}
