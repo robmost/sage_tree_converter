@@ -34,6 +34,8 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
+from utils.split_writer import SplitWriter
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -78,7 +80,6 @@ def _add_engine_to_path() -> None:
 
 
 _add_engine_to_path()
-from utils import binary_writer, hdf5_writer  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -457,6 +458,7 @@ def convert(
     n_trees: int | None = None,
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
+    n_output_files: int = 1,
 ) -> None:
     """Convert AHF/MergerTree ASCII input to SAGE LHaloTree HDF5 or binary.
 
@@ -465,7 +467,8 @@ def convert(
     input_path : str
         Path to directory containing .AHF_halos and .AHF_croco files.
     output_path : str
-        Path for the output file.
+        Path for the first output file (index 0).  When n_output_files > 1,
+        additional files are created by replacing the trailing index token.
     n_trees : int or None
         If given, convert only the first n_trees trees (test mode).
     sim_params : dict or None
@@ -473,8 +476,9 @@ def convert(
         Key used: particle_mass_msun_per_h (Msun/h). If absent, estimated from data.
     output_format : str
         'lhalo_hdf5' or 'lhalo_binary'.
+    n_output_files : int
+        Number of output files to produce (default 1).  Must be ≥ 1.
     """
-    import h5py
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
@@ -648,168 +652,141 @@ def convert(
                 haloID_to_flat[hid] = (tree_idx, flat_idx)
 
         # ------------------------------------------------------------------
-        # 6. Build per-tree field arrays
+        # 6. Build per-tree field arrays and write via SplitWriter
         # ------------------------------------------------------------------
-        all_fields: list[dict] = []
-        tree_n_halos: list[int] = []
+        total_halos = 0
 
-        for tree_idx, root in enumerate(
-            tqdm(sorted_roots[:n_trees_convert], desc="Converting trees")
-        ):
-            ordered_hids = tree_halo_order[root]
-            N = len(ordered_hids)
-            tree_n_halos.append(N)
+        with SplitWriter(
+            output_path=output_path,
+            output_format=output_format,
+            n_output_files=n_output_files,
+            n_trees_total=n_trees_convert,
+            particle_mass=particle_mass_1e10,
+        ) as writer:
+            for tree_idx, root in enumerate(
+                tqdm(sorted_roots[:n_trees_convert], desc="Converting trees")
+            ):
+                ordered_hids = tree_halo_order[root]
+                N = len(ordered_hids)
 
-            # Allocate arrays
-            descendant = np.full(N, -1, dtype=np.int32)
-            first_progenitor = np.full(N, -1, dtype=np.int32)
-            next_progenitor = np.full(N, -1, dtype=np.int32)
-            first_halo_in_fof = np.full(N, -1, dtype=np.int32)
-            next_halo_in_fof = np.full(N, -1, dtype=np.int32)
-            subhalo_len = np.zeros(N, dtype=np.int32)
-            group_m_crit200 = np.zeros(N, dtype=np.float32)
-            group_m_mean200 = np.zeros(N, dtype=np.float32)  # sentinel 0.0
-            group_m_tophat200 = np.zeros(N, dtype=np.float32)  # sentinel 0.0
-            subhalo_vmax = np.zeros(N, dtype=np.float32)
-            subhalo_veldisp = np.zeros(N, dtype=np.float32)
-            subhalo_id_mbp = np.full(N, -1, dtype=np.int64)  # sentinel -1
-            snap_num = np.zeros(N, dtype=np.int32)
-            subhalo_pos = np.zeros((N, 3), dtype=np.float32)
-            subhalo_vel = np.zeros((N, 3), dtype=np.float32)
-            subhalo_spin = np.zeros((N, 3), dtype=np.float32)
-            file_nr = np.full(N, -1, dtype=np.int32)  # sentinel -1
+                # Allocate arrays
+                descendant = np.full(N, -1, dtype=np.int32)
+                first_progenitor = np.full(N, -1, dtype=np.int32)
+                next_progenitor = np.full(N, -1, dtype=np.int32)
+                first_halo_in_fof = np.full(N, -1, dtype=np.int32)
+                next_halo_in_fof = np.full(N, -1, dtype=np.int32)
+                subhalo_len = np.zeros(N, dtype=np.int32)
+                group_m_crit200 = np.zeros(N, dtype=np.float32)
+                group_m_mean200 = np.zeros(N, dtype=np.float32)  # sentinel 0.0
+                group_m_tophat200 = np.zeros(N, dtype=np.float32)  # sentinel 0.0
+                subhalo_vmax = np.zeros(N, dtype=np.float32)
+                subhalo_veldisp = np.zeros(N, dtype=np.float32)
+                subhalo_id_mbp = np.full(N, -1, dtype=np.int64)  # sentinel -1
+                snap_num = np.zeros(N, dtype=np.int32)
+                subhalo_pos = np.zeros((N, 3), dtype=np.float32)
+                subhalo_vel = np.zeros((N, 3), dtype=np.float32)
+                subhalo_spin = np.zeros((N, 3), dtype=np.float32)
+                file_nr = np.full(N, -1, dtype=np.int32)  # sentinel -1
 
-            # --- Halo properties ---
-            for flat_idx, hid in enumerate(ordered_hids):
-                h = halo_props[hid]
+                # --- Halo properties ---
+                for flat_idx, hid in enumerate(ordered_hids):
+                    h = halo_props[hid]
 
-                snap_num[flat_idx] = h["snap_id"] - min_snap
-                subhalo_len[flat_idx] = h["npart"]
-                group_m_crit200[flat_idx] = h["Mhalo"] * 1e-10
-                subhalo_vmax[flat_idx] = h["Vmax"]
-                subhalo_veldisp[flat_idx] = h["sigV"]
-                subhalo_pos[flat_idx] = [h["Xc"], h["Yc"], h["Zc"]]
-                subhalo_vel[flat_idx] = [h["VXc"], h["VYc"], h["VZc"]]
+                    snap_num[flat_idx] = h["snap_id"] - min_snap
+                    subhalo_len[flat_idx] = h["npart"]
+                    group_m_crit200[flat_idx] = h["Mhalo"] * 1e-10
+                    subhalo_vmax[flat_idx] = h["Vmax"]
+                    subhalo_veldisp[flat_idx] = h["sigV"]
+                    subhalo_pos[flat_idx] = [h["Xc"], h["Yc"], h["Zc"]]
+                    subhalo_vel[flat_idx] = [h["VXc"], h["VYc"], h["VZc"]]
 
-                # SubhaloSpin: reconstruct from lambda, Mhalo, Rhalo, unit vector
-                Rhalo_Mpch = h["Rhalo"] / 1000.0
-                j_sq = 2.0 * _G_PHYS * h["Mhalo"] * Rhalo_Mpch
-                if j_sq > 0.0 and h["lambda"] > 0.0:
-                    j_mag = h["lambda"] * np.sqrt(j_sq) * 1000.0  # (kpc/h)(km/s)
-                else:
-                    j_mag = 0.0
-                subhalo_spin[flat_idx] = [
-                    j_mag * h["Lx"],
-                    j_mag * h["Ly"],
-                    j_mag * h["Lz"],
-                ]
+                    # SubhaloSpin: reconstruct from lambda, Mhalo, Rhalo, unit vector
+                    Rhalo_Mpch = h["Rhalo"] / 1000.0
+                    j_sq = 2.0 * _G_PHYS * h["Mhalo"] * Rhalo_Mpch
+                    if j_sq > 0.0 and h["lambda"] > 0.0:
+                        j_mag = h["lambda"] * np.sqrt(j_sq) * 1000.0  # (kpc/h)(km/s)
+                    else:
+                        j_mag = 0.0
+                    subhalo_spin[flat_idx] = [
+                        j_mag * h["Lx"],
+                        j_mag * h["Ly"],
+                        j_mag * h["Lz"],
+                    ]
 
-            # --- Temporal pointers ---
-            for flat_idx, hid in enumerate(ordered_hids):
-                # Descendant
-                desc_id = descendants.get(hid)
-                if desc_id is not None and desc_id in haloID_to_flat:
-                    ti, fi = haloID_to_flat[desc_id]
-                    if ti == tree_idx:
-                        descendant[flat_idx] = fi
+                # --- Temporal pointers ---
+                for flat_idx, hid in enumerate(ordered_hids):
+                    # Descendant
+                    desc_id = descendants.get(hid)
+                    if desc_id is not None and desc_id in haloID_to_flat:
+                        ti, fi = haloID_to_flat[desc_id]
+                        if ti == tree_idx:
+                            descendant[flat_idx] = fi
 
-                # FirstProgenitor + NextProgenitor chain
-                prog_list = progenitors.get(hid, [])
-                valid = [
-                    (m, pid)
-                    for m, pid in prog_list
-                    if pid in haloID_to_flat and haloID_to_flat[pid][0] == tree_idx
-                ]
-                if not valid:
-                    continue
-                _, first_pid = valid[0]
-                first_progenitor[flat_idx] = haloID_to_flat[first_pid][1]
-                for k in range(len(valid) - 1):
-                    fi_cur = haloID_to_flat[valid[k][1]][1]
-                    fi_next = haloID_to_flat[valid[k + 1][1]][1]
-                    next_progenitor[fi_cur] = fi_next
+                    # FirstProgenitor + NextProgenitor chain
+                    prog_list = progenitors.get(hid, [])
+                    valid = [
+                        (m, pid)
+                        for m, pid in prog_list
+                        if pid in haloID_to_flat and haloID_to_flat[pid][0] == tree_idx
+                    ]
+                    if not valid:
+                        continue
+                    _, first_pid = valid[0]
+                    first_progenitor[flat_idx] = haloID_to_flat[first_pid][1]
+                    for k in range(len(valid) - 1):
+                        fi_cur = haloID_to_flat[valid[k][1]][1]
+                        fi_next = haloID_to_flat[valid[k + 1][1]][1]
+                        next_progenitor[fi_cur] = fi_next
 
-            # --- Spatial pointers: FirstHaloInFOFGroup / NextHaloInFOFGroup ---
-            # Group halos in this tree by (snap_id, top_central_haloID)
-            fof_groups: dict[tuple, list] = defaultdict(list)
-            for flat_idx, hid in enumerate(ordered_hids):
-                h = halo_props[hid]
-                central = get_top_central(hid)
-                fof_groups[(h["snap_id"], central)].append((h["Mhalo"], flat_idx))
+                # --- Spatial pointers: FirstHaloInFOFGroup / NextHaloInFOFGroup ---
+                # Group halos in this tree by (snap_id, top_central_haloID)
+                fof_groups: dict[tuple, list] = defaultdict(list)
+                for flat_idx, hid in enumerate(ordered_hids):
+                    h = halo_props[hid]
+                    central = get_top_central(hid)
+                    fof_groups[(h["snap_id"], central)].append((h["Mhalo"], flat_idx))
 
-            for group_members in fof_groups.values():
-                # Sort by Mhalo descending: central (highest mass) first
-                group_members.sort(key=lambda x: -x[0])
-                central_fi = group_members[0][1]
-                for _, fi in group_members:
-                    first_halo_in_fof[fi] = central_fi
-                for k in range(len(group_members) - 1):
-                    next_halo_in_fof[group_members[k][1]] = group_members[k + 1][1]
-                # last member: next_halo_in_fof stays -1
+                for group_members in fof_groups.values():
+                    # Sort by Mhalo descending: central (highest mass) first
+                    group_members.sort(key=lambda x: -x[0])
+                    central_fi = group_members[0][1]
+                    for _, fi in group_members:
+                        first_halo_in_fof[fi] = central_fi
+                    for k in range(len(group_members) - 1):
+                        next_halo_in_fof[group_members[k][1]] = group_members[k + 1][1]
+                    # last member: next_halo_in_fof stays -1
 
-            all_fields.append(
-                {
-                    "Descendant": descendant,
-                    "FirstProgenitor": first_progenitor,
-                    "NextProgenitor": next_progenitor,
-                    "FirstHaloInFOFGroup": first_halo_in_fof,
-                    "NextHaloInFOFGroup": next_halo_in_fof,
-                    "SubhaloLen": subhalo_len,
-                    "Group_M_Crit200": group_m_crit200,
-                    "Group_M_Mean200": group_m_mean200,
-                    "Group_M_TopHat200": group_m_tophat200,
-                    "SubhaloVMax": subhalo_vmax,
-                    "SubhaloVelDisp": subhalo_veldisp,
-                    "SubhaloIDMostBound": subhalo_id_mbp,
-                    "SnapNum": snap_num,
-                    "SubhaloPos": subhalo_pos,
-                    "SubhaloVel": subhalo_vel,
-                    "SubhaloSpin": subhalo_spin,
-                    "FileNr": file_nr,
-                }
-            )
+                writer.write_tree(
+                    {
+                        "Descendant": descendant,
+                        "FirstProgenitor": first_progenitor,
+                        "NextProgenitor": next_progenitor,
+                        "FirstHaloInFOFGroup": first_halo_in_fof,
+                        "NextHaloInFOFGroup": next_halo_in_fof,
+                        "SubhaloLen": subhalo_len,
+                        "Group_M_Crit200": group_m_crit200,
+                        "Group_M_Mean200": group_m_mean200,
+                        "Group_M_TopHat200": group_m_tophat200,
+                        "SubhaloVMax": subhalo_vmax,
+                        "SubhaloVelDisp": subhalo_veldisp,
+                        "SubhaloIDMostBound": subhalo_id_mbp,
+                        "SnapNum": snap_num,
+                        "SubhaloPos": subhalo_pos,
+                        "SubhaloVel": subhalo_vel,
+                        "SubhaloSpin": subhalo_spin,
+                        "FileNr": file_nr,
+                    }
+                )
+                total_halos += N
 
-        # ------------------------------------------------------------------
-        # 7. Write output
-        # ------------------------------------------------------------------
-        total_halos = int(sum(tree_n_halos))
         print(
-            f"  Writing {n_trees_convert} trees, {total_halos} halos → {output_path}",
+            f"  Done: {n_trees_convert} trees, {total_halos} halos. Output: {writer.output_paths}",
             file=sys.stderr,
         )
-
-        if output_format == "lhalo_hdf5":
-            with h5py.File(output_path, "w") as out_f:
-                hdf5_writer.write_header(
-                    out_f,
-                    particle_mass=particle_mass_1e10,
-                    n_trees=n_trees_convert,
-                    total_halos=total_halos,
-                    n_output_files=1,
-                    tree_n_halos=tree_n_halos,
-                )
-                for tree_idx in tqdm(range(n_trees_convert), desc="Writing trees"):
-                    hdf5_writer.write_tree(out_f, tree_idx, all_fields[tree_idx])
-        else:
-            with open(output_path, "wb") as out_f:
-                binary_writer.write_header(
-                    out_f,
-                    particle_mass=particle_mass_1e10,
-                    n_trees=n_trees_convert,
-                    total_halos=total_halos,
-                    n_output_files=1,
-                    tree_n_halos=tree_n_halos,
-                )
-                for tree_idx in tqdm(range(n_trees_convert), desc="Writing trees"):
-                    binary_writer.write_tree(out_f, tree_idx, all_fields[tree_idx])
-
-        print("  Done.", file=sys.stderr)
 
     except Exception as exc:
         import traceback
 
         traceback.print_exc(file=sys.stderr)
         print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
-        if os.path.exists(output_path):
-            os.remove(output_path)
         sys.exit(1)

@@ -183,6 +183,47 @@ def write_header(
     f.write(tree_n_halos_arr.tobytes())
 
 
+def write_placeholder_header(f: BinaryIO, n_trees: int) -> None:
+    """Write a zeroed placeholder header to reserve space for the real header.
+
+    Call this at position 0 when starting a streaming binary write.  After all
+    trees for this file are written, call patch_header() to overwrite the
+    placeholder with the real values.
+
+    Parameters
+    ----------
+    f :
+        Open binary file object (mode "wb"). Must be at position 0.
+    n_trees : int
+        Number of trees that will be written to this file.  The placeholder
+        occupies 8 + n_trees × 4 bytes (matching the real header layout).
+    """
+    size = 8 + n_trees * 4  # nforests (4B) + totnhalos (4B) + nhalos[n_trees] (4B each)
+    f.write(b"\x00" * size)
+
+
+def patch_header(
+    f: BinaryIO,
+    particle_mass: float,
+    n_trees: int,
+    total_halos: int,
+    n_output_files: int,
+    tree_n_halos: "np.ndarray | list[int]",
+) -> None:
+    """Seek to offset 0, write the real header, then seek back to the original position.
+
+    Must be called after all trees have been written with write_tree().  The
+    file must have been opened with write_placeholder_header() so the header
+    region is already reserved.
+
+    Parameters are identical to write_header().
+    """
+    pos = f.tell()
+    f.seek(0)
+    write_header(f, particle_mass, n_trees, total_halos, n_output_files, tree_n_halos)
+    f.seek(pos)
+
+
 def write_tree(
     f: BinaryIO,
     tree_idx: int,

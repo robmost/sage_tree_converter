@@ -56,6 +56,17 @@ def setup_logging() -> None:
 _VALID_OUTPUT_FORMATS = frozenset({"lhalo_hdf5", "lhalo_binary"})
 
 
+def _positive_int(value: str) -> int:
+    """argparse type validator: accept only integers >= 1."""
+    try:
+        n = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{value!r} is not an integer.")
+    if n < 1:
+        raise argparse.ArgumentTypeError(f"Number of output files must be >= 1, got {n}.")
+    return n
+
+
 def _auto_detect_format(input_path: str) -> str | None:
     """Scan format-database/*.json and return the first matching format_id.
 
@@ -107,17 +118,19 @@ def convert_one(
     n_trees: int | None = None,
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
+    n_output_files: int = 1,
 ) -> None:
     """Run one conversion. Raises RuntimeError on failure (does not sys.exit).
 
     Parameters
     ----------
-    input_path:    Path to the input file or directory.
-    output_path:   Path for the converted output file.
-    format_id:     KDB format identifier. Auto-detected from file extension if None.
-    n_trees:       Convert only the first N trees (test mode). None = all trees.
-    sim_params:    Simulation parameter overrides (same keys as --sim-config JSON).
-    output_format: "lhalo_hdf5" (default) or "lhalo_binary".
+    input_path:      Path to the input file or directory.
+    output_path:     Path for output file index 0.
+    format_id:       KDB format identifier. Auto-detected from file extension if None.
+    n_trees:         Convert only the first N trees (test mode). None = all trees.
+    sim_params:      Simulation parameter overrides (same keys as --sim-config JSON).
+    output_format:   "lhalo_hdf5" (default) or "lhalo_binary".
+    n_output_files:  Number of output files to split across (must be >= 1).
     """
     log = logging.getLogger(__name__)
 
@@ -131,6 +144,7 @@ def convert_one(
     log.info("Input : %s", input_path)
     log.info("Output: %s", output_path)
     log.info("Output format: %s", output_format)
+    log.info("Output files : %d", n_output_files)
     if n_trees is not None:
         log.info("Mode  : test (first %d trees)", n_trees)
 
@@ -188,6 +202,7 @@ def convert_one(
             n_trees=n_trees,
             sim_params=sim_params or {},
             output_format=output_format,
+            n_output_files=n_output_files,
         )
     except SystemExit as exc:
         raise RuntimeError("Driver exited with an error. See messages above.") from exc
@@ -247,6 +262,13 @@ def main() -> None:
         help="Output format: 'lhalo_hdf5' (default, SAGE TreeType=1) or "
         "'lhalo_binary' (SAGE TreeType=0).",
     )
+    parser.add_argument(
+        "--n-output-files",
+        type=_positive_int,
+        default=1,
+        metavar="N",
+        help="Number of output files to split trees across (default: 1). Must be >= 1.",
+    )
     args = parser.parse_args()
 
     sim_params: dict = {}
@@ -267,6 +289,7 @@ def main() -> None:
             n_trees=args.n_trees,
             sim_params=sim_params,
             output_format=args.output_format,
+            n_output_files=args.n_output_files,
         )
     except RuntimeError as exc:
         log.error("%s", exc)

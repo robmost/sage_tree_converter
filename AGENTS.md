@@ -44,23 +44,51 @@ All skills are located at `.ai/skills/`. Each skill is a subfolder containing a 
 
 The workflow contains four gate points. The LLM must not advance past a gate without a positive user response. Present the exact gate prompt below; do not paraphrase.
 
-### G1 — Schema Mapping Confirmation + Output Format Selection (end of Stage 1)
+### G1 — Schema Mapping Confirmation + Output Format + File Count (end of Stage 1)
+
+Before presenting G1, compute the following estimates from the input data:
+1. `n_trees_total` — count trees from the input file(s) (O(lines) scan or header read).
+2. `n_halos_estimate` — sample the first ~10 trees, average their halo counts, multiply by `n_trees_total`.
+3. `estimated_output_bytes` — `n_halos_estimate × 120` (HDF5 estimate) or `n_halos_estimate × 104` (binary).
+4. Available system memory — use `$PYTHON_BIN -c "import psutil; print(psutil.virtual_memory().available)"` if psutil is available, otherwise use `vm_stat` (macOS) or `/proc/meminfo` (Linux).
+5. `suggested_n_files` — `max(1, ceil(estimated_output_bytes / 8_000_000_000))`.
+
+Present the gate prompt verbatim, filling in the computed values:
 
 ```text
 I have produced the following schema mapping for <format_id>:
 <mapping summary>
 
-Which output format do you want for the converted trees?
-  • hdf5   — SAGE LHaloTree HDF5 (TreeType=1, default)
-  • binary — SAGE LHaloTree flat binary (TreeType=0, 104 bytes/halo)
+Estimated output: ~X.Y GB across N_TREES trees (~N_HALOS halos).
+Available system memory: ~Z GB.
+Recommended: K output file(s) (~Y/K GB each).
 
-If you already mentioned a format preference, confirm it here.
-If you have no preference, replying YES hdf5 selects the default.
+Which output format and how many files?
+  • hdf5   — SAGE LHaloTree HDF5  (TreeType=1, default)
+  • binary — SAGE LHaloTree flat binary  (TreeType=0, 104 bytes/halo)
+
+Reply YES <format> <n_files>   (e.g., YES hdf5 4  or  YES binary 1).
+If you have no preference, YES hdf5 1 selects the defaults.
 An explicit reply is required before Stage 2 begins.
 
-Do you confirm this mapping is correct and complete, and which output format would you like?
-Reply YES hdf5 or YES binary to proceed to Stage 2, or provide corrections.
+Do you confirm this mapping is correct and complete?
 ```
+
+#### G1 Input Validation Rules
+
+Rules 1–3 apply in **agent mode only** (parse errors). Rules 4–5 are enforced by `SplitWriter.__init__()` in **both modes**.
+
+| Rule | Condition | Action |
+|------|-----------|--------|
+| 1 | Reply does not match `YES <format> <n_files>` (wrong order, gibberish, missing keyword) | Re-present the G1 gate verbatim, prepend: `"Please reply in the form YES hdf5 N or YES binary N (N = integer ≥ 1)."` Do not advance to Stage 2. |
+| 2 | `<format>` is not `hdf5` or `binary` | Re-present: `"Format must be hdf5 or binary."` |
+| 3 | `<n_files>` is 0, negative, non-integer, or missing | Re-present: `"Number of output files must be a whole number ≥ 1 (e.g., 1, 4, 10)."` |
+| 4 | `n_files > n_trees_total` | `SplitWriter` clamps to `n_trees_total` and logs `WARNING`. Proceed. |
+| 5 | `n_trees_total / n_files < 5` (very fine split) | `SplitWriter` logs `WARNING: ~K trees/file — files will be very small.` Proceed. |
+
+Rules 1–3 may repeat at most three times before the agent asks the user whether to abort.
+
+**Stage 2 always uses `n_output_files=1`** regardless of the G1 reply. The test slice is small; splitting adds no benefit and would complicate syntactic validation. Stage 3 uses the `n_output_files` value confirmed at G1.
 
 ### G2 — Test Validation Sign-off (end of Stage 2)
 
@@ -107,8 +135,8 @@ If anything looks off or you have questions, just reopen this session. You're al
 | Stage | Entry Condition |
 | ----- | --------------- |
 | Stage 1 | Input files are present in `input/` |
-| Stage 2 | G1 passed; `assets/proposed_mapping_<format_id>.json` exists; output format confirmed |
-| Stage 3 | G2 passed; all Stage 2 validations pass |
+| Stage 2 | G1 passed; `assets/proposed_mapping_<format_id>.json` exists; output format and file count confirmed. Stage 2 always runs with `n_output_files=1`. |
+| Stage 3 | G2 passed; all Stage 2 validations pass. Use the `n_output_files` value confirmed at G1. |
 | Stage 4 | G3 passed; user has approved the semantic validation plots |
 
 Do not begin a stage until its entry condition is satisfied.
@@ -259,7 +287,9 @@ Examples:
 
 **Stage 3 output** (full conversion, written to `output/`):
 
-| Output format | Path |
+Always pass `output/<base>_STC.0.hdf5` (or `output/<base>_STC.0` for binary) as the output path. When `n_output_files > 1`, `SplitWriter` generates the additional numbered files automatically (e.g. `output/<base>_STC.1.hdf5`, `output/<base>_STC.2.hdf5`, …). Syntactic validation must be run on **each** output file independently; all must pass before G3 sign-off.
+
+| Output format | Path (file index 0) |
 | --- | --- |
 | `lhalo_hdf5` | `output/<base>_STC.0.hdf5` |
 | `lhalo_binary` | `output/<base>_STC.0` |
@@ -303,7 +333,8 @@ I'll identify your input format and map its fields to the SAGE LHaloTree schema.
   2. KDB lookup
        - match    -> load schema mapping
        - no match -> web discovery + schema mapping
-  3. [G1] Confirm mapping + select output format
+  3. Estimate output size + suggest file count
+  4. [G1] Confirm mapping + select output format + file count
 ```
 
 ### Stage 2 — Test Engine

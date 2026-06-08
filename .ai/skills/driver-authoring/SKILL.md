@@ -39,6 +39,7 @@ def convert(
     n_trees: int | None = None,
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
+    n_output_files: int = 1,
 ) -> None:
     """
     Convert input merger trees to SAGE LHaloTree HDF5 or binary format.
@@ -48,7 +49,8 @@ def convert(
     input_path : str
         Path to the input file or directory.
     output_path : str
-        Path for the output file.
+        Path for output file index 0 (e.g. assets/test_<base>_STC.0.hdf5).
+        Additional files are derived by SplitWriter from the trailing index token.
     n_trees : int or None
         If given, convert only the first n_trees trees. Used for test runs.
     sim_params : dict or None
@@ -57,7 +59,11 @@ def convert(
         box_size_mpc_per_h, omega_m, omega_l, h0. All optional; drivers
         fall back to auto-detection when absent.
     output_format : str
-        'lhalo_hdf5' (default) or 'lhalo_binary'. Selects the output writer.
+        'lhalo_hdf5' (default) or 'lhalo_binary'. Both are handled uniformly
+        by SplitWriter — no format-conditional write blocks needed.
+    n_output_files : int
+        Number of output files to split trees across (default 1).
+        n_trees_total MUST be known before opening SplitWriter (see section 2).
     """
 ```
 
@@ -127,12 +133,40 @@ int64 as specified).
 int32  nforests
 int32  totnhalos
 int32  nhalos_per_forest[nforests]
-halo_data[totnhalos]   — 104 bytes each, packed via utils.binary_writer
+halo_data[totnhalos]   — 104 bytes each
 ```
 
-The header must be written BEFORE halo data. If tree counts are not known upfront
-(streaming input), accumulate all field dicts in memory then write header + trees.
-Use `utils.binary_writer.write_header()` + `write_tree()` — same API as `hdf5_writer`.
+The header must precede halo data. `SplitWriter` handles this via a placeholder-then-patch
+strategy — `n_trees_total` must be known upfront so the placeholder is the correct size.
+
+**Use `SplitWriter` for both output formats.** Do not write format-conditional blocks:
+
+```python
+from utils.split_writer import SplitWriter
+
+# n_trees_total must be known before opening SplitWriter. Cheap ways to obtain it:
+#   - Count '#tree' markers in ASCII files (O(lines), no halo data loaded)
+#   - Read len(work_list) after scanning file headers
+#   - Read a HDF5 TreeTable row count (O(1) from header attribute)
+#   Never require an O(all halos) pre-pass.
+
+with SplitWriter(
+    output_path=output_path,
+    output_format=output_format,
+    n_output_files=n_output_files,
+    n_trees_total=n_trees_to_convert,
+    particle_mass=particle_mass_1e10,
+) as writer:
+    for fields in tqdm(tree_stream, desc="Converting trees", unit="tree"):
+        writer.write_tree(fields)
+
+output_paths = writer.output_paths  # list of all written file paths
+```
+
+SplitWriter distributes trees evenly across `n_output_files` files, derives all output
+paths from `output_path` by replacing the trailing index token (`.0.hdf5` → `.1.hdf5`,
+etc.), and deletes partially-written files on exception. Do NOT call `os.remove()` in
+the except handler — SplitWriter's `__exit__` already handles cleanup.
 
 > **Required on-disk units for `SubhaloPos` and `SubhaloSpin`** (both formats): drivers always
 > produce field dicts with `SubhaloPos` in **kpc/h** and `SubhaloSpin` in **(kpc/h)(km/s)**.
@@ -167,20 +201,43 @@ The driver is moved to `conversion-engine/drivers/` only in Stage 4 via `kdb-ext
 
 ### 6. Progress bars (tqdm)
 
-Wrap all per-tree iteration loops with `tqdm`:
+Wrap all per-tree iteration loops with `tqdm`. When using `SplitWriter`, pass the
+iterable directly to `tqdm`:
 
 ```python
 from tqdm import tqdm
+from utils.split_writer import SplitWriter
 
-with h5py.File(output_path, "w") as out_f:
-    for tree_idx in tqdm(range(n_trees_to_convert), desc="Converting trees"):
-        # convert tree tree_idx
-        ...
+with SplitWriter(...) as writer:
+    for fields in tqdm(tree_stream, desc="Converting trees", unit="tree"):
+        writer.write_tree(fields)
 ```
 
 - The `desc=` label must be meaningful (e.g. `"Converting trees"`).
 - The progress bar must be at the **outer tree loop level**, not the halo level.
 - `tqdm` is pre-installed in the container; import with `from tqdm import tqdm`.
+
+### 6a. Auxiliary index file filtering
+
+If the input format uses a simulation-wide index file (e.g. `forests.list`,
+`locations.dat`) that maps tree IDs to file positions, **filter it to only the root
+IDs present in the current input file(s)** before loading:
+
+```python
+# 1. Collect root IDs from the actual input files
+root_id_filter: set[int] = set()
+for fp in input_files:
+    with open(fp) as fh:
+        for line in fh:
+            if line.startswith("#tree"):
+                root_id_filter.add(int(line.split()[1]))
+
+# 2. Pass the filter to the index parser
+forest_data = _parse_forests_list(forests_list_path, root_id_filter)
+```
+
+This prevents loading O(all_simulation_trees) data in each SLURM array task, which
+would scale to O(n_tasks × index_size) total memory across the job array.
 
 ### 7. Reference the template driver
 
@@ -227,6 +284,7 @@ convert(
     n_trees=100,
     sim_params=None,
     output_format="lhalo_hdf5",
+    n_output_files=1,
 )
 EOF
 ```
@@ -235,3 +293,7 @@ Replace `<format_id>` and `<base>` with the actual values. For `lhalo_binary` ou
 change the output path to `"assets/test_<base>_STC.0"` and `output_format` to
 `"lhalo_binary"`. Pass a `sim_params` dict if a `--sim-config` JSON was supplied by
 the user; otherwise `None` is correct.
+
+**Stage 2 always uses `n_output_files=1`** regardless of what the user chose at G1.
+The test slice is small; splitting adds no benefit. Stage 3 passes the G1-confirmed
+`n_output_files` value.
