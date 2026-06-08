@@ -1,5 +1,8 @@
 # SAGE Universal Merger Tree Converter
 
+> [!NOTE]
+> **Gemini CLI was deprecated by Google on May 19, 2026** (EOL: June 18, 2026). This project now uses [Antigravity CLI](https://antigravity.google) (`agy`) as its Google-provided LLM entry point. See the [official announcement](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/), the [migration guide](https://antigravity.google/docs/gcli-migration), and the [community migration article](https://medium.com/google-cloud/migrating-to-antigravity-cli-a841c6964f37) for details.
+
 A toolkit for converting N-body simulation merger trees from various formats into SAGE-compatible LHaloTree files. It operates in two modes: **agent workflow** (LLM-orchestrated, for new or unknown formats) and **direct conversion** (script-based, for pre-registered formats).
 
 ## Overview
@@ -10,7 +13,7 @@ The converter translates merger tree outputs from common halo finders and tree-b
 
 | | Agent workflow | Direct conversion |
 |---|---|---|
-| Entry point | `claude` / `gemini` / `codex` CLI | `runner/batch_runner.py` or `conversion-engine/main_driver.py` |
+| Entry point | `claude` / `agy` / `codex` CLI | `runner/batch_runner.py` or `conversion-engine/main_driver.py` |
 | Requires LLM CLI | Yes | No |
 | Handles unknown formats | Yes | No — registered formats only |
 | Validation pipeline | Automatic (syntactic + functional + semantic) | Manual (invoke scripts explicitly) |
@@ -19,7 +22,7 @@ The converter translates merger tree outputs from common halo finders and tree-b
 | KDB registration | Yes (Stage 4) | No |
 | Human-in-the-loop gates | Yes (G1–G4) | No |
 
-**Agent workflow** is for formats that are new or unknown to the KDB. The LLM CLI (Claude Code, Gemini CLI, or Codex) orchestrates a four-stage, human-in-the-loop gated pipeline: it discovers the format schema, maps fields, authors a new driver if needed, validates the output (syntactic + functional + semantic), and registers the result in the KDB. One conversion per session; validation gates cannot be skipped.
+**Agent workflow** is for formats that are new or unknown to the KDB. The LLM CLI (Claude Code, Antigravity CLI, or Codex) orchestrates a four-stage, human-in-the-loop gated pipeline: it discovers the format schema, maps fields, authors a new driver if needed, validates the output (syntactic + functional + semantic), and registers the result in the KDB. One conversion per session; validation gates cannot be skipped.
 
 **Direct conversion** is for formats that already have a registered driver. You invoke the conversion engine directly (single job via `main_driver.py`, or one or many jobs via the TOML batch runner). Validation scripts exist but must be invoked manually. Parallel execution is supported.
 
@@ -111,9 +114,9 @@ flowchart LR
 
 ### Prerequisites
 
-- Docker (recommended) **or** Apptainer (for HPC) **or** Python 3.11+ with packages from `requirements.txt`
-- Claude Code CLI, Gemini CLI, or Codex CLI (agent workflow only)
-- An Anthropic, Gemini, or OpenAI API key, or web login to the respective account.
+- Docker (recommended) **or** Apptainer (for HPC) **or** Python 3.13+ with packages from `pyproject.toml`
+- Claude Code CLI, Antigravity CLI (`agy`), or Codex CLI (agent workflow only)
+- An Anthropic or OpenAI API key; Antigravity CLI authenticates via OAuth (no API key required).
 
 ### Setup
 
@@ -150,10 +153,10 @@ source container/apptainer.env.sh
 apptainer shell --pwd /app sage-tree-converter.sif
 
 # then, inside the container shell:
-# claude   # or: gemini   # or: codex
+# claude   # or: agy   # or: codex
 
 # Native shell
-claude   # or: gemini   # or: codex
+claude   # or: agy   # or: codex
 ```
 
 Notes:
@@ -185,7 +188,7 @@ apptainer exec --pwd /app sage-tree-converter.sif bash -lc '
     pwd;
     ls -ld /app /app/input /app/output;
     echo "[env]";
-    env | rg "^(HOME|MPLCONFIGDIR|PYTHON_BIN|SAGE_BINARY_PATH|SAGE_MEMORY_MULTIPLIER|ANTHROPIC_API_KEY|GEMINI_API_KEY|OPENAI_API_KEY)="
+    env | rg "^(HOME|MPLCONFIGDIR|PYTHON_BIN|SAGE_BINARY_PATH|SAGE_MEMORY_MULTIPLIER|ANTHROPIC_API_KEY|OPENAI_API_KEY)="
 '
 ```
 
@@ -390,8 +393,7 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 ├── reference/               # Static schema and style references
 ├── .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
 ├── Makefile                 # Shortcuts: make lint / fmt / typecheck / check / convert
-├── pyproject.toml           # Ruff + basedpyright configuration; sage-convert entry point
-└── requirements.txt         # Python runtime dependencies
+└── pyproject.toml           # Ruff + basedpyright configuration; sage-convert entry point; Python deps
 ```
 
 ## Unit Conventions

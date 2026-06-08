@@ -15,8 +15,10 @@ services:
       COLORTERM: truecolor
       TERM: xterm-256color
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
-      GEMINI_API_KEY: "${GEMINI_API_KEY}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      # agy (Antigravity CLI) uses OAuth, not an API key. SSH_TTY signals that no
+      # browser is available, so agy falls back to the manual URL auth flow.
+      SSH_TTY: /dev/pts/0
       SAGE_BINARY_PATH: "${SAGE_BINARY_PATH:-}"
       SAGE_MEMORY_MULTIPLIER: "${SAGE_MEMORY_MULTIPLIER:-3.0}"
     volumes:
