@@ -150,7 +150,6 @@ All keys are read from `.env` at the project root. See `.env.example` for the fu
 | Key | Effect |
 | --- | ------ |
 | `ANTHROPIC_API_KEY` | API key for Claude Code |
-| `GEMINI_API_KEY` | API key for Gemini CLI |
 | `OPENAI_API_KEY` | API key for Codex CLI |
 | `INPUT_DIR` | Override for the input data directory (default: `./input`) |
 | `OUTPUT_DIR` | Override for the output data directory (default: `./output`) |
@@ -232,7 +231,7 @@ for tree_idx in tqdm(range(n_trees), desc="Converting trees"):
 
 - The `desc=` label must be meaningful (e.g. `"Converting trees"`, `"Validating pointers"`).
 - Progress bars must operate at the **outer tree loop level**, not at the halo level.
-- `tqdm` is pre-installed in the Docker/Apptainer container via `requirements.txt`.
+- `tqdm` is pre-installed in the Docker/Apptainer container (dependencies are declared in `pyproject.toml`).
 
 ---
 
@@ -309,7 +308,7 @@ The following files at the project root configure code quality tooling. Do not d
 | `pyproject.toml` | Ruff linter/formatter and basedpyright config. |
 | `Makefile` | Developer shortcuts: `make lint`, `make fmt`, `make typecheck`, `make check`. |
 | `.pre-commit-config.yaml` | Git pre-commit hooks (ruff check + format on every commit). |
-| `requirements.txt` | Python runtime dependencies (h5py, numpy, tqdm). |
+| `pyproject.toml` | Ruff linter/formatter, basedpyright config, and Python runtime dependencies. |
 | `runner/batch_runner.py` | Direct conversion batch runner (independent of the agent workflow). |
 | `runner/conversion_config.toml` | Template TOML config for the batch runner. Do not modify during an active session. |
 | `container/Dockerfile` | Docker container image definition. |

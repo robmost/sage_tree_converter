@@ -261,8 +261,8 @@ pip install h5py numpy tqdm
 ```
 
 Outside the container (development only), use `pip install --user` or a virtual
-environment. **Do not modify `requirements.txt`** — that file governs the container
-image and is not part of a conversion session.
+environment. **Do not modify `pyproject.toml`** — that file governs the container
+image dependencies and is not part of a conversion session.
 
 ### 9. Run the Stage 2 test conversion
 
