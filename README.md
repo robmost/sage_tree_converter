@@ -202,6 +202,36 @@ In agent workflow mode, the LLM CLI guides you through all four stages interacti
 
 For running conversions directly without an LLM session, see [Direct Conversion](#direct-conversion).
 
+## Development setup
+
+After cloning, run the setup script once. It enables the project git hooks and
+installs the dev tooling (ruff, basedpyright):
+
+```bash
+./scripts/setup-dev.sh
+```
+
+This does two things:
+
+1. Enables the commit-msg hook (`git config core.hooksPath .githooks`). The hook
+   rejects any commit message containing non-ASCII characters or a
+   `Co-authored-by` trailer. `core.hooksPath` is local git config, so it is not
+   carried by `git clone` - the script (or that one command) must be run per clone.
+2. Installs the package and its dev extras with `pip install -e ".[dev]"`, which
+   puts `ruff` and `basedpyright` on PATH.
+
+Then:
+
+```bash
+make lint        # ruff check
+make typecheck   # basedpyright
+make fmt         # ruff format + ruff check --fix
+make check       # lint + typecheck
+```
+
+ruff and basedpyright are configured in `pyproject.toml` (`[tool.ruff]` and
+`[tool.basedpyright]`).
+
 ## Direct Conversion
 
 Direct conversion is for **registered formats only** (formats already in the KDB with an existing driver). It does not run the four-stage agent workflow; there are no discovery, mapping, or validation gates.

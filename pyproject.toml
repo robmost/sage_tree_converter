@@ -10,6 +10,12 @@ dependencies = [
     "tqdm",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.15",
+    "basedpyright>=1.39",
+]
+
 [project.scripts]
 sage-convert = "runner.batch_runner:main"
 
