@@ -1,8 +1,8 @@
 """
-subfind_lhalotree_binary.py — Driver for the classic LHaloTree binary format.
+subfind_lhalotree_binary.py - Driver for the classic LHaloTree binary format.
 
 Reads the Gadget-2/Subfind LHaloTree binary files produced by the Millennium
-Simulation pipeline (e.g. trees_063.0 – trees_063.7) and writes a single
+Simulation pipeline (e.g. trees_063.0 - trees_063.7) and writes a single
 SAGE LHaloTree HDF5 or binary file.
 
 Binary layout per file:
@@ -44,8 +44,8 @@ from utils.split_writer import SplitWriter
 PARTICLE_MASS = 0.0860
 
 # HALO_DTYPE (the 104-byte SAGE LHaloTree record) is the canonical layout from
-# utils.schema — the same input and output binary format. See _build_fields for
-# the field → SAGE-schema mapping.
+# utils.schema - the same input and output binary format. See _build_fields for
+# the field -> SAGE-schema mapping.
 
 
 def _discover_files(input_path: str) -> list[Path]:
@@ -135,7 +135,7 @@ def convert(
     ----------
     input_path : str
         Path to a single binary tree file, or a directory containing
-        files named trees_<snap>.<N> (e.g. trees_063.0 – trees_063.7).
+        files named trees_<snap>.<N> (e.g. trees_063.0 - trees_063.7).
     output_path : str
         Path for the output file.
     n_trees : int or None
@@ -217,5 +217,5 @@ def convert(
     except SystemExit:
         raise
     except Exception as exc:
-        print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
+        print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
         sys.exit(1)

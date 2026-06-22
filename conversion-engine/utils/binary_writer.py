@@ -1,5 +1,5 @@
 """
-binary_writer.py — Utility functions for writing SAGE LHaloTree binary output files.
+binary_writer.py - Utility functions for writing SAGE LHaloTree binary output files.
 
 Public API mirrors hdf5_writer.py so drivers can call either writer with identical
 arguments. The binary format is SAGE TreeType=0, read by read_tree_lhalo_binary.c.
@@ -12,7 +12,7 @@ File layout:
 
 Unit difference from HDF5:
     The HDF5 reader (read_tree_lhalo_hdf5.c) multiplies Pos and Spin by 0.001 after
-    reading (kpc/h → Mpc/h). The binary reader does NOT. Drivers produce field dicts
+    reading (kpc/h -> Mpc/h). The binary reader does NOT. Drivers produce field dicts
     in HDF5 on-disk units (SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s)); this
     module divides both by 1000 before packing.
 
@@ -65,7 +65,7 @@ def _pack_tree(fields: dict) -> bytes:
     n = len(fields["Descendant"])
 
     # SubhaloPos is in kpc/h, SubhaloSpin in (kpc/h)(km/s) (HDF5 on-disk convention).
-    # The binary reader expects Mpc/h — divide both by 1000.
+    # The binary reader expects Mpc/h - divide both by 1000.
     pos_raw = np.asarray(fields["SubhaloPos"], dtype=np.float32)
     if pos_raw.ndim != 2 or pos_raw.shape[1] != 3:
         raise ValueError(f"SubhaloPos must have shape (N, 3), got {pos_raw.shape}.")
@@ -158,7 +158,7 @@ def write_placeholder_header(f: BinaryIO, n_trees: int) -> None:
         Open binary file object (mode "wb"). Must be at position 0.
     n_trees : int
         Number of trees that will be written to this file.  The placeholder
-        occupies 8 + n_trees × 4 bytes (matching the real header layout).
+        occupies 8 + n_trees x 4 bytes (matching the real header layout).
     """
     size = 8 + n_trees * 4  # nforests (4B) + totnhalos (4B) + nhalos[n_trees] (4B each)
     f.write(b"\x00" * size)
@@ -200,7 +200,7 @@ def write_tree(
         first; halo data is appended at the current file position.
     tree_idx : int
         Accepted for API symmetry with hdf5_writer; ignored (binary format is
-        sequential — trees are identified by position, not by name).
+        sequential - trees are identified by position, not by name).
     fields : dict[str, array-like]
         Mapping from SAGE field name to its data array. All mandatory fields must
         be present. Optional fields are used if included.

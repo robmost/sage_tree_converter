@@ -1,5 +1,5 @@
 """
-schema.py — Canonical SAGE LHaloTree field sets and binary record layout.
+schema.py - Canonical SAGE LHaloTree field sets and binary record layout.
 
 Single source of truth for the field names shared by the writers
 (utils.hdf5_writer, utils.binary_writer) and the validator
@@ -10,7 +10,7 @@ full HDF5 schema and reference/sage_lhalotree_binary_schema.md for the binary on
 import numpy as np
 
 # ---------------------------------------------------------------------------
-# Binary record layout — the 104-byte SAGE LHaloTree halo_data struct
+# Binary record layout - the 104-byte SAGE LHaloTree halo_data struct
 # (struct halo_data in core_simulation.h). Single source of truth: the binary
 # writer (utils.binary_writer) and every binary reader (the LHaloTree-binary
 # driver and validation.semantic/functional/syntactic) import this dtype so the

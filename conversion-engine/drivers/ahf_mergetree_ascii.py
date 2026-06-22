@@ -1,5 +1,5 @@
 """
-ahf_mergetree_ascii.py — SAGE LHaloTree converter for AHF/MergerTree ASCII format.
+ahf_mergetree_ascii.py - SAGE LHaloTree converter for AHF/MergerTree ASCII format.
 
 Input:  directory containing .AHF_halos and .AHF_croco files
 Output: SAGE LHaloTree HDF5 (lhalo_hdf5) or binary (lhalo_binary)
@@ -40,7 +40,7 @@ from utils.split_writer import SplitWriter
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-_G_PHYS = 4.3009e-9  # (Mpc/h)(km/s)^2(Msun/h)^-1 — for SubhaloSpin
+_G_PHYS = 4.3009e-9  # (Mpc/h)(km/s)^2(Msun/h)^-1 - for SubhaloSpin
 
 _COL_ID = 0
 _COL_HOST_ID = 1
@@ -163,7 +163,7 @@ def _parse_croco_file(filepath: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Union-Find for O(N α(N)) tree identification
+# Union-Find for O(N alpha(N)) tree identification
 # ---------------------------------------------------------------------------
 class _UnionFind:
     __slots__ = ("parent", "rank")
@@ -194,7 +194,7 @@ class _UnionFind:
 
 
 # ---------------------------------------------------------------------------
-# Pipeline — convert() runs _prepare_trees() (parse + identify + order trees)
+# Pipeline - convert() runs _prepare_trees() (parse + identify + order trees)
 # then _build_tree_field_dict() per tree.
 # ---------------------------------------------------------------------------
 class _PreparedTrees(NamedTuple):
@@ -230,7 +230,7 @@ def _prepare_trees(input_path: str, n_trees: int | None) -> _PreparedTrees:
     max_snap = max(snap_ids)
 
     print(
-        f"  AHF_halos files : {len(snap_ids)}  (snap {min_snap}–{max_snap})",
+        f"  AHF_halos files : {len(snap_ids)}  (snap {min_snap}-{max_snap})",
         file=sys.stderr,
     )
     print(f"  AHF_croco files : {len(croco_files)}", file=sys.stderr)
@@ -484,7 +484,7 @@ def convert(
     output_format : str
         'lhalo_hdf5' or 'lhalo_binary'.
     n_output_files : int
-        Number of output files to produce (default 1).  Must be ≥ 1.
+        Number of output files to produce (default 1).  Must be >= 1.
     """
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
@@ -511,7 +511,7 @@ def convert(
         particle_mass_1e10 = m_particle_msun / 1e10
         print(
             f"  Particle mass : {m_particle_msun:.4e} Msun/h "
-            f"({particle_mass_1e10:.6g} × 10^10 Msun/h)",
+            f"({particle_mass_1e10:.6g} x 10^10 Msun/h)",
             file=sys.stderr,
         )
 
@@ -542,5 +542,5 @@ def convert(
         import traceback
 
         traceback.print_exc(file=sys.stderr)
-        print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
+        print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
         sys.exit(1)

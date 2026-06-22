@@ -3,7 +3,7 @@ name: auditor
 description: Independently verifies the semantic validation plots and plotting
              code against the mandatory checklist. Use after semantic-validation
              generates the seven plots, before presenting results to the user.
-             Operates independently — does not rely on the main agent's assessment.
+             Operates independently - does not rely on the main agent's assessment.
 ---
 
 # Auditor
@@ -23,7 +23,7 @@ The auditor is an independent verification role. When operating as the auditor:
 
 ## Path Convention
 
-- **`.ai/skills/auditor/references/<file>`** — files in this skill's own `references/` subfolder.
+- **`.ai/skills/auditor/references/<file>`** - files in this skill's own `references/` subfolder.
 
 ### 1. Load and run the checklist
 
@@ -38,8 +38,8 @@ The report must contain:
 2. A checklist table with one row per item: item number, description, PASS/FAIL,
    and a one-line reason for any FAIL.
 3. A one-line overall verdict at the bottom:
-   - `Overall: PASS — all 10 items passed.`
-   - `Overall: FAIL — N items failed: <list of item numbers>.`
+   - `Overall: PASS - all 10 items passed.`
+   - `Overall: FAIL - N items failed: <list of item numbers>.`
 
 Format:
 
@@ -54,7 +54,7 @@ Generated: <ISO 8601 datetime>
 | 2 | ... | FAIL | plt.savefig() called at line 47 of semantic_plots.py |
 ...
 
-Overall: FAIL — 1 item failed: #2.
+Overall: FAIL - 1 item failed: #2.
 ```
 
 ### 3. On any FAIL

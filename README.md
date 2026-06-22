@@ -15,12 +15,12 @@ The converter translates merger tree outputs from common halo finders and tree-b
 |---|---|---|
 | Entry point | `claude` / `agy` / `codex` CLI | `runner/batch_runner.py` or `conversion-engine/main_driver.py` |
 | Requires LLM CLI | Yes | No |
-| Handles unknown formats | Yes | No — registered formats only |
+| Handles unknown formats | Yes | No - registered formats only |
 | Validation pipeline | Automatic (syntactic + functional + semantic) | Manual (invoke scripts explicitly) |
 | Multiple jobs per session | No | Yes (TOML batch config) |
 | Parallel jobs | No | Yes (`--workers N`) |
 | KDB registration | Yes (Stage 4) | No |
-| Human-in-the-loop gates | Yes (G1–G4) | No |
+| Human-in-the-loop gates | Yes (G1-G4) | No |
 
 **Agent workflow** is for formats that are new or unknown to the KDB. The LLM CLI (Claude Code, Antigravity CLI, or Codex) orchestrates a four-stage, human-in-the-loop gated pipeline: it discovers the format schema, maps fields, authors a new driver if needed, validates the output (syntactic + functional + semantic), and registers the result in the KDB. One conversion per session; validation gates cannot be skipped.
 
@@ -41,7 +41,7 @@ The converter translates merger tree outputs from common halo finders and tree-b
 
 | Format ID | Description |
 | --- | --- |
-| `lhalo_hdf5` | SAGE LHaloTree HDF5 (`TreeType=1`) — default |
+| `lhalo_hdf5` | SAGE LHaloTree HDF5 (`TreeType=1`) - default |
 | `lhalo_binary` | SAGE LHaloTree flat binary (`TreeType=0`, 104 bytes/halo) |
 
 ## Workflow (Agent Workflow)
@@ -64,7 +64,7 @@ flowchart LR
         a(["Input files<br/>in input/"]) --> b{"KDB lookup"}
         b -- "Match found" --> c["Load schema<br/>mapping"]
         b -- "No match" --> d["Web discovery<br/>+ Schema mapping"]
-        c & d --> g1[["G1 · Confirm mapping<br/>+ Select output format + file count"]]
+        c & d --> g1[["G1 - Confirm mapping<br/>+ Select output format + file count"]]
     end
 
     subgraph s2["Stage 2: Test Engine"]
@@ -76,7 +76,7 @@ flowchart LR
         h --> i{"SAGE binary<br/>available?"}
         i -- "Yes" --> j["Functional validation<br/>SAGE dry-run"]
         i -- "No" --> k["Skip functional<br/>validation"]
-        j & k --> g2[["G2 · Confirm test<br/>validation"]]
+        j & k --> g2[["G2 - Confirm test<br/>validation"]]
     end
 
     subgraph s3["Stage 3: Full Engine"]
@@ -84,7 +84,7 @@ flowchart LR
         l["Full conversion run"]
         l --> m["Semantic validation<br/>(7 plots)"]
         m --> n["Auditor review<br/>(13-point checklist)"]
-        n --> g3[["G3 · Approve plots"]]
+        n --> g3[["G3 - Approve plots"]]
     end
 
     subgraph s4["Stage 4: KDB Update"]
@@ -93,7 +93,7 @@ flowchart LR
         o -- "Yes" --> p["kdb-extend<br/>(Add driver + JSON)"]
         o -- "No" --> q["kdb-update<br/>(Patch entry)"]
         p & q --> r["Archive audit files"]
-        r --> g4[["G4 · Session closed"]]
+        r --> g4[["G4 - Session closed"]]
     end
 
     s1 --> s2
@@ -134,13 +134,13 @@ cp .env.example .env
 #    Files placed directly in input/ (not in a subdirectory) are not supported.
 ```
 
-### Run — Agent Workflow
+### Run - Agent Workflow
 
 ```bash
-# Docker (recommended) — run from the project root
+# Docker (recommended) - run from the project root
 docker compose -f container/docker-compose.yml up
 
-# Apptainer (HPC) — all commands run from the project root
+# Apptainer (HPC) - all commands run from the project root
 # 1) Build image (choose your own output path/name for the .sif file)
 module load apptainer
 # Use --fakeroot if your cluster requires it for package installation at build time.
@@ -226,17 +226,17 @@ Edit `runner/conversion_config.toml` to declare your jobs. Each `[job.<name>]` s
 
 | Key | Required | Default | Notes |
 | --- | --- | --- | --- |
-| `format_id` | yes | — | Must be a registered format ID (see table in [Direct Conversion — Script Reference](#direct-conversion--script-reference)) |
-| `input` | yes | — | Path to the input file or directory |
-| `output` | yes | — | Path for the converted output file |
+| `format_id` | yes | - | Must be a registered format ID (see table in [Direct Conversion - Script Reference](#direct-conversion--script-reference)) |
+| `input` | yes | - | Path to the input file or directory |
+| `output` | yes | - | Path for the converted output file |
 | `output_format` | no | `"lhalo_hdf5"` | `"lhalo_hdf5"` or `"lhalo_binary"` |
-| `n_output_files` | no | `1` | Split output across N numbered files (e.g. `_STC.0`, `_STC.1`, …). Clamped to tree count if larger. |
+| `n_output_files` | no | `1` | Split output across N numbered files (e.g. `_STC.0`, `_STC.1`, ...). Clamped to tree count if larger. |
 | `n_trees` | no | `null` | Convert only the first N trees (test mode) |
 | `[job.<name>.sim_params]` | no | `{}` | Simulation parameter overrides (same keys as `--sim-config` JSON) |
 
 A `[global]` section sets defaults inherited by all jobs. Individual jobs override global values by declaring the same key.
 
-## Direct Conversion — Script Reference
+## Direct Conversion - Script Reference
 
 If you already have a schema mapping and a driver, you can run the converter and its validation scripts directly without an LLM session.
 
@@ -251,7 +251,7 @@ All commands must be run from the **project root**. Replace `$PYTHON_BIN` with t
 | `subfind_lhalotree_binary` | FOF + Subfind (Gadget-2) / LHaloTree | Binary |
 | `subfind_gadget4_hdf5` | FOF + Subfind (Gadget-4) / built-in | HDF5 |
 
-### Convert (test — first N trees)
+### Convert (test - first N trees)
 
 ```bash
 $PYTHON_BIN conversion-engine/main_driver.py \
@@ -259,7 +259,7 @@ $PYTHON_BIN conversion-engine/main_driver.py \
     --output assets/test_<base>_STC.0.hdf5 \
     --format <format_id> \
     --n-trees 100 \
-    --output-format lhalo_hdf5   # or lhalo_binary → assets/test_<base>_STC.0
+    --output-format lhalo_hdf5   # or lhalo_binary -> assets/test_<base>_STC.0
     # --n-output-files 1         # default; always use 1 for test conversions
 ```
 
@@ -277,11 +277,11 @@ $PYTHON_BIN conversion-engine/main_driver.py \
     --input  input/<dataset_name>/<file_or_dir> \
     --output output/<base>_STC.0.hdf5 \
     --format <format_id> \
-    --output-format lhalo_hdf5   # or lhalo_binary → output/<base>_STC.0
+    --output-format lhalo_hdf5   # or lhalo_binary -> output/<base>_STC.0
     --n-output-files 1           # number of output files (default 1); use >1 to split large outputs
 ```
 
-When `--n-output-files N` is greater than 1, output files are named `<base>_STC.0.hdf5`, `<base>_STC.1.hdf5`, …, `<base>_STC.N-1.hdf5`. Trees are distributed evenly across files.
+When `--n-output-files N` is greater than 1, output files are named `<base>_STC.0.hdf5`, `<base>_STC.1.hdf5`, ..., `<base>_STC.N-1.hdf5`. Trees are distributed evenly across files.
 
 ### Simulation parameter overrides (`--sim-config`)
 
@@ -308,7 +308,7 @@ Copy `reference/sim_config_template.json` as a starting point:
 }
 ```
 
-All keys are optional — set only the ones you need to override. Drivers fall back to auto-detection or data estimation for any absent or `null` key. The file is format-agnostic: every driver reads only the keys it uses.
+All keys are optional - set only the ones you need to override. Drivers fall back to auto-detection or data estimation for any absent or `null` key. The file is format-agnostic: every driver reads only the keys it uses.
 
 ### Syntactic validation
 
@@ -362,9 +362,9 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 
 ```text
 .
-├── .ai/skills/              # Skill definitions (kdb-lookup, driver-authoring, validation, …)
+├── .ai/skills/              # Skill definitions (kdb-lookup, driver-authoring, validation, ...)
 ├── AGENTS.md                # Master agent orchestration document
-├── assets/                  # Agent workflow working area for Stages 1–3
+├── assets/                  # Agent workflow working area for Stages 1-3
 ├── audits/                  # Archived audit files from completed sessions
 ├── runner/
 │   ├── batch_runner.py      # Direct conversion batch runner (reads TOML config)
@@ -395,7 +395,7 @@ Converted outputs use the following on-disk units:
 
 | Quantity | `lhalo_hdf5` on disk | `lhalo_binary` on disk |
 | --- | --- | --- |
-| Mass | 10¹⁰ M☉ / h | 10¹⁰ M☉ / h |
+| Mass | 10^10 Msun / h | 10^10 Msun / h |
 | Position | kpc / h | Mpc / h |
 | Velocity | km / s | km / s |
 | Spin (specific angular momentum) | (kpc / h)(km / s) | (Mpc / h)(km / s) |
@@ -409,6 +409,6 @@ Notes:
 
 ## Documentation
 
-- `AGENTS.md` — agent orchestration rules, stage entry conditions, and gating protocol
-- `runner/` — Batch runner and TOML config template for direct multi-job conversion
-- `reference/` — LHaloTree HDF5 and binary schema references, validation log style guide
+- `AGENTS.md` - agent orchestration rules, stage entry conditions, and gating protocol
+- `runner/` - Batch runner and TOML config template for direct multi-job conversion
+- `reference/` - LHaloTree HDF5 and binary schema references, validation log style guide

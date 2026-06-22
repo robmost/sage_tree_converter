@@ -7,7 +7,7 @@ All plots use `reference/sage_validation.mplstyle`. All saving goes through
 
 ---
 
-## Per-mass-bin evolution plots (3×1)
+## Per-mass-bin evolution plots (3x1)
 
 Each figure has one panel per mass bin (3 rows, 1 column):
 
@@ -19,12 +19,12 @@ For each row, the 5 trees in that mass bin are overlaid on the same axes (i.e. e
 panel shows 5 curves, one per tree). Use a semi-transparent alpha (e.g. 0.6) so
 overlapping curves are visible.
 
-### Plot 1 — Mass Accretion History (`mah.pdf`)
+### Plot 1 - Mass Accretion History (`mah.pdf`)
 
 | Property | Spec |
 | -------- | ---- |
 | X axis | `SnapNum` (integer snapshot index, ascending = later time) |
-| Y axis | `Group_M_Crit200` in 10¹⁰ M☉/h, log scale |
+| Y axis | `Group_M_Crit200` in 10^10 Msun/h, log scale |
 | Y limits | Auto, but enforce `ymin > 0` for log scale |
 
 Walk each tree using `FirstProgenitor` to find the main progenitor branch:
@@ -41,34 +41,34 @@ while h != -1:
 
 This is O(depth) per tree, O(N) total.
 
-### Plot 2 — Merger Rate (`merger_rate.pdf`)
+### Plot 2 - Merger Rate (`merger_rate.pdf`)
 
 | Property | Spec |
 | -------- | ---- |
 | X axis | `SnapNum` |
 | Y axis | Number of progenitors at each snapshot (integer, linear scale) |
 
-At each snapshot, count the number of halos that merge into the main branch halo —
+At each snapshot, count the number of halos that merge into the main branch halo -
 the number of halos whose `Descendant` points to the main branch halo at that snapshot.
 
-### Plot 3 — Specific Angular Momentum (`angular_momentum.pdf`)
+### Plot 3 - Specific Angular Momentum (`angular_momentum.pdf`)
 
 | Property | Spec |
 | -------- | ---- |
 | X axis | `SnapNum` |
-| Y axis | `\|SubhaloSpin\|` = `sqrt(Jx² + Jy² + Jz²)` in (kpc/h)(km/s), log scale |
+| Y axis | `\|SubhaloSpin\|` = `sqrt(Jx^2 + Jy^2 + Jz^2)` in (kpc/h)(km/s), log scale |
 
 Walk the main progenitor branch of each selected tree. Plot `|SubhaloSpin|` at each
-snapshot. **Do not plot the spin parameter λ.**
+snapshot. **Do not plot the spin parameter lambda.**
 
 ---
 
 ## Distribution plots (single panel)
 
 Each figure is a single panel of the converted output. Use all trees at the
-lowest-redshift snapshot (after excluding mass ≤ 0 halos).
+lowest-redshift snapshot (after excluding mass <= 0 halos).
 
-### Plot 4 — Halo Mass Function (`hmf.pdf`)
+### Plot 4 - Halo Mass Function (`hmf.pdf`)
 
 | Property | Spec |
 | -------- | ---- |
@@ -77,17 +77,17 @@ lowest-redshift snapshot (after excluding mass ≤ 0 halos).
 | Bins | 30 bins spanning the range of the data |
 | Filtering | Exclude halos with `Group_M_Crit200 <= 0` |
 
-### Plot 5 — Velocity Distribution (`velocity_dist.pdf`)
+### Plot 5 - Velocity Distribution (`velocity_dist.pdf`)
 
 | Property | Spec |
 | -------- | ---- |
-| X axis | `\|SubhaloVel\|` = `sqrt(Vx² + Vy² + Vz²)` in km/s, binned |
+| X axis | `\|SubhaloVel\|` = `sqrt(Vx^2 + Vy^2 + Vz^2)` in km/s, binned |
 | Y axis | Count per bin |
 | Bins | 30 bins from 0 to `max(\|SubhaloVel\|)` |
 
 **Use `SubhaloVel` (3-vector), compute the modulus. Do NOT use `SubhaloVMax`.**
 
-### Plot 6 — Lifespan Distribution (`lifespan_dist.pdf`)
+### Plot 6 - Lifespan Distribution (`lifespan_dist.pdf`)
 
 | Property | Spec |
 | -------- | ---- |
@@ -96,7 +96,7 @@ lowest-redshift snapshot (after excluding mass ≤ 0 halos).
 | Computation | For each root halo, count the number of distinct snapshots along its main progenitor branch |
 | Bins | Integer bins from 1 to max lifespan |
 
-### Plot 7 — Spatial Distribution (`spatial_dist.pdf`)
+### Plot 7 - Spatial Distribution (`spatial_dist.pdf`)
 
 | Property | Spec |
 | -------- | ---- |
@@ -104,13 +104,13 @@ lowest-redshift snapshot (after excluding mass ≤ 0 halos).
 | Y axis | `SubhaloPos[:, 1]` (Y position in kpc/h) |
 | Plot type | `hexbin` with `gridsize=50`, `mincnt=1`, `cmap="viridis"` |
 | Colour bar | Count, labelled |
-| Filtering | Lowest-redshift snapshot only; exclude mass ≤ 0 halos |
+| Filtering | Lowest-redshift snapshot only; exclude mass <= 0 halos |
 
 ---
 
 ## Axis and Label Standards
 
-- All axis labels must include units in parentheses, e.g. `Group_M_Crit200 [10¹⁰ M☉/h]`.
+- All axis labels must include units in parentheses, e.g. `Group_M_Crit200 [10^10 Msun/h]`.
 - Panel titles must appear as subplot titles (`ax.set_title()`), not as figure-level
   suptitles, so they remain visible when the figure is saved to PDF.
 - Use `ax.set_xlabel()` and `ax.set_ylabel()` for all axes; do not leave axes unlabelled.

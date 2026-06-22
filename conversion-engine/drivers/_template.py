@@ -1,5 +1,5 @@
 """
-_template.py — Template driver for the SAGE merger tree converter.
+_template.py - Template driver for the SAGE merger tree converter.
 
 HOW TO USE THIS TEMPLATE
 ========================
@@ -25,17 +25,17 @@ INTERFACE CONTRACT
               The output file(s) must still be valid with correct internal indexing.
 - n_output_files: number of output files to split across (default 1).
               SplitWriter derives file N paths from output_path by replacing the
-              trailing index token (e.g. output/sim_STC.0.hdf5 → .0, .1, …).
+              trailing index token (e.g. output/sim_STC.0.hdf5 -> .0, .1, ...).
               n_trees_total MUST be known before opening SplitWriter.  Obtain it:
                 - from a header scan (O(trees) line-count or H5 attribute read)
                 - from len(work_list) computed before any streaming starts
                 - NEVER require O(all halos) pre-pass; the scan must be cheap.
 - output_format: "lhalo_hdf5" writes HDF5 (SAGE TreeType=1).
                  "lhalo_binary" writes binary (SAGE TreeType=0, 104 bytes/halo).
-                 Both formats are handled uniformly via SplitWriter — no
+                 Both formats are handled uniformly via SplitWriter - no
                  format-conditional write blocks needed in the driver.
 - Performance: all tree-walking and pointer reconstruction must be O(N) or O(N log N).
-               O(N²) is not acceptable.
+               O(N^2) is not acceptable.
 - Auxiliary index files (e.g. forests.list, locations.dat): if the driver loads
   a format-wide index before streaming trees, filter it to only the root IDs
   present in the current input file(s) to avoid O(all_simulation_trees) memory
@@ -97,8 +97,8 @@ def convert(
         # ------------------------------------------------------------------
         # TODO: for each halo field, apply the scale_factor or conversion_expr
         # defined in 'assets/proposed_mapping_<format_id>.json'.
-        # Reference units: masses → 10¹⁰ M☉/h, positions → Mpc/h,
-        #                  velocities → km/s, spin → (Mpc/h)(km/s).
+        # Reference units: masses -> 10^10 Msun/h, positions -> Mpc/h,
+        #                  velocities -> km/s, spin -> (Mpc/h)(km/s).
 
         # ------------------------------------------------------------------
         # 3. Reconstruct LHaloTree pointers
@@ -108,7 +108,7 @@ def convert(
         # Valid index range: [0, TreeNHalos[i]-1]. Sentinel: -1.
         # Progenitors must have SnapNum < descendant SnapNum.
         # Spatial pointers must share the same SnapNum.
-        # Use O(N) algorithms (hash maps, sorting) — never O(N²) search loops.
+        # Use O(N) algorithms (hash maps, sorting) - never O(N^2) search loops.
 
         # ------------------------------------------------------------------
         # 4. Write output via SplitWriter
@@ -134,5 +134,5 @@ def convert(
     except NotImplementedError:
         raise
     except Exception as exc:
-        print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
+        print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
         sys.exit(1)

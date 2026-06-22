@@ -10,7 +10,7 @@ description: Guides drafting or adapting a format-specific conversion driver for
 
 ## Stage Preamble
 
-The Stage 2 preamble is output from AGENTS.md §15 at stage entry. Do not re-output it here — proceed directly to driver authoring.
+The Stage 2 preamble is output from AGENTS.md section 15 at stage entry. Do not re-output it here - proceed directly to driver authoring.
 
 ## Instructions
 
@@ -20,8 +20,8 @@ This skill is invoked in Stage 2 when `kdb-lookup` found no matching driver in
 ## Path Convention
 
 Two path prefixes are used in this skill:
-- **`.ai/skills/driver-authoring/references/<file>`** — files in this skill's own `references/` subfolder.
-- **`reference/<file>` (project root)** — files in the project-root `reference/` directory (e.g. `reference/sage_lhalotree_hdf5_schema.md`).
+- **`.ai/skills/driver-authoring/references/<file>`** - files in this skill's own `references/` subfolder.
+- **`reference/<file>` (project root)** - files in the project-root `reference/` directory (e.g. `reference/sage_lhalotree_hdf5_schema.md`).
 
 ### 1. Driver interface
 
@@ -58,7 +58,7 @@ def convert(
         fall back to auto-detection when absent.
     output_format : str
         'lhalo_hdf5' (default) or 'lhalo_binary'. Both are handled uniformly
-        by SplitWriter — no format-conditional write blocks needed.
+        by SplitWriter - no format-conditional write blocks needed.
     n_output_files : int
         Number of output files to split trees across (default 1).
         n_trees_total MUST be known before opening SplitWriter (see section 2).
@@ -76,13 +76,13 @@ The driver must write a valid SAGE LHaloTree output file at `output_path`.
 ```text
 output.hdf5
 ├── Header/
-│   ├── [attr] ParticleMass        — float64
-│   ├── [attr] NtreesPerFile       — int32
-│   ├── [attr] NhalosPerFile       — int32
-│   ├── [attr] NumberOfOutputFiles — int32
-│   └── TreeNHalos                 — 1D int32 dataset, length = NtreesPerFile
+│   ├── [attr] ParticleMass        - float64
+│   ├── [attr] NtreesPerFile       - int32
+│   ├── [attr] NhalosPerFile       - int32
+│   ├── [attr] NumberOfOutputFiles - int32
+│   └── TreeNHalos                 - 1D int32 dataset, length = NtreesPerFile
 └── Tree0/
-    └── <field>   — one 1D or 2D dataset per field
+    └── <field>   - one 1D or 2D dataset per field
 ...
 └── Tree<N-1>/
     └── <field>
@@ -98,11 +98,11 @@ int64 as specified).
 int32  nforests
 int32  totnhalos
 int32  nhalos_per_forest[nforests]
-halo_data[totnhalos]   — 104 bytes each
+halo_data[totnhalos]   - 104 bytes each
 ```
 
 The header must precede halo data. `SplitWriter` handles this via a placeholder-then-patch
-strategy — `n_trees_total` must be known upfront so the placeholder is the correct size.
+strategy - `n_trees_total` must be known upfront so the placeholder is the correct size.
 
 **Use `SplitWriter` for both output formats.** Do not write format-conditional blocks:
 
@@ -129,21 +129,21 @@ output_paths = writer.output_paths  # list of all written file paths
 ```
 
 SplitWriter distributes trees evenly across `n_output_files` files, derives all output
-paths from `output_path` by replacing the trailing index token (`.0.hdf5` → `.1.hdf5`,
+paths from `output_path` by replacing the trailing index token (`.0.hdf5` -> `.1.hdf5`,
 etc.), and deletes partially-written files on exception. Do NOT call `os.remove()` in
-the except handler — SplitWriter's `__exit__` already handles cleanup.
+the except handler - SplitWriter's `__exit__` already handles cleanup.
 
 > **Required on-disk units for `SubhaloPos` and `SubhaloSpin`** (both formats): drivers always
 > produce field dicts with `SubhaloPos` in **kpc/h** and `SubhaloSpin` in **(kpc/h)(km/s)**.
 > `hdf5_writer` stores these values as-is. `binary_writer._pack_tree()` divides both by 1000
-> internally before packing (binary reader does not apply the ×0.001 factor that the HDF5
-> reader does). Never scale these fields differently per format — the writer handles the
+> internally before packing (binary reader does not apply the x0.001 factor that the HDF5
+> reader does). Never scale these fields differently per format - the writer handles the
 > conversion. See `reference/sage_lhalotree_hdf5_schema.md` (project root) Section 5.4 for the full table.
 
 ### 3. Performance constraint
 
 - All tree-walking and pointer reconstruction must be **O(N) or O(N log N)**.
-- **O(N²) is not acceptable.** This includes any loop-within-loop structure over
+- **O(N^2) is not acceptable.** This includes any loop-within-loop structure over
   halos (e.g. scanning the full halo list for each halo to find its descendant).
 - Use dictionary-based lookups for ID-to-index mapping (O(1) per lookup).
 - See `.ai/skills/driver-authoring/references/pointer_reconstruction_patterns.md` for O(N) patterns.
@@ -202,7 +202,7 @@ forest_data = _parse_forests_list(forests_list_path, root_id_filter)
 ```
 
 This prevents loading O(all_simulation_trees) data in each SLURM array task, which
-would scale to O(n_tasks × index_size) total memory across the job array.
+would scale to O(n_tasks x index_size) total memory across the job array.
 
 ### 7. Reference the template driver
 
@@ -226,7 +226,7 @@ pip install h5py numpy tqdm
 ```
 
 Outside the container (development only), use `pip install --user` or a virtual
-environment. **Do not modify `pyproject.toml`** — that file governs the container
+environment. **Do not modify `pyproject.toml`** - that file governs the container
 image dependencies and is not part of a conversion session.
 
 ### 9. Run the Stage 2 test conversion

@@ -1,5 +1,5 @@
 """
-plot_utils.py — Shared plotting utilities for SAGE semantic validation.
+plot_utils.py - Shared plotting utilities for SAGE semantic validation.
 
 All figure saving and closing must go through save_figure(). Do not call
 plt.savefig() or plt.close() directly in any plotting code.
@@ -37,7 +37,7 @@ def make_mass_bin_figure(
     row_labels: Sequence[str] = ("Top 5", "Median 5", "Bottom 5"),
     figsize: tuple[float, float] = (6, 11),
 ) -> tuple[Any, Any]:
-    """Create a 3×1 figure (one row per mass bin) for output-only evolution plots.
+    """Create a 3x1 figure (one row per mass bin) for output-only evolution plots.
 
     Each row's title is set to its mass-bin label; the caller sets the x/y labels.
 

@@ -1,5 +1,5 @@
 """
-syntactic.py — Programmatic syntactic validation for SAGE LHaloTree output files.
+syntactic.py - Programmatic syntactic validation for SAGE LHaloTree output files.
 
 Supports both lhalo_hdf5 (run_checks) and lhalo_binary (run_binary_checks).
 
@@ -16,7 +16,7 @@ Usage:
     if not result["overall"]:
         for name, check in result["checks"].items():
             if not check["passed"]:
-                print(f"FAIL — {name}: {check['detail']}")
+                print(f"FAIL - {name}: {check['detail']}")
 """
 
 import os
@@ -203,7 +203,7 @@ def _check_snapshot_consistency(f: h5py.File, n_snapshots: int | None) -> dict:
             details.append(f"{tree_name}: SnapNum >= n_snapshots ({n_snapshots}) found")
 
     note = (
-        "" if n_snapshots is not None else " (upper bound not verified — n_snapshots not provided)"
+        "" if n_snapshots is not None else " (upper bound not verified - n_snapshots not provided)"
     )
     if details:
         return _FAIL("; ".join(details) + note)
@@ -223,7 +223,7 @@ def _check_property_consistency(f: h5py.File) -> dict:
         if np.any(mass < 0) or np.any(mass > 1e6):
             n_bad = int(np.sum((mass < 0) | (mass > 1e6)))
             details.append(
-                f"{tree_name}/Group_M_Crit200: {n_bad} values outside [0, 1e6] (10¹⁰ M☉/h)"
+                f"{tree_name}/Group_M_Crit200: {n_bad} values outside [0, 1e6] (10^10 Msun/h)"
             )
 
         vel = _load_arr(grp, "SubhaloVel")
@@ -259,8 +259,8 @@ def run_checks(hdf5_path: str, n_snapshots: int | None = None) -> CheckDict:
     Returns
     -------
     dict with keys:
-        "overall" : bool — True if all checks passed.
-        "checks"  : dict mapping check name → {"passed": bool, "detail": str}
+        "overall" : bool - True if all checks passed.
+        "checks"  : dict mapping check name -> {"passed": bool, "detail": str}
     """
     checks: CheckDict = {
         "file_integrity": _FAIL("not run"),
@@ -272,12 +272,12 @@ def run_checks(hdf5_path: str, n_snapshots: int | None = None) -> CheckDict:
     }
     result: CheckDict = {"overall": False, "checks": checks}
 
-    # Check 1 — file integrity (also determines if we can continue)
+    # Check 1 - file integrity (also determines if we can continue)
     result["checks"]["file_integrity"] = _check_file_integrity(hdf5_path)
     if not result["checks"]["file_integrity"]["passed"]:
         return result
 
-    # Checks 2–6 — open once, run sequentially
+    # Checks 2-6 - open once, run sequentially
     with h5py.File(hdf5_path, "r") as f:
         result["checks"]["schema_compliance"] = _check_schema_compliance(f)
         result["checks"]["temporal_pointer_integrity"] = _check_temporal_pointers(f)
@@ -311,8 +311,8 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> Check
     Returns
     -------
     dict with keys:
-        "overall" : bool — True if all checks passed.
-        "checks"  : dict mapping check name → {"passed": bool, "detail": str}
+        "overall" : bool - True if all checks passed.
+        "checks"  : dict mapping check name -> {"passed": bool, "detail": str}
     """
     checks: CheckDict = {
         "file_readable": _FAIL("not run"),
@@ -323,7 +323,7 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> Check
     }
     result: CheckDict = {"overall": False, "checks": checks}
 
-    # Check 1 — file readable and has at least an 8-byte header
+    # Check 1 - file readable and has at least an 8-byte header
     try:
         with open(binary_path, "rb") as f:
             header_bytes = f.read(8)
@@ -337,7 +337,7 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> Check
         return result
     result["checks"]["file_readable"] = _PASS()
 
-    # Check 2 — header internal consistency: sum(nhalos_per_forest) == totnhalos
+    # Check 2 - header internal consistency: sum(nhalos_per_forest) == totnhalos
     nforests, totnhalos = struct.unpack("<ii", header_bytes)
     if nforests <= 0:
         result["checks"]["header_consistency"] = _FAIL(f"nforests={nforests} must be positive.")
@@ -367,7 +367,7 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> Check
         return result
     result["checks"]["header_consistency"] = _PASS(f"nforests={nforests}, totnhalos={totnhalos}.")
 
-    # Check 3 — file size matches expected layout
+    # Check 3 - file size matches expected layout
     expected_size = 8 + forest_index_size + totnhalos * _BINARY_HALO_DTYPE.itemsize
     try:
         actual_size = os.path.getsize(binary_path)
@@ -381,7 +381,7 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> Check
         return result
     result["checks"]["file_size_consistency"] = _PASS(f"{actual_size} bytes.")
 
-    # Check 4 — first tree pointer bounds
+    # Check 4 - first tree pointer bounds
     n0 = int(nhalos_per_forest[0])
     halo_data_start = 8 + forest_index_size
     try:
@@ -414,7 +414,7 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> Check
     else:
         result["checks"]["first_tree_pointers"] = _PASS(f"first tree, {n0} halos.")
 
-    # Check 5 — first tree snapshot numbers
+    # Check 5 - first tree snapshot numbers
     snap = halos["SnapNum"].astype(np.int32)
     snap_details = []
     if np.any(snap < 0):
@@ -428,7 +428,7 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> Check
     else:
         note = f"range [{int(snap.min())}, {int(snap.max())}]"
         if n_snapshots is None:
-            note += " (upper bound not verified — n_snapshots not provided)"
+            note += " (upper bound not verified - n_snapshots not provided)"
         result["checks"]["first_tree_snapnums"] = _PASS(note)
 
     result["overall"] = all(c["passed"] for c in result["checks"].values())

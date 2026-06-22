@@ -41,25 +41,25 @@ exactly:
 ```text
 output.hdf5
 ├── Header/
-│   ├── [attr] ParticleMass         — float64, 10^10 M_sun/h
-│   ├── [attr] NtreesPerFile        — int32
-│   ├── [attr] NhalosPerFile        — int32
-│   ├── [attr] NumberOfOutputFiles  — int32
-│   └── TreeNHalos                  — 1D int32 dataset, length = NtreesPerFile
+│   ├── [attr] ParticleMass         - float64, 10^10 M_sun/h
+│   ├── [attr] NtreesPerFile        - int32
+│   ├── [attr] NhalosPerFile        - int32
+│   ├── [attr] NumberOfOutputFiles  - int32
+│   └── TreeNHalos                  - 1D int32 dataset, length = NtreesPerFile
 └── Tree0/
-    ├── Descendant             — int32 (N,)
-    ├── FirstProgenitor        — int32 (N,)
-    ├── NextProgenitor         — int32 (N,)
-    ├── FirstHaloInFOFGroup    — int32 (N,)
-    ├── NextHaloInFOFGroup     — int32 (N,)
-    ├── SubhaloLen             — int32 (N,)
-    ├── Group_M_Crit200        — float32 (N,)
-    ├── SubhaloVMax            — float32 (N,)
-    ├── SubhaloIDMostBound     — int64 (N,)
-    ├── SnapNum                — int32 (N,)
-    ├── SubhaloPos             — float32 (N, 3)  [kpc/h on disk]
-    ├── SubhaloVel             — float32 (N, 3)
-    └── SubhaloSpin            — float32 (N, 3)  [(kpc/h)(km/s) on disk]
+    ├── Descendant             - int32 (N,)
+    ├── FirstProgenitor        - int32 (N,)
+    ├── NextProgenitor         - int32 (N,)
+    ├── FirstHaloInFOFGroup    - int32 (N,)
+    ├── NextHaloInFOFGroup     - int32 (N,)
+    ├── SubhaloLen             - int32 (N,)
+    ├── Group_M_Crit200        - float32 (N,)
+    ├── SubhaloVMax            - float32 (N,)
+    ├── SubhaloIDMostBound     - int64 (N,)
+    ├── SnapNum                - int32 (N,)
+    ├── SubhaloPos             - float32 (N, 3)  [kpc/h on disk]
+    ├── SubhaloVel             - float32 (N, 3)
+    └── SubhaloSpin            - float32 (N, 3)  [(kpc/h)(km/s) on disk]
 ...
 └── Tree<NtreesPerFile-1>/
     └── <same fields>
@@ -71,7 +71,7 @@ may be included with their sentinel values if not available in the input.
 ### lhalo_binary
 
 The driver must produce a file that matches `reference/sage_lhalotree_binary_schema.md`
-exactly. Use `conversion-engine/utils/binary_writer` — do not write the binary struct
+exactly. Use `conversion-engine/utils/binary_writer` - do not write the binary struct
 manually.
 
 ```text
@@ -116,12 +116,12 @@ with h5py.File(output_path, "w") as f:
         grp.create_dataset("SubhaloSpin",         data=spin[i].astype(np.float32))  # (kpc/h)(km/s)
 ```
 
-## Writing output — use `SplitWriter` (both formats)
+## Writing output - use `SplitWriter` (both formats)
 
 The blocks above show the raw on-disk layout for reference only. Drivers do **not** call
-`hdf5_writer` or `binary_writer` directly — write through `SplitWriter`, which selects the
+`hdf5_writer` or `binary_writer` directly - write through `SplitWriter`, which selects the
 writer from `output_format`, streams trees, distributes them across `n_output_files`, and
-deletes partial files on error (see `SKILL.md` §2 and
+deletes partial files on error (see `SKILL.md` section 2 and
 `conversion-engine/drivers/_template.py`):
 
 ```python
@@ -138,10 +138,10 @@ with SplitWriter(
         writer.write_tree(fields)
 ```
 
-Each `fields` dict must contain the mandatory keys — single source
-`conversion-engine/utils/schema.py::MANDATORY_FIELDS` — with `SubhaloPos` in kpc/h,
+Each `fields` dict must contain the mandatory keys - single source
+`conversion-engine/utils/schema.py::MANDATORY_FIELDS` - with `SubhaloPos` in kpc/h,
 `SubhaloSpin` in (kpc/h)(km/s), masses in 10^10 Msun/h. For `lhalo_binary`, `SplitWriter`
-divides `SubhaloPos` and `SubhaloSpin` by 1000 internally before struct-packing — do not
+divides `SubhaloPos` and `SubhaloSpin` by 1000 internally before struct-packing - do not
 pre-divide in the driver.
 
 ## Error handling contract

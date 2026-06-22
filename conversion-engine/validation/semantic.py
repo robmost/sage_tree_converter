@@ -1,7 +1,7 @@
 """
-semantic.py — Seven semantic validation plots for SAGE merger tree conversion.
+semantic.py - Seven semantic validation plots for SAGE merger tree conversion.
 
-Renders seven physical-plausibility diagnostics of the CONVERTED output file —
+Renders seven physical-plausibility diagnostics of the CONVERTED output file -
 absolute distributions, with no input/output comparison column. All plots use
 reference/sage_validation.mplstyle and are saved to assets/semantic_validation/.
 
@@ -48,7 +48,7 @@ def _load_trees(hdf5_path: str) -> dict[int, dict[str, np.ndarray]]:
 
     Returns
     -------
-    dict mapping tree_idx (int) → dict of field_name → numpy array.
+    dict mapping tree_idx (int) -> dict of field_name -> numpy array.
     """
     trees: dict[int, dict[str, np.ndarray]] = {}
     with h5py.File(hdf5_path, "r") as f:
@@ -67,8 +67,8 @@ def _load_trees(hdf5_path: str) -> dict[int, dict[str, np.ndarray]]:
 def _load_binary_trees(binary_path: str) -> dict[int, dict[str, np.ndarray]]:
     """Load all trees from a SAGE LHaloTree binary file.
 
-    Normalises SubhaloPos (Mpc/h → kpc/h, ×1000) and SubhaloSpin
-    ((Mpc/h)(km/s) → (kpc/h)(km/s), ×1000) to match the HDF5 on-disk convention
+    Normalises SubhaloPos (Mpc/h -> kpc/h, x1000) and SubhaloSpin
+    ((Mpc/h)(km/s) -> (kpc/h)(km/s), x1000) to match the HDF5 on-disk convention
     so plotted units are consistent regardless of output format.
     """
     trees: dict[int, dict[str, np.ndarray]] = {}
@@ -187,7 +187,7 @@ def _main_progenitor_spins(tree: dict, root_idx: int) -> tuple[list[int], list[f
 def _merger_rate_along_branch(tree: dict, root_idx: int) -> dict[int, int]:
     """Count halos merging into the main-branch halo at each snapshot (O(N)).
 
-    Build a descendant→count map in one pass over all halos in the tree.
+    Build a descendant->count map in one pass over all halos in the tree.
     """
     desc = tree["Descendant"]
     snap = tree["SnapNum"]
@@ -226,7 +226,7 @@ def _lifespan(tree: dict, root_idx: int) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Per-mass-bin evolution plots (3×1: one row per Top/Median/Bottom-5 group)
+# Per-mass-bin evolution plots (3x1: one row per Top/Median/Bottom-5 group)
 # ---------------------------------------------------------------------------
 
 
@@ -236,7 +236,7 @@ def _plot_mah(
     output_dir: str,
     style_path: str = "reference/sage_validation.mplstyle",
 ) -> str:
-    """Plot 1 — Mass Accretion History (3×1, output only)."""
+    """Plot 1 - Mass Accretion History (3x1, output only)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
 
@@ -261,7 +261,7 @@ def _plot_mah(
 
         ax.legend(fontsize="x-small", loc="best")
         ax.set_xlabel("SnapNum")
-        ax.set_ylabel("Group_M_Crit200 [10¹⁰ M☉/h]")
+        ax.set_ylabel("Group_M_Crit200 [10^10 Msun/h]")
 
     path = os.path.join(output_dir, "mah.pdf")
     save_figure(fig, path)
@@ -274,7 +274,7 @@ def _plot_merger_rate(
     output_dir: str,
     style_path: str = "reference/sage_validation.mplstyle",
 ) -> str:
-    """Plot 2 — Merger Rate (3×1, output only)."""
+    """Plot 2 - Merger Rate (3x1, output only)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
 
@@ -315,7 +315,7 @@ def _plot_angular_momentum(
     output_dir: str,
     style_path: str = "reference/sage_validation.mplstyle",
 ) -> str:
-    """Plot 3 — Specific Angular Momentum |SubhaloSpin| (3×1, output only)."""
+    """Plot 3 - Specific Angular Momentum |SubhaloSpin| (3x1, output only)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
 
@@ -355,7 +355,7 @@ def _plot_angular_momentum(
 def _collect_halos_at_snap(trees: dict, snap: int) -> dict[str, np.ndarray]:
     """Collect all halo-level arrays at the given snapshot across all trees.
 
-    Returns dict of field_name → concatenated 1D (or 2D) array.
+    Returns dict of field_name -> concatenated 1D (or 2D) array.
     Excludes halos with Group_M_Crit200 <= 0.
     """
     field_lists: dict[str, list] = {}
@@ -378,7 +378,7 @@ def _plot_hmf(
     output_dir: str,
     style_path: str = "reference/sage_validation.mplstyle",
 ) -> str:
-    """Plot 4 — Halo Mass Function (output only)."""
+    """Plot 4 - Halo Mass Function (output only)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
 
@@ -387,9 +387,9 @@ def _plot_hmf(
     out_counts, _ = np.histogram(out_mass, bins=bins)
     bin_centres = 0.5 * (bins[:-1] + bins[1:])
 
-    fig, ax = make_single_figure("Output — HMF")
+    fig, ax = make_single_figure("Output - HMF")
     ax.semilogy(bin_centres, np.where(out_counts > 0, out_counts, np.nan), drawstyle="steps-mid")
-    ax.set_xlabel("log₁₀(Group_M_Crit200 [10¹⁰ M☉/h])")
+    ax.set_xlabel("log10(Group_M_Crit200 [10^10 Msun/h])")
     ax.set_ylabel("Count")
 
     path = os.path.join(output_dir, "hmf.pdf")
@@ -402,7 +402,7 @@ def _plot_velocity_dist(
     output_dir: str,
     style_path: str = "reference/sage_validation.mplstyle",
 ) -> str:
-    """Plot 5 — Velocity Distribution |SubhaloVel| (output only)."""
+    """Plot 5 - Velocity Distribution |SubhaloVel| (output only)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
 
@@ -411,7 +411,7 @@ def _plot_velocity_dist(
     out_counts, _ = np.histogram(out_vel_mag, bins=bins)
     bin_centres = 0.5 * (bins[:-1] + bins[1:])
 
-    fig, ax = make_single_figure("Output — |SubhaloVel|")
+    fig, ax = make_single_figure("Output - |SubhaloVel|")
     ax.plot(bin_centres, out_counts, drawstyle="steps-mid")
     ax.set_xlabel("|SubhaloVel| [km/s]")
     ax.set_ylabel("Count")
@@ -426,7 +426,7 @@ def _plot_lifespan(
     output_dir: str,
     style_path: str = "reference/sage_validation.mplstyle",
 ) -> str:
-    """Plot 6 — Lifespan Distribution (output only)."""
+    """Plot 6 - Lifespan Distribution (output only)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
 
@@ -442,7 +442,7 @@ def _plot_lifespan(
     out_lifespans = _compute_lifespans(out_trees, out_lowest)
 
     if not out_lifespans:
-        fig, ax = make_single_figure("Output — Lifespan")
+        fig, ax = make_single_figure("Output - Lifespan")
         ax.text(0.5, 0.5, "No data", ha="center", va="center", transform=ax.transAxes)
         path = os.path.join(output_dir, "lifespan_dist.pdf")
         save_figure(fig, path)
@@ -453,7 +453,7 @@ def _plot_lifespan(
     out_counts, _ = np.histogram(out_lifespans, bins=bins)
     bin_centres = np.arange(1, max_life + 1)
 
-    fig, ax = make_single_figure("Output — Lifespan")
+    fig, ax = make_single_figure("Output - Lifespan")
     ax.bar(bin_centres, out_counts, width=0.8, align="center")
     ax.set_xlabel("Snapshots tracked (lifespan)")
     ax.set_ylabel("Count")
@@ -468,13 +468,13 @@ def _plot_spatial(
     output_dir: str,
     style_path: str = "reference/sage_validation.mplstyle",
 ) -> str:
-    """Plot 7 — Spatial Distribution X–Y hexbin (output only)."""
+    """Plot 7 - Spatial Distribution X-Y hexbin (output only)."""
     if os.path.isfile(style_path):
         plt.style.use(style_path)
 
     out_x, out_y = out_halos["SubhaloPos"][:, 0], out_halos["SubhaloPos"][:, 1]
 
-    fig, ax = make_single_figure("Output — Spatial")
+    fig, ax = make_single_figure("Output - Spatial")
     hb = ax.hexbin(out_x, out_y, gridsize=50, mincnt=1, cmap="viridis")
     plt.colorbar(hb, ax=ax, label="Count")
     ax.set_xlabel("Pos X [kpc/h]")
@@ -539,7 +539,7 @@ def generate_all_plots(
 
     mass_bins = _select_mass_bins(out_trees, lowest_snap)
     print(
-        f"Mass bins — top: {len(mass_bins[0])}, "
+        f"Mass bins - top: {len(mass_bins[0])}, "
         f"median: {len(mass_bins[1])}, "
         f"bottom: {len(mass_bins[2])} trees"
     )
@@ -548,7 +548,7 @@ def generate_all_plots(
     halos_lo = _collect_halos_at_snap(out_trees, lowest_snap)
 
     saved = []
-    print("\nGenerating plots …")
+    print("\nGenerating plots ...")
 
     saved.append(_plot_mah(out_trees, mass_bins, output_dir))
     saved.append(_plot_merger_rate(out_trees, mass_bins, output_dir))
