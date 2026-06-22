@@ -25,10 +25,8 @@ Two path prefixes are used in this skill:
 
 ### 1. Driver interface
 
-Every driver must expose exactly **two** public functions: `convert()` (called by
-`main_driver.py` for conversion) and `read_trees()` (called by semantic validation to
-load the original input data independently). Do not add further public functions beyond
-these two.
+Every driver must expose exactly **one** public function: `convert()` (called by
+`main_driver.py`). Do not add further public functions.
 
 The `convert()` signature is:
 
@@ -66,39 +64,6 @@ def convert(
         n_trees_total MUST be known before opening SplitWriter (see section 2).
     """
 ```
-
-The `read_trees()` signature is:
-
-```python
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    """Read input trees into the SAGE LHaloTree schema without writing output.
-
-    Reuses the driver's existing private parsing helpers and applies all unit
-    conversions and pointer reconstruction, but accumulates results in memory
-    instead of writing to disk. Called by semantic validation so the original
-    source data can be used as the reference (input) column.
-
-    Parameters
-    ----------
-    sim_params : dict or None
-        Same simulation parameter overrides as convert(). Pass through to any
-        private helper that reads particle_mass or box_size from sim_params.
-
-    Returns
-    -------
-    dict[int, dict[str, np.ndarray]]
-        tree_idx (0-based, matching convert() write order) → field dict.
-        SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s), masses in 1e10 Msun/h.
-    """
-```
-
-Implement `read_trees()` by reusing the same private helpers as `convert()`.
-Do **not** call `read_trees()` from within `convert()` — keep the streaming
-optimisations in `convert()` unchanged.
 
 See `.ai/skills/driver-authoring/references/driver_interface_spec.md` for the complete interface contract.
 

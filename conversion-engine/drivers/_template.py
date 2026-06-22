@@ -6,8 +6,7 @@ HOW TO USE THIS TEMPLATE
 1. Copy this file to 'conversion-engine/drivers/<format_id>.py'
    (e.g. 'ahf_mergertree_ascii.py').
 2. Replace every section marked with TODO with real implementation.
-3. Two public symbols must be exposed: 'convert' (conversion entry point) and
-   'read_trees' (used by semantic validation to load input data independently).
+3. One public symbol must be exposed: 'convert' (the conversion entry point).
 4. Ensure 'convert' works for both full conversion (n_trees=None) and
    test-mode (n_trees=N).
 5. Write the driver to 'assets/drivers/<format_id>.py' first (Stage 2).
@@ -137,45 +136,3 @@ def convert(
     except Exception as exc:
         print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
         sys.exit(1)
-
-
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    """Read input trees into the SAGE LHaloTree schema without writing output.
-
-    Applies all unit conversions and pointer reconstruction that convert() would,
-    but accumulates results in memory instead of writing to disk. Called by
-    semantic validation to load the original input data as the reference column.
-
-    Parameters
-    ----------
-    input_path : str
-        Path to the input file or directory (format-dependent).
-    n_trees : int or None
-        If given, read only the first n_trees trees.
-    sim_params : dict or None
-        Simulation parameter overrides (same keys as --sim-config JSON). Used by
-        drivers that compute derived fields (e.g. SubhaloLen) from simulation
-        properties. Passed through from generate_all_plots() during semantic
-        validation.
-
-    Returns
-    -------
-    dict[int, dict[str, np.ndarray]]
-        Maps integer tree index (0-based, matching convert() output order) to
-        a field dict using SAGE LHaloTree HDF5 field names and on-disk units.
-        SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s), masses in 1e10 Msun/h.
-
-    Implementation note
-    -------------------
-    read_trees() and convert() MUST produce identical per-tree field arrays — the
-    semantic-validation reference is read_trees() output. Achieve this by factoring
-    the shared parsing / pointer reconstruction / field building into private helpers
-    that BOTH functions call (do not call read_trees() from convert()). See the
-    subfind_gadget4_hdf5 driver (_process_tree) and ahf_mergetree_ascii driver
-    (_prepare_trees / _build_tree_field_dict) for the pattern.
-    """
-    raise NotImplementedError("Replace this with the actual read_trees logic.")

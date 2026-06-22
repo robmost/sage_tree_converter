@@ -357,11 +357,11 @@ I'll run a test conversion on ~100 trees and validate the output structurally.
 
 ```
 Stage 3 — Full Engine
-I'll convert all trees and verify that physical properties are preserved.
+I'll convert all trees and check that the converted trees are physically plausible.
 
   1. Full conversion
   2. Semantic validation (7 plots)
-  3. Auditor review (13 checks)
+  3. Auditor review (10 checks)
   4. [G3] Approve plots
 ```
 

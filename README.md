@@ -332,28 +332,21 @@ Both scripts exit with code `0` on full pass and `1` on any failure. `--n-snapsh
 
 ### Semantic validation
 
-Semantic validation has no standalone CLI script. Invoke the `generate_all_plots()` function from `conversion-engine/validation/semantic.py`:
+Semantic validation has no standalone CLI script. It renders seven output-only
+physical-plausibility plots of the converted file (no input/output comparison). Invoke the
+`generate_all_plots()` function from `conversion-engine/validation/semantic.py`:
 
 ```python
-import json, sys
+import sys
 sys.path.insert(0, "conversion-engine")
 import matplotlib.pyplot as plt
 from validation.semantic import generate_all_plots
 
 plt.style.use("reference/sage_validation.mplstyle")
 
-# If you used --sim-config during conversion, pass the same file here so that
-# read_trees() computes SubhaloLen with the same particle mass as the output.
-# Omit sim_params (or pass None) when no sim-config was used.
-with open("assets/my_sim.json") as f:
-    sim_params = json.load(f)
-
 generate_all_plots(
-    input_path="<original_input_path>",
     output_path="output/<base>_STC.0.hdf5",   # or _STC.0 for binary
-    input_format="rockstar_consistent_trees_ascii",  # driver format ID, or lhalo_hdf5 / lhalo_binary
     output_format="lhalo_hdf5",                # or lhalo_binary
-    sim_params=sim_params,                     # omit or set to None if not needed
 )
 ```
 

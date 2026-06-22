@@ -12,7 +12,7 @@ def convert(
 ) -> None:
 ```
 
-Both `convert()` and `read_trees()` are public functions every driver module must expose. The main driver
+`convert()` is the single public function every driver module must expose. The main driver
 (`conversion-engine/main_driver.py`) imports it by name:
 
 ```python
@@ -184,18 +184,8 @@ def convert(
     # 1. Read input
     # 2. Apply field mapping and unit conversions
     # 3. Reconstruct pointers
-    # 4. Write output (HDF5 via hdf5_writer or binary via binary_writer)
-    ...
-
-
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    # Same parsing logic as convert() but accumulates into a dict instead of writing.
-    # Returns {tree_idx: {field_name: np.ndarray}} with SAGE LHaloTree HDF5 units.
+    # 4. Write output via SplitWriter (HDF5 or binary, selected by output_format)
     ...
 ```
 
-No other public functions beyond these two. Private helper functions (prefixed with `_`) are allowed.
+No other public functions. Private helper functions (prefixed with `_`) are allowed.
