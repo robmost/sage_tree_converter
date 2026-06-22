@@ -33,12 +33,10 @@ tree_n_halos = hdr["TreeNHalos"][:]   # dataset, not attribute
 ## Checking mandatory fields in a tree group
 
 ```python
-MANDATORY_FIELDS = {
-    "Descendant", "FirstProgenitor", "NextProgenitor",
-    "FirstHaloInFOFGroup", "NextHaloInFOFGroup",
-    "Len", "Group_M_Crit200", "SubhaloVMax", "MostBoundID",
-    "SnapNum", "Pos", "SubhaloVel", "SubhaloSpin",
-}
+# Single source of truth: conversion-engine/utils/schema.py. These are the output
+# dataset names (SubhaloLen, SubhaloIDMostBound, SubhaloPos, …) — not the SAGE
+# C-reader's Len/MostBoundID/Pos. Import rather than re-listing.
+from utils.schema import MANDATORY_FIELDS
 
 for tree_name in tree_names:
     grp = f[tree_name]

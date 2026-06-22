@@ -168,5 +168,14 @@ def read_trees(
         Maps integer tree index (0-based, matching convert() output order) to
         a field dict using SAGE LHaloTree HDF5 field names and on-disk units.
         SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s), masses in 1e10 Msun/h.
+
+    Implementation note
+    -------------------
+    read_trees() and convert() MUST produce identical per-tree field arrays — the
+    semantic-validation reference is read_trees() output. Achieve this by factoring
+    the shared parsing / pointer reconstruction / field building into private helpers
+    that BOTH functions call (do not call read_trees() from convert()). See the
+    subfind_gadget4_hdf5 driver (_process_tree) and ahf_mergetree_ascii driver
+    (_prepare_trees / _build_tree_field_dict) for the pattern.
     """
     raise NotImplementedError("Replace this with the actual read_trees logic.")

@@ -82,7 +82,7 @@ output          (no file extension)
   Offset 8+4*nforests: 104-byte halo_data records (sequential, all trees)
 ```
 
-## h5py writing pattern (lhalo_hdf5)
+## On-disk HDF5 layout (lhalo_hdf5, for reference)
 
 ```python
 import h5py
@@ -116,22 +116,33 @@ with h5py.File(output_path, "w") as f:
         grp.create_dataset("SubhaloSpin",         data=spin[i].astype(np.float32))  # (kpc/h)(km/s)
 ```
 
-## binary_writer pattern (lhalo_binary)
+## Writing output — use `SplitWriter` (both formats)
+
+The blocks above show the raw on-disk layout for reference only. Drivers do **not** call
+`hdf5_writer` or `binary_writer` directly — write through `SplitWriter`, which selects the
+writer from `output_format`, streams trees, distributes them across `n_output_files`, and
+deletes partial files on error (see `SKILL.md` §2 and
+`conversion-engine/drivers/_template.py`):
 
 ```python
-from utils import binary_writer
+from utils.split_writer import SplitWriter
 
-bw = binary_writer.BinaryWriter(output_path)
-bw.write_header(n_trees=n_trees, tree_nhalos=tree_n_halos_array)
-from tqdm import tqdm
-for i in tqdm(range(n_trees), desc="Writing trees"):
-    bw.write_tree(fields_dict)  # keys: SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s)
-bw.close()
+with SplitWriter(
+    output_path=output_path,
+    output_format=output_format,
+    n_output_files=n_output_files,
+    n_trees_total=n_trees_total,   # must be known before opening
+    particle_mass=particle_mass_1e10,
+) as writer:
+    for fields in tree_stream:     # one field dict per tree, in write order
+        writer.write_tree(fields)
 ```
 
-`fields_dict` keys must match the mandatory field list in `reference/sage_lhalotree_binary_schema.md`
-Section 4. The writer divides `SubhaloPos` and `SubhaloSpin` by 1000 internally before
-struct-packing — do not pre-divide in the driver.
+Each `fields` dict must contain the mandatory keys — single source
+`conversion-engine/utils/schema.py::MANDATORY_FIELDS` — with `SubhaloPos` in kpc/h,
+`SubhaloSpin` in (kpc/h)(km/s), masses in 10^10 Msun/h. For `lhalo_binary`, `SplitWriter`
+divides `SubhaloPos` and `SubhaloSpin` by 1000 internally before struct-packing — do not
+pre-divide in the driver.
 
 ## Error handling contract
 
