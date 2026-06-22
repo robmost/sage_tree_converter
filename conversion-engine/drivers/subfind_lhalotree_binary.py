@@ -36,35 +36,16 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
+from utils.schema import HALO_RECORD_DTYPE as HALO_DTYPE
 from utils.split_writer import SplitWriter
 
 # Dark matter particle mass for the Millennium / mini-Millennium simulation
 # (Springel et al. 2005). Units: 10^10 Msun/h.
 PARTICLE_MASS = 0.0860
 
-HALO_DTYPE = np.dtype(
-    [
-        ("Descendant", np.int32),
-        ("FirstProgenitor", np.int32),
-        ("NextProgenitor", np.int32),
-        ("FirstHaloInFOFGroup", np.int32),
-        ("NextHaloInFOFGroup", np.int32),
-        ("Len", np.int32),
-        ("M_Mean200", np.float32),
-        ("M_Crit200", np.float32),
-        ("M_TopHat", np.float32),
-        ("Pos", np.float32, 3),
-        ("Vel", np.float32, 3),
-        ("VelDisp", np.float32),
-        ("Vmax", np.float32),
-        ("Spin", np.float32, 3),
-        ("MostBoundID", np.int64),
-        ("SnapNum", np.int32),
-        ("FileNr", np.int32),
-        ("SubhaloIndex", np.int32),
-        ("SubHalfMass", np.float32),
-    ]
-)  # 104 bytes per halo — confirmed against mini-Millennium file sizes
+# HALO_DTYPE (the 104-byte SAGE LHaloTree record) is the canonical layout from
+# utils.schema — the same input and output binary format. See _build_fields for
+# the field → SAGE-schema mapping.
 
 
 def _discover_files(input_path: str) -> list[Path]:

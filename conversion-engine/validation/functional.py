@@ -22,6 +22,8 @@ from pathlib import Path
 import h5py
 import numpy as np
 
+from utils.schema import HALO_RECORD_DTYPE as _BINARY_HALO_DTYPE
+
 # ---------------------------------------------------------------------------
 # SAGE parameter file templates (one per output format)
 # ---------------------------------------------------------------------------
@@ -116,32 +118,6 @@ IMF                 Chabrier
 %-- Cosmological file --%
 FileWithSnapList
 """
-
-# numpy dtype for reading binary halo records (matches struct halo_data in core_simulation.h)
-_BINARY_HALO_DTYPE = np.dtype(
-    [
-        ("Descendant", np.int32),
-        ("FirstProgenitor", np.int32),
-        ("NextProgenitor", np.int32),
-        ("FirstHaloInFOFgroup", np.int32),
-        ("NextHaloInFOFgroup", np.int32),
-        ("Len", np.int32),
-        ("M_Mean200", np.float32),
-        ("Mvir", np.float32),
-        ("M_TopHat", np.float32),
-        ("Pos", np.float32, 3),
-        ("Vel", np.float32, 3),
-        ("VelDisp", np.float32),
-        ("Vmax", np.float32),
-        ("Spin", np.float32, 3),
-        ("MostBoundID", np.int64),
-        ("SnapNum", np.int32),
-        ("FileNr", np.int32),
-        ("SubhaloIndex", np.int32),
-        ("SubHalfMass", np.float32),
-    ]
-)
-
 
 def _read_hdf5_params(hdf5_path: str) -> tuple[float, int]:
     """Return (particle_mass, lowest_redshift_snap) from an HDF5 output file."""

@@ -26,7 +26,7 @@ from typing import Any
 import h5py
 import numpy as np
 
-from utils.schema import ALL_KNOWN_FIELDS, MANDATORY_FIELDS
+from utils.schema import ALL_KNOWN_FIELDS, HALO_RECORD_DTYPE, MANDATORY_FIELDS
 
 CheckDict = dict[str, Any]
 
@@ -293,29 +293,8 @@ def run_checks(hdf5_path: str, n_snapshots: int | None = None) -> CheckDict:
 # Binary format (lhalo_binary / SAGE TreeType=0) validation
 # ---------------------------------------------------------------------------
 
-_BINARY_HALO_DTYPE = np.dtype(
-    [
-        ("Descendant", np.int32),
-        ("FirstProgenitor", np.int32),
-        ("NextProgenitor", np.int32),
-        ("FirstHaloInFOFgroup", np.int32),
-        ("NextHaloInFOFgroup", np.int32),
-        ("Len", np.int32),
-        ("M_Mean200", np.float32),
-        ("Mvir", np.float32),
-        ("M_TopHat", np.float32),
-        ("Pos", np.float32, 3),
-        ("Vel", np.float32, 3),
-        ("VelDisp", np.float32),
-        ("Vmax", np.float32),
-        ("Spin", np.float32, 3),
-        ("MostBoundID", np.int64),
-        ("SnapNum", np.int32),
-        ("FileNr", np.int32),
-        ("SubhaloIndex", np.int32),
-        ("SubHalfMass", np.float32),
-    ]
-)  # 104 bytes per record — matches struct halo_data in core_simulation.h
+# Canonical 104-byte SAGE LHaloTree record layout (utils.schema).
+_BINARY_HALO_DTYPE = HALO_RECORD_DTYPE
 
 
 def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> CheckDict:
@@ -420,8 +399,8 @@ def run_binary_checks(binary_path: str, n_snapshots: int | None = None) -> Check
         "Descendant",
         "FirstProgenitor",
         "NextProgenitor",
-        "FirstHaloInFOFgroup",
-        "NextHaloInFOFgroup",
+        "FirstHaloInFOFGroup",
+        "NextHaloInFOFGroup",
     ):
         arr = halos[field].astype(np.int32)
         bad = np.where((arr < -1) | (arr >= n0))[0]

@@ -27,7 +27,7 @@ from typing import BinaryIO
 
 import numpy as np
 
-from utils.schema import MANDATORY_FIELDS
+from utils.schema import HALO_RECORD_DTYPE, MANDATORY_FIELDS
 
 if sys.byteorder != "little":
     raise RuntimeError(
@@ -48,34 +48,11 @@ assert _HALO_STRUCT_SIZE == 104, (
     "Check _HALO_STRUCT_FMT against core_simulation.h."
 )
 
-# NumPy structured dtype mirroring _HALO_STRUCT_FMT field-for-field, little-endian
-# and unaligned (packed) so its byte layout is identical to struct.pack(_HALO_STRUCT_FMT).
-# Lets _pack_tree fill columns and emit one .tobytes() instead of a per-halo Python loop.
-_HALO_WRITE_DTYPE = np.dtype(
-    [
-        ("Descendant", "<i4"),
-        ("FirstProgenitor", "<i4"),
-        ("NextProgenitor", "<i4"),
-        ("FirstHaloInFOFGroup", "<i4"),
-        ("NextHaloInFOFGroup", "<i4"),
-        ("Len", "<i4"),
-        ("M_Mean200", "<f4"),
-        ("M_Crit200", "<f4"),
-        ("M_TopHat", "<f4"),
-        ("Pos", "<f4", 3),
-        ("Vel", "<f4", 3),
-        ("VelDisp", "<f4"),
-        ("Vmax", "<f4"),
-        ("Spin", "<f4", 3),
-        ("MostBoundID", "<i8"),
-        ("SnapNum", "<i4"),
-        ("FileNr", "<i4"),
-        ("SubhaloIndex", "<i4"),
-        ("SubHalfMass", "<f4"),
-    ]
-)
-assert _HALO_WRITE_DTYPE.itemsize == _HALO_STRUCT_SIZE, (
-    f"Write dtype size {_HALO_WRITE_DTYPE.itemsize} != struct size {_HALO_STRUCT_SIZE}."
+# HALO_RECORD_DTYPE (utils.schema) is the canonical packed little-endian layout;
+# its byte layout is identical to struct.pack(_HALO_STRUCT_FMT), so _pack_tree can
+# fill columns and emit one .tobytes() instead of a per-halo Python loop.
+assert HALO_RECORD_DTYPE.itemsize == _HALO_STRUCT_SIZE, (
+    f"HALO_RECORD_DTYPE size {HALO_RECORD_DTYPE.itemsize} != struct size {_HALO_STRUCT_SIZE}."
 )
 
 
@@ -99,7 +76,7 @@ def _pack_tree(fields: dict) -> bytes:
     if spin_raw.ndim != 2 or spin_raw.shape[1] != 3:
         raise ValueError(f"SubhaloSpin must have shape (N, 3), got {spin_raw.shape}.")
 
-    rec = np.empty(n, dtype=_HALO_WRITE_DTYPE)
+    rec = np.empty(n, dtype=HALO_RECORD_DTYPE)
     rec["Descendant"] = np.asarray(fields["Descendant"], dtype=np.int32)
     rec["FirstProgenitor"] = np.asarray(fields["FirstProgenitor"], dtype=np.int32)
     rec["NextProgenitor"] = np.asarray(fields["NextProgenitor"], dtype=np.int32)

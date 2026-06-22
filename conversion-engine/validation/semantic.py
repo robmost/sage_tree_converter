@@ -30,36 +30,13 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 
+from utils.schema import HALO_RECORD_DTYPE as _BINARY_HALO_DTYPE
+
 from .plot_utils import (
     make_mass_bin_figure,
     make_single_figure,
     save_figure,
 )
-
-_BINARY_HALO_DTYPE = np.dtype(
-    [
-        ("Descendant", np.int32),
-        ("FirstProgenitor", np.int32),
-        ("NextProgenitor", np.int32),
-        ("FirstHaloInFOFgroup", np.int32),
-        ("NextHaloInFOFgroup", np.int32),
-        ("Len", np.int32),
-        ("M_Mean200", np.float32),
-        ("Mvir", np.float32),
-        ("M_TopHat", np.float32),
-        ("Pos", np.float32, 3),
-        ("Vel", np.float32, 3),
-        ("VelDisp", np.float32),
-        ("Vmax", np.float32),
-        ("Spin", np.float32, 3),
-        ("MostBoundID", np.int64),
-        ("SnapNum", np.int32),
-        ("FileNr", np.int32),
-        ("SubhaloIndex", np.int32),
-        ("SubHalfMass", np.float32),
-    ]
-)
-
 
 # ---------------------------------------------------------------------------
 # Data loading helpers
@@ -110,10 +87,10 @@ def _load_binary_trees(binary_path: str) -> dict[int, dict[str, np.ndarray]]:
                 "Descendant": halos["Descendant"],
                 "FirstProgenitor": halos["FirstProgenitor"],
                 "NextProgenitor": halos["NextProgenitor"],
-                "FirstHaloInFOFGroup": halos["FirstHaloInFOFgroup"],
-                "NextHaloInFOFGroup": halos["NextHaloInFOFgroup"],
+                "FirstHaloInFOFGroup": halos["FirstHaloInFOFGroup"],
+                "NextHaloInFOFGroup": halos["NextHaloInFOFGroup"],
                 "SubhaloLen": halos["Len"],
-                "Group_M_Crit200": halos["Mvir"],
+                "Group_M_Crit200": halos["M_Crit200"],
                 "Group_M_Mean200": halos["M_Mean200"],
                 "Group_M_TopHat200": halos["M_TopHat"],
                 "SubhaloPos": (halos["Pos"] * np.float32(1000.0)).astype(np.float32),
