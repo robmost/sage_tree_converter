@@ -74,21 +74,6 @@ def _snap_from_filename(filename: str) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Halo ID decoding
-# ---------------------------------------------------------------------------
-def _decode_snap_id(halo_id: int) -> int:
-    """Return snap_id encoded in a SUSSING2013 halo ID.
-
-    Tries MPI encoding (snap * 1e16 + ...) first; falls back to non-MPI
-    (snap * 1e12 + ...) if the MPI result is not a plausible snapshot number.
-    """
-    snap_mpi = int(halo_id // int(1e16))
-    if 0 < snap_mpi < 10000:
-        return snap_mpi
-    return int(halo_id // int(1e12))
-
-
-# ---------------------------------------------------------------------------
 # AHF_halos parser
 # ---------------------------------------------------------------------------
 def _parse_halos_file(filepath: str, snap_id: int) -> list:
