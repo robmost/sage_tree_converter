@@ -178,7 +178,7 @@ class SplitWriter:
         else:
             return h5py.File(path, "w")
 
-    def _finalise_file(self, file_idx: int, handle: BinaryIO | h5py.File) -> None:
+    def _finalise_file(self, handle: BinaryIO | h5py.File) -> None:
         n = len(self._file_n_halos)
         total = sum(self._file_n_halos)
         if isinstance(handle, h5py.File):
@@ -203,7 +203,7 @@ class SplitWriter:
 
     def _rotate(self) -> None:
         assert self._current_handle is not None
-        self._finalise_file(self._file_idx, self._current_handle)
+        self._finalise_file(self._current_handle)
         self._current_handle = None
         self._file_idx += 1
         self._tree_idx_in_file = 0
@@ -252,7 +252,7 @@ class SplitWriter:
     def close(self) -> None:
         """Finalise and close all output files."""
         if self._current_handle is not None:
-            self._finalise_file(self._file_idx, self._current_handle)
+            self._finalise_file(self._current_handle)
             self._current_handle = None
 
     def _cleanup(self) -> None:

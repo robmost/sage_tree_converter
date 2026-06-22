@@ -64,26 +64,6 @@ _MAX_CHAIN_DEPTH = 2000  # guard against hostHaloID cycles
 
 
 # ---------------------------------------------------------------------------
-# Import utils (works from both assets/drivers/ and conversion-engine/drivers/)
-# ---------------------------------------------------------------------------
-def _add_engine_to_path() -> None:
-    driver_file = Path(__file__).resolve()
-    for parent in driver_file.parents:
-        engine_path = parent / "conversion-engine"
-        if engine_path.is_dir() and (engine_path / "utils").is_dir():
-            if str(engine_path) not in sys.path:
-                sys.path.insert(0, str(engine_path))
-            return
-    # Fallback: driver lives inside conversion-engine/drivers/
-    fallback = str(driver_file.parents[1])
-    if fallback not in sys.path:
-        sys.path.insert(0, fallback)
-
-
-_add_engine_to_path()
-
-
-# ---------------------------------------------------------------------------
 # File discovery helpers
 # ---------------------------------------------------------------------------
 def _snap_from_filename(filename: str) -> int:
@@ -607,6 +587,8 @@ def convert(
             file=sys.stderr,
         )
 
+    except SystemExit:
+        raise
     except Exception as exc:
         import traceback
 

@@ -5,6 +5,7 @@ All conversion drivers must write output through these functions to guarantee
 dtype correctness and schema compliance with reference/sage_lhalotree_hdf5_schema.md.
 """
 
+import warnings
 from typing import Any
 
 import h5py
@@ -74,8 +75,6 @@ def _cast(field_name: str, data: Any) -> np.ndarray:
             )
         return out
     # Unknown field — preserve as-is but warn.
-    import warnings
-
     warnings.warn(
         f"Field '{field_name}' is not in the canonical dtype map. "
         "Writing as-is. Check reference/sage_lhalotree_hdf5_schema.md.",
