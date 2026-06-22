@@ -175,16 +175,12 @@ def _compute_particle_mass(omega_m: float, box_size: float, n_side: int = _N_SID
 def _resolve_particle_mass(
     header_text: str, sim_params: dict | None
 ) -> tuple[float, float, float, str]:
-    """Resolve particle mass (Msun/h) and the cosmology used, shared by convert/read_trees.
-
-    Applies the same override precedence to both code paths so SubhaloLen is
-    consistent between the converted output and the semantic-validation reference.
+    """Resolve particle mass (Msun/h) and the cosmology used by convert().
 
     Returns
     -------
     (particle_mass_msun_per_h, omega_m, box_size, detail)
-        ``detail`` is the parenthetical source description convert() prints; it is
-        unused by read_trees().
+        ``detail`` is the parenthetical source description convert() prints.
     """
     omega_m, box_size = _parse_cosmology(header_text)
     _sp = sim_params or {}
@@ -673,66 +669,6 @@ def _get_output_units(
         )
     else:
         yield from _tree_mode_units(tree_files, n_limit)
-
-
-# ---------------------------------------------------------------------------
-# Public read_trees() — load input without writing output
-# ---------------------------------------------------------------------------
-
-
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    """Read Consistent Trees ASCII files into the SAGE LHaloTree schema.
-
-    Uses the same forest-level / tree-level routing as convert() so that
-    the semantic-validation reference matches the converted output exactly.
-
-    Parameters
-    ----------
-    input_path : str
-        Path to a single tree_*.dat file or a directory containing them.
-    n_trees : int or None
-        If given, read only the first n_trees output units.
-    sim_params : dict or None
-        Simulation parameter overrides (same keys as --sim-config JSON).
-        Keys used: particle_mass_msun_per_h, n_particles_per_side,
-        box_size_mpc_per_h, omega_m. Must match what was passed to convert()
-        so that SubhaloLen values are consistent between input and output columns.
-
-    Returns
-    -------
-    dict[int, dict[str, np.ndarray]]
-        unit_idx (0-based) → field dict.
-        SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s), masses in 1e10 Msun/h.
-    """
-    tree_files = _discover_tree_files(input_path)
-    input_dir = tree_files[0].parent
-    header_text = _read_header_text(tree_files[0])
-    particle_mass_msun_per_h, _, _, _ = _resolve_particle_mass(header_text, sim_params)
-
-    forests_list_path: Path | None = input_dir / "forests.list"
-    locations_path: Path | None = input_dir / "locations.dat"
-
-    if not (forests_list_path.exists() and locations_path.exists()):
-        print(
-            "WARNING: forests.list / locations.dat not found — falling back to per-tree mode. "
-            "Cross-tree upid references cannot be resolved: satellites whose host central "
-            "resides in a different #tree block will be treated as isolated centrals, "
-            "producing incorrect FOF group pointers and underproducing massive galaxies in SAGE. "
-            "Re-run Consistent Trees with the -F flag to generate these files.",
-            file=sys.stderr,
-        )
-
-    result: dict[int, dict] = {}
-    for unit_idx, halos in enumerate(
-        _get_output_units(tree_files, n_trees, forests_list_path, locations_path)
-    ):
-        result[unit_idx] = _build_fields(halos, particle_mass_msun_per_h)
-
-    return result
 
 
 # ---------------------------------------------------------------------------

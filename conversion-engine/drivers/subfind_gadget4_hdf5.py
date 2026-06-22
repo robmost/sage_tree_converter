@@ -357,34 +357,3 @@ def convert(
         print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
-
-
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    """Read trees into SAGE LHaloTree schema without writing output.
-
-    Applies the same per-tree processing as convert() so tree_idx values match.
-    Called by semantic validation to load the original data as the reference column.
-
-    Returns
-    -------
-    dict[int, dict[str, np.ndarray]]
-        tree_idx (0-based) → field dict. SubhaloPos in kpc/h,
-        SubhaloSpin in (kpc/h)(km/s), masses in 10^10 Msun/h.
-    """
-    result: dict[int, dict] = {}
-    with h5py.File(input_path, "r") as in_f:
-        tt: h5py.Group = in_f["TreeTable"]  # type: ignore[assignment]
-        starts = _load_arr(tt, "StartOffset").astype(np.int64)
-        lengths = _load_arr(tt, "Length").astype(np.int64)
-        n_g4_trees = int(len(starts))
-        n_to_read = min(n_trees, n_g4_trees) if n_trees is not None else n_g4_trees
-
-        th: h5py.Group = in_f["TreeHalos"]  # type: ignore[assignment]
-        for tree_idx in tqdm(range(n_to_read), desc="Reading trees"):
-            result[tree_idx] = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
-
-    return result

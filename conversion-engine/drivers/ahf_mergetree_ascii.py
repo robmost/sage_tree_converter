@@ -209,9 +209,8 @@ class _UnionFind:
 
 
 # ---------------------------------------------------------------------------
-# Shared pipeline — convert() and read_trees() both run _prepare_trees() then
-# _build_tree_field_dict() per tree, so their per-tree output is identical by
-# construction (the semantic-validation reference matches the converted output).
+# Pipeline — convert() runs _prepare_trees() (parse + identify + order trees)
+# then _build_tree_field_dict() per tree.
 # ---------------------------------------------------------------------------
 class _PreparedTrees(NamedTuple):
     halo_props: dict[int, dict]
@@ -228,13 +227,11 @@ class _PreparedTrees(NamedTuple):
     get_top_central: Callable[[int], int]
 
 
-def _prepare_trees(input_path: str, n_trees: int | None, log: bool = False) -> _PreparedTrees:
+def _prepare_trees(input_path: str, n_trees: int | None) -> _PreparedTrees:
     """Parse AHF input, identify trees via Union-Find, order them, assign flat indices.
 
-    Shared setup for convert() and read_trees(). When ``log`` is True, prints the
-    same discovery/parse/summary lines convert() emits (read_trees runs it
-    silently). Particle-mass estimation stays in convert(); read_trees does not
-    need it.
+    Shared setup for convert(); prints discovery/parse/summary progress to stderr.
+    Particle-mass estimation stays in convert().
     """
     input_dir = Path(input_path)
     halos_files = sorted(glob(str(input_dir / "*.AHF_halos")), key=_snap_from_filename)
@@ -247,13 +244,12 @@ def _prepare_trees(input_path: str, n_trees: int | None, log: bool = False) -> _
     min_snap = min(snap_ids)
     max_snap = max(snap_ids)
 
-    if log:
-        print(
-            f"  AHF_halos files : {len(snap_ids)}  (snap {min_snap}–{max_snap})",
-            file=sys.stderr,
-        )
-        print(f"  AHF_croco files : {len(croco_files)}", file=sys.stderr)
-        print("  Parsing AHF_halos ...", file=sys.stderr)
+    print(
+        f"  AHF_halos files : {len(snap_ids)}  (snap {min_snap}–{max_snap})",
+        file=sys.stderr,
+    )
+    print(f"  AHF_croco files : {len(croco_files)}", file=sys.stderr)
+    print("  Parsing AHF_halos ...", file=sys.stderr)
 
     # --- Parse halos ---
     halo_props: dict[int, dict] = {}
@@ -264,9 +260,8 @@ def _prepare_trees(input_path: str, n_trees: int | None, log: bool = False) -> _
             halo_props[hid] = h
             snap_halos[snap_id].append(hid)
 
-    if log:
-        print(f"  Total halos loaded: {len(halo_props)}", file=sys.stderr)
-        print("  Parsing AHF_croco ...", file=sys.stderr)
+    print(f"  Total halos loaded: {len(halo_props)}", file=sys.stderr)
+    print("  Parsing AHF_croco ...", file=sys.stderr)
 
     # --- Parse croco ---
     progenitors: dict[int, list] = {}
@@ -339,11 +334,10 @@ def _prepare_trees(input_path: str, n_trees: int | None, log: bool = False) -> _
     n_trees_total = len(sorted_roots)
     n_trees_convert = min(n_trees, n_trees_total) if n_trees is not None else n_trees_total
 
-    if log:
-        print(
-            f"  Trees total / converting: {n_trees_total} / {n_trees_convert}",
-            file=sys.stderr,
-        )
+    print(
+        f"  Trees total / converting: {n_trees_total} / {n_trees_convert}",
+        file=sys.stderr,
+    )
 
     # Assign flat indices within each tree: order = (SnapNum desc, Mhalo desc)
     tree_halo_order: dict[int, list] = {}
@@ -374,7 +368,7 @@ def _prepare_trees(input_path: str, n_trees: int | None, log: bool = False) -> _
 
 
 def _build_tree_field_dict(tree_idx: int, root: int, ctx: _PreparedTrees) -> dict:
-    """Build the SAGE LHaloTree field dict for one tree (shared by convert/read_trees)."""
+    """Build the SAGE LHaloTree field dict for one tree."""
     halo_props = ctx.halo_props
     descendants = ctx.descendants
     progenitors = ctx.progenitors
@@ -478,36 +472,6 @@ def _build_tree_field_dict(tree_idx: int, root: int, ctx: _PreparedTrees) -> dic
 
 
 # ---------------------------------------------------------------------------
-# Public read_trees() — load input without writing output
-# ---------------------------------------------------------------------------
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    """Read AHF/MergerTree ASCII trees into the SAGE LHaloTree schema.
-
-    Reuses _parse_halos_file, _parse_croco_file, _UnionFind, and the same
-    field-building logic as convert(), but accumulates into a dict instead of
-    writing to disk. Used by semantic validation to load the original input
-    data as the reference (input) column.
-
-    Returns
-    -------
-    dict[int, dict[str, np.ndarray]]
-        tree_idx (0-based, matching convert() write order) → field dict.
-        SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s), masses in 1e10 Msun/h.
-    """
-    ctx = _prepare_trees(input_path, n_trees)
-    return {
-        tree_idx: _build_tree_field_dict(tree_idx, root, ctx)
-        for tree_idx, root in enumerate(
-            tqdm(ctx.sorted_roots[: ctx.n_trees_convert], desc="Reading trees")
-        )
-    }
-
-
-# ---------------------------------------------------------------------------
 # Public convert() entry point
 # ---------------------------------------------------------------------------
 def convert(
@@ -541,7 +505,7 @@ def convert(
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
     try:
-        ctx = _prepare_trees(input_path, n_trees, log=True)
+        ctx = _prepare_trees(input_path, n_trees)
 
         # Estimate particle mass (in Msun/h) if not user-supplied
         _pm_override = (sim_params or {}).get("particle_mass_msun_per_h")

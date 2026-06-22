@@ -140,61 +140,6 @@ def _build_fields(halos: np.ndarray) -> dict:
     }
 
 
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    """Read LHaloTree binary files into the SAGE LHaloTree schema without writing output.
-
-    Reuses _discover_files, _read_file_header, and _build_fields. Used by
-    semantic validation to load the original input data as the reference column.
-
-    Returns
-    -------
-    dict[int, dict[str, np.ndarray]]
-        tree_idx (0-based, matching convert() write order) → field dict.
-        SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s), masses in 1e10 Msun/h.
-    """
-    files = _discover_files(input_path)
-
-    work = []
-    for file_path in files:
-        with open(file_path, "rb") as fp:
-            n_trees_in_file, tree_n_halos = _read_file_header(fp)
-            header_bytes = 4 + 4 + n_trees_in_file * 4
-        offset = header_bytes
-        for local_idx in range(n_trees_in_file):
-            work.append((file_path, local_idx, int(tree_n_halos[local_idx]), offset))
-            offset += int(tree_n_halos[local_idx]) * HALO_DTYPE.itemsize
-
-    if n_trees is not None:
-        work = work[:n_trees]
-
-    result: dict[int, dict] = {}
-    current_file_path = None
-    current_fp: BufferedReader | None = None
-    try:
-        for global_tree_idx, (file_path, local_idx, n_halos, byte_offset) in enumerate(
-            tqdm(work, desc="Reading trees")
-        ):
-            if file_path != current_file_path:
-                if current_fp is not None:
-                    current_fp.close()
-                current_fp = open(file_path, "rb")
-                current_file_path = file_path
-            assert current_fp is not None
-            current_fp.seek(byte_offset)
-            raw = current_fp.read(n_halos * HALO_DTYPE.itemsize)
-            halos = np.frombuffer(raw, dtype=HALO_DTYPE)
-            result[global_tree_idx] = _build_fields(halos)
-    finally:
-        if current_fp is not None:
-            current_fp.close()
-
-    return result
-
-
 def convert(
     input_path: str,
     output_path: str,
