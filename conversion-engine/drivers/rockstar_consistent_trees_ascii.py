@@ -172,6 +172,44 @@ def _compute_particle_mass(omega_m: float, box_size: float, n_side: int = _N_SID
     return omega_m * _RHO_CRIT0_H2 * (box_size**3) / (float(n_side) ** 3)
 
 
+def _resolve_particle_mass(
+    header_text: str, sim_params: dict | None
+) -> tuple[float, float, float, str]:
+    """Resolve particle mass (Msun/h) and the cosmology used, shared by convert/read_trees.
+
+    Applies the same override precedence to both code paths so SubhaloLen is
+    consistent between the converted output and the semantic-validation reference.
+
+    Returns
+    -------
+    (particle_mass_msun_per_h, omega_m, box_size, detail)
+        ``detail`` is the parenthetical source description convert() prints; it is
+        unused by read_trees().
+    """
+    omega_m, box_size = _parse_cosmology(header_text)
+    _sp = sim_params or {}
+    if _sp.get("omega_m") is not None:
+        omega_m = float(_sp["omega_m"])
+    if _sp.get("box_size_mpc_per_h") is not None:
+        box_size = float(_sp["box_size_mpc_per_h"])
+    n_side_override = _sp.get("n_particles_per_side")
+
+    _pm_override = _sp.get("particle_mass_msun_per_h")
+    if _pm_override is not None:
+        return float(_pm_override), omega_m, box_size, "sim-config override"
+    if n_side_override is not None:
+        pm = _compute_particle_mass(omega_m, box_size, int(n_side_override))
+        return pm, omega_m, box_size, f"computed, n_side={n_side_override}"
+    pm = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
+    return (
+        pm,
+        omega_m,
+        box_size,
+        f"computed, n_side={_N_SIDE_DEFAULT} default — "
+        "use --sim-config to override if N_particles differs",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Streaming tree parser
 # ---------------------------------------------------------------------------
@@ -673,24 +711,7 @@ def read_trees(
     tree_files = _discover_tree_files(input_path)
     input_dir = tree_files[0].parent
     header_text = _read_header_text(tree_files[0])
-    omega_m, box_size = _parse_cosmology(header_text)
-
-    _sp = sim_params or {}
-    if _sp.get("omega_m") is not None:
-        omega_m = float(_sp["omega_m"])
-    if _sp.get("box_size_mpc_per_h") is not None:
-        box_size = float(_sp["box_size_mpc_per_h"])
-    n_side_override = _sp.get("n_particles_per_side")
-
-    _pm_override = _sp.get("particle_mass_msun_per_h")
-    if _pm_override is not None:
-        particle_mass_msun_per_h = float(_pm_override)
-    elif n_side_override is not None:
-        particle_mass_msun_per_h = _compute_particle_mass(
-            omega_m, box_size, int(n_side_override)
-        )
-    else:
-        particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
+    particle_mass_msun_per_h, _, _, _ = _resolve_particle_mass(header_text, sim_params)
 
     forests_list_path: Path | None = input_dir / "forests.list"
     locations_path: Path | None = input_dir / "locations.dat"
@@ -709,33 +730,7 @@ def read_trees(
     for unit_idx, halos in enumerate(
         _get_output_units(tree_files, n_trees, forests_list_path, locations_path)
     ):
-        n = len(halos)
-        ptrs = _reconstruct_pointers(halos)
-        mvir = halos[:, _C_MVIR]
-        jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
-        with np.errstate(invalid="ignore", divide="ignore"):
-            inv_mvir = np.where(mvir > 0, 1.0 / mvir, 0.0)
-        spin = np.column_stack([jx * inv_mvir, jy * inv_mvir, jz * inv_mvir])
-
-        result[unit_idx] = {
-            **ptrs,
-            "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(np.int32),
-            "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
-            "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
-            "FileNr": np.full(n, -1, dtype=np.int32),
-            "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(np.float32),
-            "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
-            "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
-            "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
-            "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
-            "SubhaloPos": (
-                np.column_stack([halos[:, _C_X], halos[:, _C_Y], halos[:, _C_Z]]) * 1000.0
-            ).astype(np.float32),
-            "SubhaloVel": np.column_stack(
-                [halos[:, _C_VX], halos[:, _C_VY], halos[:, _C_VZ]]
-            ).astype(np.float32),
-            "SubhaloSpin": (spin * 1000.0).astype(np.float32),
-        }
+        result[unit_idx] = _build_fields(halos, particle_mass_msun_per_h)
 
     return result
 
@@ -813,34 +808,10 @@ def convert(
             precomputed = None
 
         header_text = _read_header_text(tree_files[0])
-        omega_m, box_size = _parse_cosmology(header_text)
-
-        _sp = sim_params or {}
-        if _sp.get("omega_m") is not None:
-            omega_m = float(_sp["omega_m"])
-        if _sp.get("box_size_mpc_per_h") is not None:
-            box_size = float(_sp["box_size_mpc_per_h"])
-        n_side_override = _sp.get("n_particles_per_side")
-
-        _pm_override = _sp.get("particle_mass_msun_per_h")
-        if _pm_override is not None:
-            particle_mass_msun_per_h = float(_pm_override)
-            print(f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h (sim-config override)")
-        elif n_side_override is not None:
-            particle_mass_msun_per_h = _compute_particle_mass(
-                omega_m, box_size, int(n_side_override)
-            )
-            print(
-                f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h "
-                f"(computed, n_side={n_side_override})"
-            )
-        else:
-            particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
-            print(
-                f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h "
-                f"(computed, n_side={_N_SIDE_DEFAULT} default — "
-                f"use --sim-config to override if N_particles differs)"
-            )
+        particle_mass_msun_per_h, omega_m, box_size, _pm_detail = _resolve_particle_mass(
+            header_text, sim_params
+        )
+        print(f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h ({_pm_detail})")
         particle_mass_1e10 = particle_mass_msun_per_h * 1e-10
         print(
             f"Cosmology: Omega_M={omega_m}, box_size={box_size} Mpc/h, "
