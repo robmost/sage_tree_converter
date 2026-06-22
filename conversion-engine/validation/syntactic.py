@@ -26,6 +26,8 @@ from typing import Any
 import h5py
 import numpy as np
 
+from utils.schema import ALL_KNOWN_FIELDS, MANDATORY_FIELDS
+
 CheckDict = dict[str, Any]
 
 
@@ -33,36 +35,6 @@ def _load_arr(group: h5py.Group, key: str) -> np.ndarray:
     """Load an h5py dataset field into a numpy array (type-narrowing helper)."""
     ds: h5py.Dataset = group[key]  # type: ignore[assignment]
     return np.asarray(ds)  # type: ignore[arg-type]
-
-
-MANDATORY_FIELDS = frozenset(
-    {
-        "Descendant",
-        "FirstProgenitor",
-        "NextProgenitor",
-        "FirstHaloInFOFGroup",
-        "NextHaloInFOFGroup",
-        "SubhaloLen",
-        "Group_M_Crit200",
-        "SubhaloVMax",
-        "SubhaloIDMostBound",
-        "SnapNum",
-        "SubhaloPos",
-        "SubhaloVel",
-        "SubhaloSpin",
-    }
-)
-
-OPTIONAL_FIELDS = frozenset(
-    {
-        "Group_M_Mean200",
-        "Group_M_TopHat200",
-        "SubhaloVelDisp",
-        "FileNr",
-    }
-)
-
-ALL_KNOWN_FIELDS = MANDATORY_FIELDS | OPTIONAL_FIELDS
 
 
 def _PASS(detail: str = "") -> dict:

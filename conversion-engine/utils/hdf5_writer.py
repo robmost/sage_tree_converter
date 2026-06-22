@@ -10,6 +10,8 @@ from typing import Any
 import h5py
 import numpy as np
 
+from utils.schema import MANDATORY_FIELDS
+
 # ---------------------------------------------------------------------------
 # Canonical dtype map (schema §3.1–3.3)
 # ---------------------------------------------------------------------------
@@ -54,25 +56,6 @@ _FLOAT32_VECTOR_FIELDS = frozenset(
         "SubhaloSpin",
     }
 )
-
-MANDATORY_FIELDS = frozenset(
-    {
-        "Descendant",
-        "FirstProgenitor",
-        "NextProgenitor",
-        "FirstHaloInFOFGroup",
-        "NextHaloInFOFGroup",
-        "SubhaloLen",
-        "Group_M_Crit200",
-        "SubhaloVMax",
-        "SubhaloIDMostBound",
-        "SnapNum",
-        "SubhaloPos",
-        "SubhaloVel",
-        "SubhaloSpin",
-    }
-)
-
 
 def _cast(field_name: str, data: Any) -> np.ndarray:
     """Cast data to the canonical dtype for the given field name."""

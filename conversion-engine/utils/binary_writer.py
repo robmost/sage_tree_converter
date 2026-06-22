@@ -27,6 +27,8 @@ from typing import BinaryIO
 
 import numpy as np
 
+from utils.schema import MANDATORY_FIELDS
+
 if sys.byteorder != "little":
     raise RuntimeError(
         f"lhalo_binary output requires a little-endian host "
@@ -45,25 +47,6 @@ assert _HALO_STRUCT_SIZE == 104, (
     f"Binary struct size mismatch: got {_HALO_STRUCT_SIZE}, expected 104. "
     "Check _HALO_STRUCT_FMT against core_simulation.h."
 )
-
-MANDATORY_FIELDS = frozenset(
-    {
-        "Descendant",
-        "FirstProgenitor",
-        "NextProgenitor",
-        "FirstHaloInFOFGroup",
-        "NextHaloInFOFGroup",
-        "SubhaloLen",
-        "Group_M_Crit200",
-        "SubhaloVMax",
-        "SubhaloIDMostBound",
-        "SnapNum",
-        "SubhaloPos",
-        "SubhaloVel",
-        "SubhaloSpin",
-    }
-)
-
 
 def _pack_tree(fields: dict) -> bytes:
     """Pack all halos in a tree into a bytes object (n_halos * 104 bytes)."""
