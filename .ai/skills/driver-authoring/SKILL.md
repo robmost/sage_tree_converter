@@ -128,6 +128,15 @@ with SplitWriter(
 output_paths = writer.output_paths  # list of all written file paths
 ```
 
+> **The "cheap pre-pass" applies to _counting_ trees, not to producing a test subset.**
+> The rule above is only that `n_trees_total` must be obtainable cheaply (a line count or a
+> header attribute) so `SplitWriter` can size its output. It does **not** promise that a
+> test conversion with `n_trees=100` is cheap. For formats whose tree ID is global to the
+> catalog (e.g. AHF), the driver must parse the whole input and identify all trees before it
+> can select the first N - so an `n_trees` test still costs a near-full parse and load. Do
+> not contort the driver trying to make such a subset cheap; it is inherent to the format.
+> Where a format _does_ allow bounded reads (e.g. stop after N `#tree` blocks), prefer that.
+
 SplitWriter distributes trees evenly across `n_output_files` files, derives all output
 paths from `output_path` by replacing the trailing index token (`.0.hdf5` -> `.1.hdf5`,
 etc.), and deletes partially-written files on exception. Do NOT call `os.remove()` in
@@ -159,7 +168,23 @@ The driver is moved to `conversion-engine/drivers/` only in Stage 4 via `kdb-ext
 
 ### 5. Error handling
 
-- The driver must call `sys.exit(1)` (or raise an uncaught exception) on any error.
+- The driver must `raise ConversionError(<message>)` (imported from `errors`) on any
+  error. `main_driver.convert_one` propagates the message verbatim, so the batch runner
+  can report the real cause - including across worker processes, where a driver's stderr
+  would otherwise be lost. The standard pattern is a terminal handler in `convert()`:
+
+  ```python
+  from errors import ConversionError
+
+  try:
+      ...  # conversion work
+  except ConversionError:
+      raise
+  except Exception as exc:
+      raise ConversionError(f"conversion failed - {exc}") from exc
+  ```
+
+- Do not call `sys.exit(1)`; it is caught as a generic failure and hides the cause.
 - Do not silently skip invalid data or continue past errors.
 - Use informative error messages: include the tree index, halo index, and the
   field name in any error output.

@@ -8,7 +8,8 @@ and MIMIC's binary reader (`src/io/tree/binary.c`, TreeType=1).
 > is SAGE-only. See `reference/sage_mimic_compatibility.md` for the full compatibility matrix.
 > **Endianness:** The writer explicitly packs data as little-endian (`<` format prefix).
 > SAGE and MIMIC read in native byte order. This is compatible on all x86-64 targets.
-> The converter enforces this at import time and raises `RuntimeError` on a big-endian host.
+> The converter enforces this when binary output is written and raises `ConversionError` on a
+> big-endian host. (HDF5 conversions never touch the binary writer and run on any host.)
 > Use `lhalo_hdf5` for portable output on heterogeneous architectures.
 
 ---

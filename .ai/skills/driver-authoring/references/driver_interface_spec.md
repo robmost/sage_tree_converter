@@ -9,6 +9,7 @@ def convert(
     n_trees: int | None = None,
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
+    n_output_files: int = 1,
 ) -> None:
 ```
 
@@ -17,7 +18,8 @@ def convert(
 
 ```python
 from drivers.<format_id> import convert
-convert(input_path, output_path, n_trees=n_trees, sim_params=sim_params, output_format=output_format)
+convert(input_path, output_path, n_trees=n_trees, sim_params=sim_params,
+        output_format=output_format, n_output_files=n_output_files)
 ```
 
 Do not rename it, add required positional arguments, or add return values.
@@ -30,6 +32,8 @@ Do not rename it, add required positional arguments, or add return values.
 | `output_path` | str | Yes | Absolute or relative path for the output file (`.hdf5` extension for `lhalo_hdf5`; no extension for `lhalo_binary`). The driver creates this file; it must not assume the parent directory exists (create it with `os.makedirs(os.path.dirname(output_path), exist_ok=True)` if needed). |
 | `n_trees` | int or None | No | If not None, convert only the first `n_trees` trees. Used in Stage 2 test mode. When `n_trees` is given, the output file is still a valid SAGE LHaloTree file containing exactly `n_trees` trees with correct internal indexing. |
 | `sim_params` | dict or None | No | Simulation parameter overrides loaded from `--sim-config` JSON. Recognised keys: `particle_mass_msun_per_h` (Msun/h), `n_particles_per_side`, `box_size_mpc_per_h`, `omega_m`, `omega_l`, `h0`. All optional; drivers fall back to auto-detection when absent. Extract with `(sim_params or {}).get("key")`. |
+| `output_format` | str | No | `"lhalo_hdf5"` (default, SAGE TreeType=1) or `"lhalo_binary"` (SAGE TreeType=0). Both are handled uniformly by `SplitWriter` - no format-conditional write blocks needed in the driver. |
+| `n_output_files` | int | No | Number of output files to split trees across (default 1). `SplitWriter` derives file N paths from `output_path` by replacing the trailing index token (e.g. `.0.hdf5` -> `.1.hdf5`). `n_trees_total` MUST be known before opening `SplitWriter`. |
 
 ## Required output file structure
 
@@ -146,21 +150,24 @@ pre-divide in the driver.
 
 ## Error handling contract
 
-- On any unrecoverable error: print a message to stderr and call `sys.exit(1)`.
+- On any unrecoverable error: raise `ConversionError` (imported from `errors`) with a
+  message describing the cause. `main_driver.convert_one` propagates that message so the
+  batch runner can report it (including across worker processes). Do not call `sys.exit(1)`;
+  it is caught as a generic failure and hides the cause.
 - Include the tree index, halo index, and field name in error messages.
 - Do not use bare `except:` clauses that swallow exceptions silently.
-- Do not write a partial output file on error; delete the incomplete file if created.
+- Do not write a partial output file on error. When writing through `SplitWriter`, its
+  `__exit__` already deletes partially-written files - do not call `os.remove()` yourself.
 
 ```python
-import sys, os
+from errors import ConversionError
 
 try:
     # ... conversion ...
-except Exception as e:
-    print(f"ERROR in tree {tree_idx}: {e}", file=sys.stderr)
-    if os.path.exists(output_path):
-        os.remove(output_path)
-    sys.exit(1)
+except ConversionError:
+    raise
+except Exception as exc:
+    raise ConversionError(f"ERROR in tree {tree_idx}: {exc}") from exc
 ```
 
 ## Module structure
@@ -173,6 +180,8 @@ import numpy as np
 import h5py
 from tqdm import tqdm
 
+from errors import ConversionError
+
 
 def convert(
     input_path: str,
@@ -180,6 +189,7 @@ def convert(
     n_trees: int | None = None,
     sim_params: dict | None = None,
     output_format: str = "lhalo_hdf5",
+    n_output_files: int = 1,
 ) -> None:
     # 1. Read input
     # 2. Apply field mapping and unit conversions

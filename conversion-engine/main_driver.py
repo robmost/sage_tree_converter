@@ -32,6 +32,8 @@ import types
 from datetime import datetime
 from pathlib import Path
 
+from errors import ConversionError
+
 # ---------------------------------------------------------------------------
 # Format registry — maps format_id to the driver module filename (no .py).
 # ---------------------------------------------------------------------------
@@ -75,6 +77,11 @@ def _auto_detect_format(input_path: str) -> str | None:
     entry's format_id to be in FORMAT_REGISTRY (i.e., its driver is present).
     This is a best-effort heuristic; the user should confirm the detected
     format or supply --format explicitly.
+
+    Auto-detection cannot disambiguate ASCII formats: the .txt and .dat
+    extensions both map to "ascii", so when more than one ASCII format is
+    registered the match is ambiguous and this returns None. Supply --format
+    explicitly for ASCII inputs (AHF, Rockstar/Consistent Trees).
     """
     kdb_path = Path(KDB_DIR)
     if not kdb_path.is_dir():
@@ -204,6 +211,8 @@ def convert_one(
             output_format=output_format,
             n_output_files=n_output_files,
         )
+    except ConversionError as exc:
+        raise RuntimeError(str(exc)) from exc
     except SystemExit as exc:
         raise RuntimeError("Driver exited with an error. See messages above.") from exc
     except Exception as exc:

@@ -27,15 +27,8 @@ from typing import BinaryIO
 
 import numpy as np
 
+from errors import ConversionError
 from utils.schema import HALO_RECORD_DTYPE, MANDATORY_FIELDS
-
-if sys.byteorder != "little":
-    raise RuntimeError(
-        f"lhalo_binary output requires a little-endian host "
-        f"(detected {sys.byteorder!r} byte order). "
-        f"Use --output-format lhalo_hdf5 instead; HDF5 handles "
-        f"endianness transparently."
-    )
 
 # ---------------------------------------------------------------------------
 # Binary struct layout matching struct halo_data in core_simulation.h
@@ -54,6 +47,21 @@ assert _HALO_STRUCT_SIZE == 104, (
 assert HALO_RECORD_DTYPE.itemsize == _HALO_STRUCT_SIZE, (
     f"HALO_RECORD_DTYPE size {HALO_RECORD_DTYPE.itemsize} != struct size {_HALO_STRUCT_SIZE}."
 )
+
+
+def _require_little_endian() -> None:
+    """Reject binary output on big-endian hosts.
+
+    Checked when binary output is written (not at import time) so that HDF5
+    conversions - which never call the binary writer - run on any host.
+    """
+    if sys.byteorder != "little":
+        raise ConversionError(
+            f"lhalo_binary output requires a little-endian host "
+            f"(detected {sys.byteorder!r} byte order). "
+            f"Use --output-format lhalo_hdf5 instead; HDF5 handles "
+            f"endianness transparently."
+        )
 
 
 def _pack_tree(fields: dict) -> bytes:
@@ -132,6 +140,7 @@ def write_header(
         1D sequence of length n_trees; element i is the number of halos in tree i.
         sum(tree_n_halos) must equal total_halos.
     """
+    _require_little_endian()
     tree_n_halos_arr = np.asarray(tree_n_halos, dtype=np.int32)
     if len(tree_n_halos_arr) != n_trees:
         raise ValueError(f"len(tree_n_halos)={len(tree_n_halos_arr)} != n_trees={n_trees}.")
@@ -160,6 +169,7 @@ def write_placeholder_header(f: BinaryIO, n_trees: int) -> None:
         Number of trees that will be written to this file.  The placeholder
         occupies 8 + n_trees x 4 bytes (matching the real header layout).
     """
+    _require_little_endian()
     size = 8 + n_trees * 4  # nforests (4B) + totnhalos (4B) + nhalos[n_trees] (4B each)
     f.write(b"\x00" * size)
 

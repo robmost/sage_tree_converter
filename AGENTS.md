@@ -190,6 +190,12 @@ Before invoking the conversion driver in Stage 2:
 
 1. Obtain the input file size in bytes: `stat -c%s <input_file>` (Linux) or `stat -f%z <input_file>` (macOS).
 1. Read `SAGE_MEMORY_MULTIPLIER` from `.env` (default `3.0`).
+1. **Choose a format-aware multiplier.** The `3.0` default suits binary/HDF5 inputs
+   (`subfind_lhalotree_binary`, `subfind_gadget4_hdf5`), which the drivers stream or read
+   in compact arrays. ASCII inputs (`ahf_mergetree_ascii`, `rockstar_consistent_trees_ascii`)
+   hold the whole catalog in memory as a Python dict-of-dicts during tree identification,
+   typically **10-20x** the input byte size. For ASCII inputs use a multiplier of **~12-15**
+   (or higher for AHF) rather than the `3.0` default, so the estimate is not optimistic.
 1. Estimate peak memory: `input_file_size_bytes x SAGE_MEMORY_MULTIPLIER`.
 1. Read available memory on Linux inside Docker/Apptainer with `grep MemAvailable /proc/meminfo` (reports kB; convert to bytes).
 1. Read available memory on macOS host with `vm_stat | grep "Pages free"` then multiply by page size (`sysctl -n hw.pagesize`), or use `$PYTHON_BIN -c "import psutil; print(psutil.virtual_memory().available)"` if psutil is installed.
@@ -305,10 +311,10 @@ The following files at the project root configure code quality tooling. Do not d
 
 | File | Purpose |
 | ---- | ------- |
-| `pyproject.toml` | Ruff linter/formatter and basedpyright config. |
-| `Makefile` | Developer shortcuts: `make lint`, `make fmt`, `make typecheck`, `make check`. |
+| `pyproject.toml` | Ruff linter/formatter, basedpyright config, pytest config, and Python runtime dependencies. |
+| `Makefile` | Developer shortcuts: `make lint`, `make fmt`, `make typecheck`, `make test`, `make check`. |
 | `.pre-commit-config.yaml` | Git pre-commit hooks (ruff check + format on every commit). |
-| `pyproject.toml` | Ruff linter/formatter, basedpyright config, and Python runtime dependencies. |
+| `tests/` | Unit tests (pytest). Pure and fast; do not require the `input/` datasets. Do not modify during an active conversion session. |
 | `runner/batch_runner.py` | Direct conversion batch runner (independent of the agent workflow). |
 | `runner/conversion_config.toml` | Template TOML config for the batch runner. Do not modify during an active session. |
 | `container/Dockerfile` | Docker container image definition. |
@@ -336,6 +342,14 @@ I'll identify your input format and map its fields to the SAGE LHaloTree schema.
   4. [G1] Confirm mapping + select output format + file count
 ```
 
+> **ASCII inputs require an explicit format.** Format auto-detection keys on the file
+> extension, and `.txt`/`.dat` both map to "ascii", so it cannot tell two ASCII formats
+> apart (it returns no match). For ASCII inputs (AHF, Rockstar/Consistent Trees) always
+> pass `--format <format_id>` to the driver / batch runner. Single-file HDF5 inputs
+> (`.hdf5`/`.h5`) can be auto-detected; directory inputs (e.g. the LHaloTree binary format)
+> are never auto-detected and also need `--format`. Confirming the format is recommended
+> in every case.
+
 ### Stage 2 - Test Engine
 
 ```
@@ -352,6 +366,15 @@ I'll run a test conversion on ~100 trees and validate the output structurally.
        - not set         -> skip
   5. [G2] Confirm test validation
 ```
+
+> **The "~100 trees" test is a small _output_, not necessarily a small _read_.** For
+> ASCII inputs (`ahf_mergetree_ascii`, `rockstar_consistent_trees_ascii`) the `n_trees`
+> limit is applied _after_ the input is fully parsed and trees are identified: the driver
+> reads every snapshot/catalog file and builds the global tree structure, then writes only
+> the first N. A true cheap subset is infeasible for these formats because the tree ID is
+> global to the catalog. Expect Stage-2 wall-time and memory on a large ASCII simulation to
+> be close to a full conversion's, and run the memory pre-check (Section 8) accordingly. For
+> binary/HDF5 inputs the read is bounded by the requested trees, so the test stays cheap.
 
 ### Stage 3 - Full Engine
 

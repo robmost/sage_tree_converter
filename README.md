@@ -205,7 +205,7 @@ For running conversions directly without an LLM session, see [Direct Conversion]
 ## Development setup
 
 After cloning, run the setup script once. It enables the project git hooks and
-installs the dev tooling (ruff, basedpyright):
+installs the dev tooling (ruff, basedpyright, pytest):
 
 ```bash
 ./scripts/setup-dev.sh
@@ -218,7 +218,7 @@ This does two things:
    `Co-authored-by` trailer. `core.hooksPath` is local git config, so it is not
    carried by `git clone` - the script (or that one command) must be run per clone.
 2. Installs the package and its dev extras with `pip install -e ".[dev]"`, which
-   puts `ruff` and `basedpyright` on PATH.
+   puts `ruff`, `basedpyright`, and `pytest` on PATH.
 
 Then:
 
@@ -226,11 +226,13 @@ Then:
 make lint        # ruff check
 make typecheck   # basedpyright
 make fmt         # ruff format + ruff check --fix
-make check       # lint + typecheck
+make test        # pytest
+make check       # lint + typecheck + test
 ```
 
-ruff and basedpyright are configured in `pyproject.toml` (`[tool.ruff]` and
-`[tool.basedpyright]`).
+ruff, basedpyright, and pytest are configured in `pyproject.toml`
+(`[tool.ruff]`, `[tool.basedpyright]`, and `[tool.pytest.ini_options]`). The unit
+tests in `tests/` are pure and fast - they do not need the datasets in `input/`.
 
 ## Direct Conversion
 
@@ -408,6 +410,7 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 │   └── apptainer.env.sh
 ├── conversion-engine/
 │   ├── main_driver.py       # Single-job direct conversion entry point
+│   ├── errors.py            # Shared exception types (ConversionError)
 │   ├── drivers/             # Format-specific conversion modules
 │   ├── utils/               # HDF5/binary writers, SplitWriter, shared schema
 │   └── validation/          # Syntactic, functional, and semantic validation
@@ -417,10 +420,11 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 ├── output/                  # Stage 3 writes converted files here
 ├── reference/               # Static schema and style references
 ├── scripts/                 # Developer helper scripts (setup-dev.sh)
+├── tests/                   # Unit tests (pytest); pure, no input datasets needed
 ├── .githooks/               # Git hooks (commit-msg: reject non-ASCII and Co-authored-by)
 ├── .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
-├── Makefile                 # Shortcuts: make lint / fmt / typecheck / check / convert
-└── pyproject.toml           # Ruff + basedpyright configuration; sage-convert entry point; Python deps
+├── Makefile                 # Shortcuts: make lint / fmt / typecheck / test / check / convert
+└── pyproject.toml           # Ruff + basedpyright + pytest configuration; sage-convert entry point; Python deps
 ```
 
 ## Unit Conventions

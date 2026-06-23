@@ -18,9 +18,10 @@ INTERFACE CONTRACT
                       output_format="lhalo_hdf5", n_output_files=1) -> None
 - On success: write valid SAGE LHaloTree output file(s) derived from output_path;
               return None.
-- On error:   print a message to stderr and call sys.exit(1).
-              SplitWriter.__exit__ deletes any partially-written output files
-              automatically; do NOT call os.remove() in the except handler.
+- On error:   raise ConversionError (from 'errors') with a message describing the
+              cause.  main_driver.convert_one propagates that message so the batch
+              runner can report it.  SplitWriter.__exit__ deletes any partially-written
+              output files automatically; do NOT call os.remove() in the except handler.
 - n_trees:    when provided, convert only the first n_trees trees.
               The output file(s) must still be valid with correct internal indexing.
 - n_output_files: number of output files to split across (default 1).
@@ -48,6 +49,7 @@ import sys
 import numpy as np  # noqa: F401
 from tqdm import tqdm  # noqa: F401
 
+from errors import ConversionError
 from utils.split_writer import SplitWriter  # noqa: F401
 
 
@@ -97,8 +99,10 @@ def convert(
         # ------------------------------------------------------------------
         # TODO: for each halo field, apply the scale_factor or conversion_expr
         # defined in 'assets/proposed_mapping_<format_id>.json'.
-        # Reference units: masses -> 10^10 Msun/h, positions -> Mpc/h,
-        #                  velocities -> km/s, spin -> (Mpc/h)(km/s).
+        # Driver-produced (on-disk) units: masses -> 10^10 Msun/h, positions -> kpc/h,
+        #                  velocities -> km/s, spin -> (kpc/h)(km/s).
+        # SAGE's HDF5 reader rescales positions and spin by 0.001 to Mpc/h internally
+        # (binary_writer does the same /1000 before packing). Do not pre-divide here.
 
         # ------------------------------------------------------------------
         # 3. Reconstruct LHaloTree pointers
@@ -131,8 +135,10 @@ def convert(
         # SplitWriter handles both HDF5 and binary transparently, distributes
         # trees across n_output_files files, and deletes partial files on error.
 
+    except ConversionError:
+        raise
     except NotImplementedError:
         raise
     except Exception as exc:
         print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
-        sys.exit(1)
+        raise ConversionError(f"conversion failed - {exc}") from exc

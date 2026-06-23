@@ -14,6 +14,7 @@ dependencies = [
 dev = [
     "ruff>=0.15",
     "basedpyright>=1.39",
+    "pytest>=7.0",
 ]
 
 [project.scripts]
@@ -48,8 +49,12 @@ ignore = [
     "ANN401",  # use of Any type
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Tests need no type annotations and may import the engine packages freely.
+"tests/**" = ["ANN"]
+
 [tool.ruff.lint.isort]
-known-first-party = ["utils", "drivers", "validation", "runner"]
+known-first-party = ["errors", "utils", "drivers", "validation", "runner"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -60,3 +65,8 @@ typeCheckingMode = "standard"
 pythonVersion = "3.13"
 extraPaths = ["conversion-engine"]
 exclude = ["audits/**", ".ai/**"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Make the engine and runner packages importable without installing the project.
+pythonpath = ["conversion-engine", "runner"]
