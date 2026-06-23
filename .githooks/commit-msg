@@ -1,0 +1,32 @@
+#!/bin/sh
+# Reject commit messages that contain non-ASCII characters or a Co-authored-by
+# trailer. Enforces the project's commit-message requirements mechanically.
+#
+# Enabled via:  git config core.hooksPath .githooks
+# (run once per clone; this file is version-controlled).
+
+msg_file="$1"
+
+# Reproduce git's own cleanup so only the real message body is checked:
+# drop the "commit -v" scissors section and all comment lines.
+body=$(sed '/^#.*>8/,$d' "$msg_file" | grep -v '^#')
+
+fail=0
+
+# Non-ASCII: under the C locale, flag any byte outside printable ASCII + whitespace.
+nonascii=$(printf '%s\n' "$body" | LC_ALL=C grep -n '[^[:print:][:space:]]')
+if [ -n "$nonascii" ]; then
+  echo "commit-msg: non-ASCII characters are not allowed. Offending line(s):" >&2
+  echo "$nonascii" >&2
+  echo "  Replace e.g. em-dash with -, arrows with ->, 10^10, Msun, >=, ..." >&2
+  fail=1
+fi
+
+# Co-authored-by trailer: a line that begins with the trailer key and a colon
+# (prose mentions of the words are allowed).
+if printf '%s\n' "$body" | grep -iqE '^[[:space:]]*co-authored-by[[:space:]]*:'; then
+  echo "commit-msg: remove the Co-authored-by trailer." >&2
+  fail=1
+fi
+
+exit $fail

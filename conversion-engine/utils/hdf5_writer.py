@@ -1,17 +1,20 @@
 """
-hdf5_writer.py — Utility functions for writing SAGE LHaloTree HDF5 output files.
+hdf5_writer.py - Utility functions for writing SAGE LHaloTree HDF5 output files.
 
 All conversion drivers must write output through these functions to guarantee
 dtype correctness and schema compliance with reference/sage_lhalotree_hdf5_schema.md.
 """
 
+import warnings
 from typing import Any
 
 import h5py
 import numpy as np
 
+from utils.schema import MANDATORY_FIELDS
+
 # ---------------------------------------------------------------------------
-# Canonical dtype map (schema §3.1–3.3)
+# Canonical dtype map (schema section 3.1-3.3)
 # ---------------------------------------------------------------------------
 
 # Fields stored as int32
@@ -55,25 +58,6 @@ _FLOAT32_VECTOR_FIELDS = frozenset(
     }
 )
 
-MANDATORY_FIELDS = frozenset(
-    {
-        "Descendant",
-        "FirstProgenitor",
-        "NextProgenitor",
-        "FirstHaloInFOFGroup",
-        "NextHaloInFOFGroup",
-        "SubhaloLen",
-        "Group_M_Crit200",
-        "SubhaloVMax",
-        "SubhaloIDMostBound",
-        "SnapNum",
-        "SubhaloPos",
-        "SubhaloVel",
-        "SubhaloSpin",
-    }
-)
-
-
 def _cast(field_name: str, data: Any) -> np.ndarray:
     """Cast data to the canonical dtype for the given field name."""
     arr = np.asarray(data)
@@ -90,9 +74,7 @@ def _cast(field_name: str, data: Any) -> np.ndarray:
                 f"Vector field '{field_name}' must have shape (N, 3), got {arr.shape}."
             )
         return out
-    # Unknown field — preserve as-is but warn.
-    import warnings
-
+    # Unknown field - preserve as-is but warn.
     warnings.warn(
         f"Field '{field_name}' is not in the canonical dtype map. "
         "Writing as-is. Check reference/sage_lhalotree_hdf5_schema.md.",
@@ -116,7 +98,7 @@ def write_header(
     f : h5py.File
         An open, writable HDF5 file object.
     particle_mass : float
-        Dark matter particle mass in units of 10¹⁰ M☉/h (stored as float64).
+        Dark matter particle mass in units of 10^10 Msun/h (stored as float64).
     n_trees : int
         Number of merger trees in this file.
     total_halos : int

@@ -1,17 +1,17 @@
 """
-rockstar_consistent_trees_ascii.py — Driver for Rockstar + Consistent Trees ASCII format.
+rockstar_consistent_trees_ascii.py - Driver for Rockstar + Consistent Trees ASCII format.
 
 Input:  a directory containing tree_*.dat files from Consistent Trees, and optionally
         forests.list + locations.dat (standard CTrees ancillary files).
 Output: a single SAGE LHaloTree HDF5 or binary file.
 
 File structure of each tree_*.dat:
-  <N_trees_in_file>           ← integer on its own line (skipped)
-  #scale(0) id(1) ...         ← column-name comment (ignored by parser)
-  #Omega_M = ...; h0 = ...    ← cosmology header (parsed for particle mass)
+  <N_trees_in_file>           <- integer on its own line (skipped)
+  #scale(0) id(1) ...         <- column-name comment (ignored by parser)
+  #Omega_M = ...; h0 = ...    <- cosmology header (parsed for particle mass)
   ...more comments...
-  #tree <Tree_root_ID>        ← tree-block delimiter
-  <halo row 0>                ← 59+ space-separated values (depth-first order)
+  #tree <Tree_root_ID>        <- tree-block delimiter
+  <halo row 0>                <- 59+ space-separated values (depth-first order)
   <halo row 1>
   ...
   #tree <next_Tree_root_ID>
@@ -31,11 +31,11 @@ Column layout (0-based, 59 minimum; some outputs add extra trailing columns):
 
 Pointer reconstruction (all O(N) or O(N log N)):
   Halos within each #tree block are in depth-first order.
-  Descendant:         desc_id → combined-array index via id→idx dict
+  Descendant:         desc_id -> combined-array index via id->idx dict
   FirstProgenitor:    halos[i+1] if halos[i+1].desc_id == halos[i].id
-  NextProgenitor:     Next_coprog_DFI looked up in dfi→index dict (DFIs are global
+  NextProgenitor:     Next_coprog_DFI looked up in dfi->index dict (DFIs are global
                       sequential integers assigned across all tree blocks in the file)
-  FirstHaloInFOFGroup: upid → combined-array index via id→idx dict; self if upid==-1
+  FirstHaloInFOFGroup: upid -> combined-array index via id->idx dict; self if upid==-1
                        or cross-forest reference (upid not in combined id set)
   NextHaloInFOFGroup: group by (snap, central_idx), sort by mvir desc, singly-linked
 
@@ -53,7 +53,7 @@ Forest-level processing (when forests.list + locations.dat are present):
 Field conversions:
   SubhaloLen   = round(mvir / particle_mass)   [estimated; see known_caveats]
   SubhaloSpin  = [Jx, Jy, Jz] / mvir           [(Mpc/h)(km/s) specific j]
-  Group_M_*    = M200c / M200b / mvir * 1e-10   [Msun/h → 1e10 Msun/h]
+  Group_M_*    = M200c / M200b / mvir * 1e-10   [Msun/h -> 1e10 Msun/h]
 """
 
 import os
@@ -172,6 +172,40 @@ def _compute_particle_mass(omega_m: float, box_size: float, n_side: int = _N_SID
     return omega_m * _RHO_CRIT0_H2 * (box_size**3) / (float(n_side) ** 3)
 
 
+def _resolve_particle_mass(
+    header_text: str, sim_params: dict | None
+) -> tuple[float, float, float, str]:
+    """Resolve particle mass (Msun/h) and the cosmology used by convert().
+
+    Returns
+    -------
+    (particle_mass_msun_per_h, omega_m, box_size, detail)
+        ``detail`` is the parenthetical source description convert() prints.
+    """
+    omega_m, box_size = _parse_cosmology(header_text)
+    _sp = sim_params or {}
+    if _sp.get("omega_m") is not None:
+        omega_m = float(_sp["omega_m"])
+    if _sp.get("box_size_mpc_per_h") is not None:
+        box_size = float(_sp["box_size_mpc_per_h"])
+    n_side_override = _sp.get("n_particles_per_side")
+
+    _pm_override = _sp.get("particle_mass_msun_per_h")
+    if _pm_override is not None:
+        return float(_pm_override), omega_m, box_size, "sim-config override"
+    if n_side_override is not None:
+        pm = _compute_particle_mass(omega_m, box_size, int(n_side_override))
+        return pm, omega_m, box_size, f"computed, n_side={n_side_override}"
+    pm = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
+    return (
+        pm,
+        omega_m,
+        box_size,
+        f"computed, n_side={_N_SIDE_DEFAULT} default - "
+        "use --sim-config to override if N_particles differs",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Streaming tree parser
 # ---------------------------------------------------------------------------
@@ -227,7 +261,7 @@ def _generate_trees(
                 current_rows.append([float(v) for v in line.split()])
             except ValueError as exc:
                 print(
-                    f"ERROR: failed to parse data row in '{filepath}': {line!r} — {exc}",
+                    f"ERROR: failed to parse data row in '{filepath}': {line!r} - {exc}",
                     file=sys.stderr,
                 )
                 sys.exit(1)
@@ -247,7 +281,7 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
     Parameters
     ----------
     halos : ndarray, shape (N, _NCOLS), dtype float64
-        Halo data — may span multiple #tree blocks when called in forest mode.
+        Halo data - may span multiple #tree blocks when called in forest mode.
 
     Returns
     -------
@@ -323,7 +357,7 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
 
     # ---- NextHaloInFOFGroup ------------------------------------------------
     # Group halos by (snap, central_idx); sort by mvir descending;
-    # build singly-linked list: central → sat_0 → sat_1 → ... → -1.
+    # build singly-linked list: central -> sat_0 -> sat_1 -> ... -> -1.
     nhifof = np.full(n, -1, dtype=np.int32)
     groups: dict[tuple[int, int], list[tuple[float, int]]] = defaultdict(list)
     for i in range(n):
@@ -354,7 +388,7 @@ def _parse_forests_list(
     path: Path,
     root_id_filter: set[int] | None = None,
 ) -> tuple[dict[int, int], dict[int, list[int]], list[int]]:
-    """Parse forests.list → (tree_to_forest, forest_to_trees, forest_order).
+    """Parse forests.list -> (tree_to_forest, forest_to_trees, forest_order).
 
     forests.list format:
         #TreeRootID ForestID
@@ -396,7 +430,7 @@ def _parse_locations(
     input_dir: Path,
     root_id_filter: set[int] | None = None,
 ) -> tuple[dict[int, tuple[Path, int]], list[int]]:
-    """Parse locations.dat → (tree_offsets, ordered_tree_ids).
+    """Parse locations.dat -> (tree_offsets, ordered_tree_ids).
 
     locations.dat format:
         #TreeRootID FileID Offset Filename
@@ -409,7 +443,7 @@ def _parse_locations(
 
     Returns
     -------
-    tree_offsets     : tree_root_id → (filepath, byte_offset)
+    tree_offsets     : tree_root_id -> (filepath, byte_offset)
     ordered_tree_ids : tree root IDs sorted by ascending byte offset
                        (= file-appearance order)
     """
@@ -452,7 +486,7 @@ def _read_tree_block(fh: BinaryIO, offset: int) -> np.ndarray:
             if first_line:
                 first_line = False
                 continue  # skip our own #tree marker
-            break  # hit the next tree block — stop
+            break  # hit the next tree block - stop
         if line.startswith("#"):
             break  # any other comment after the header terminates the block
         first_line = False
@@ -521,7 +555,7 @@ def _prepare_forest_mode(
     Returns
     -------
     forest_queue : list of (forest_id, [tree_root_ids]) in forests.list order
-    tree_offsets : tree_root_id → (filepath, byte_offset)
+    tree_offsets : tree_root_id -> (filepath, byte_offset)
     """
     input_dir = tree_files[0].parent
     root_id_filter = _collect_root_ids_from_files(tree_files)
@@ -551,7 +585,7 @@ def _forest_mode_units(
     """Yield one halo array per SAGE output tree using forest-level processing.
 
     All available tree blocks for a forest are concatenated and DFI-sorted
-    before pointer reconstruction — unconditionally, including single-tree
+    before pointer reconstruction - unconditionally, including single-tree
     forests where file order may not be strict DFI order.  Forests are
     visited in forests.list appearance order.  Each .dat file is opened once
     and its handle is reused across all tree blocks it contains.
@@ -638,109 +672,6 @@ def _get_output_units(
 
 
 # ---------------------------------------------------------------------------
-# Public read_trees() — load input without writing output
-# ---------------------------------------------------------------------------
-
-
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    """Read Consistent Trees ASCII files into the SAGE LHaloTree schema.
-
-    Uses the same forest-level / tree-level routing as convert() so that
-    the semantic-validation reference matches the converted output exactly.
-
-    Parameters
-    ----------
-    input_path : str
-        Path to a single tree_*.dat file or a directory containing them.
-    n_trees : int or None
-        If given, read only the first n_trees output units.
-    sim_params : dict or None
-        Simulation parameter overrides (same keys as --sim-config JSON).
-        Keys used: particle_mass_msun_per_h, n_particles_per_side,
-        box_size_mpc_per_h, omega_m. Must match what was passed to convert()
-        so that SubhaloLen values are consistent between input and output columns.
-
-    Returns
-    -------
-    dict[int, dict[str, np.ndarray]]
-        unit_idx (0-based) → field dict.
-        SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s), masses in 1e10 Msun/h.
-    """
-    tree_files = _discover_tree_files(input_path)
-    input_dir = tree_files[0].parent
-    header_text = _read_header_text(tree_files[0])
-    omega_m, box_size = _parse_cosmology(header_text)
-
-    _sp = sim_params or {}
-    if _sp.get("omega_m") is not None:
-        omega_m = float(_sp["omega_m"])
-    if _sp.get("box_size_mpc_per_h") is not None:
-        box_size = float(_sp["box_size_mpc_per_h"])
-    n_side_override = _sp.get("n_particles_per_side")
-
-    _pm_override = _sp.get("particle_mass_msun_per_h")
-    if _pm_override is not None:
-        particle_mass_msun_per_h = float(_pm_override)
-    elif n_side_override is not None:
-        particle_mass_msun_per_h = _compute_particle_mass(
-            omega_m, box_size, int(n_side_override)
-        )
-    else:
-        particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
-
-    forests_list_path: Path | None = input_dir / "forests.list"
-    locations_path: Path | None = input_dir / "locations.dat"
-
-    if not (forests_list_path.exists() and locations_path.exists()):
-        print(
-            "WARNING: forests.list / locations.dat not found — falling back to per-tree mode. "
-            "Cross-tree upid references cannot be resolved: satellites whose host central "
-            "resides in a different #tree block will be treated as isolated centrals, "
-            "producing incorrect FOF group pointers and underproducing massive galaxies in SAGE. "
-            "Re-run Consistent Trees with the -F flag to generate these files.",
-            file=sys.stderr,
-        )
-
-    result: dict[int, dict] = {}
-    for unit_idx, halos in enumerate(
-        _get_output_units(tree_files, n_trees, forests_list_path, locations_path)
-    ):
-        n = len(halos)
-        ptrs = _reconstruct_pointers(halos)
-        mvir = halos[:, _C_MVIR]
-        jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
-        with np.errstate(invalid="ignore", divide="ignore"):
-            inv_mvir = np.where(mvir > 0, 1.0 / mvir, 0.0)
-        spin = np.column_stack([jx * inv_mvir, jy * inv_mvir, jz * inv_mvir])
-
-        result[unit_idx] = {
-            **ptrs,
-            "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(np.int32),
-            "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
-            "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
-            "FileNr": np.full(n, -1, dtype=np.int32),
-            "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(np.float32),
-            "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
-            "Group_M_TopHat200": (mvir * 1e-10).astype(np.float32),
-            "SubhaloVMax": halos[:, _C_VMAX].astype(np.float32),
-            "SubhaloVelDisp": (halos[:, _C_VRMS] / np.sqrt(3.0)).astype(np.float32),
-            "SubhaloPos": (
-                np.column_stack([halos[:, _C_X], halos[:, _C_Y], halos[:, _C_Z]]) * 1000.0
-            ).astype(np.float32),
-            "SubhaloVel": np.column_stack(
-                [halos[:, _C_VX], halos[:, _C_VY], halos[:, _C_VZ]]
-            ).astype(np.float32),
-            "SubhaloSpin": (spin * 1000.0).astype(np.float32),
-        }
-
-    return result
-
-
-# ---------------------------------------------------------------------------
 # Main convert function
 # ---------------------------------------------------------------------------
 
@@ -762,7 +693,7 @@ def convert(
     output_path : str
         Path for the first output file (index 0).  When n_output_files > 1,
         additional files are created by replacing the trailing index token
-        (e.g. "_STC.0" → "_STC.1", "_STC.2", …).
+        (e.g. "_STC.0" -> "_STC.1", "_STC.2", ...).
     n_trees : int or None
         If given, convert only the first n_trees output units (forests in
         forest mode, individual trees in tree mode).
@@ -775,7 +706,7 @@ def convert(
         'lhalo_hdf5' (default) or 'lhalo_binary'.
     n_output_files : int
         Number of output files to produce (default 1).  Trees are distributed
-        as evenly as possible across files.  Must be ≥ 1.
+        as evenly as possible across files.  Must be >= 1.
     """
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
@@ -792,7 +723,7 @@ def convert(
         #     the forest queue so we don't read forests.list twice. ---
         if use_forest_mode:
             print(
-                "Found forests.list and locations.dat — using forest-level mode "
+                "Found forests.list and locations.dat - using forest-level mode "
                 "(cross-tree FOF groups resolved within each complete forest)."
             )
             forest_queue, tree_offsets = _prepare_forest_mode(
@@ -802,7 +733,7 @@ def convert(
             precomputed = (forest_queue, tree_offsets)
         else:
             print(
-                "WARNING: forests.list / locations.dat not found — falling back to per-tree mode. "
+                "WARNING: forests.list / locations.dat not found - falling back to per-tree mode. "
                 "Cross-tree upid references cannot be resolved: satellites whose host central "
                 "resides in a different #tree block will be treated as isolated centrals, "
                 "producing incorrect FOF group pointers and underproducing massive galaxies "
@@ -813,39 +744,15 @@ def convert(
             precomputed = None
 
         header_text = _read_header_text(tree_files[0])
-        omega_m, box_size = _parse_cosmology(header_text)
-
-        _sp = sim_params or {}
-        if _sp.get("omega_m") is not None:
-            omega_m = float(_sp["omega_m"])
-        if _sp.get("box_size_mpc_per_h") is not None:
-            box_size = float(_sp["box_size_mpc_per_h"])
-        n_side_override = _sp.get("n_particles_per_side")
-
-        _pm_override = _sp.get("particle_mass_msun_per_h")
-        if _pm_override is not None:
-            particle_mass_msun_per_h = float(_pm_override)
-            print(f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h (sim-config override)")
-        elif n_side_override is not None:
-            particle_mass_msun_per_h = _compute_particle_mass(
-                omega_m, box_size, int(n_side_override)
-            )
-            print(
-                f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h "
-                f"(computed, n_side={n_side_override})"
-            )
-        else:
-            particle_mass_msun_per_h = _compute_particle_mass(omega_m, box_size, _N_SIDE_DEFAULT)
-            print(
-                f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h "
-                f"(computed, n_side={_N_SIDE_DEFAULT} default — "
-                f"use --sim-config to override if N_particles differs)"
-            )
+        particle_mass_msun_per_h, omega_m, box_size, _pm_detail = _resolve_particle_mass(
+            header_text, sim_params
+        )
+        print(f"Particle mass: {particle_mass_msun_per_h:.3e} Msun/h ({_pm_detail})")
         particle_mass_1e10 = particle_mass_msun_per_h * 1e-10
         print(
             f"Cosmology: Omega_M={omega_m}, box_size={box_size} Mpc/h, "
             f"particle_mass={particle_mass_msun_per_h:.3e} Msun/h "
-            f"({particle_mass_1e10:.4f} × 10^10 Msun/h)"
+            f"({particle_mass_1e10:.4f} x 10^10 Msun/h)"
         )
 
         n_trees_total = min(n_trees, n_trees_available) if n_trees else n_trees_available
@@ -890,5 +797,5 @@ def convert(
     except SystemExit:
         raise
     except Exception as exc:
-        print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
+        print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
         sys.exit(1)

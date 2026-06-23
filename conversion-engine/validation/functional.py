@@ -1,5 +1,5 @@
 """
-functional.py — SAGE dry-run functional validation for converted output files.
+functional.py - SAGE dry-run functional validation for converted output files.
 
 Supports both lhalo_hdf5 (HDF5) and lhalo_binary output formats. Triggered only
 when SAGE_BINARY_PATH is set in the environment. If the variable is absent, the
@@ -22,24 +22,26 @@ from pathlib import Path
 import h5py
 import numpy as np
 
+from utils.schema import HALO_RECORD_DTYPE as _BINARY_HALO_DTYPE
+
 # ---------------------------------------------------------------------------
 # SAGE parameter file templates (one per output format)
 # ---------------------------------------------------------------------------
 
 _PARAM_TEMPLATE_HDF5 = """\
 % ================================================
-% SAGE parameter file — functional validation dry run
+% SAGE parameter file - functional validation dry run
 % Generated automatically by validation/functional.py
 % ================================================
 
 %-- Simulation box and cosmology --%
 % NOTE: BoxSize, Hubble_h, Omega, OmegaLambda are simulation-specific.
 %       Set these to the correct values before running a real validation.
-BoxSize             100.0               % Mpc/h — placeholder
+BoxSize             100.0               % Mpc/h - placeholder
 PartMass            {particle_mass}     % 1e10 Msun/h (from Header/ParticleMass)
-Hubble_h            0.0                 % placeholder — fill with simulation value
-Omega               0.0                 % placeholder — fill with simulation value
-OmegaLambda         0.0                 % placeholder — fill with simulation value
+Hubble_h            0.0                 % placeholder - fill with simulation value
+Omega               0.0                 % placeholder - fill with simulation value
+OmegaLambda         0.0                 % placeholder - fill with simulation value
 BaryonFrac          0.17
 
 %-- Merger tree input --%
@@ -73,23 +75,23 @@ FileWithSnapList
 
 _PARAM_TEMPLATE_BINARY = """\
 % ================================================
-% SAGE parameter file — functional validation dry run (binary trees)
+% SAGE parameter file - functional validation dry run (binary trees)
 % Generated automatically by validation/functional.py
 % ================================================
 
 %-- Simulation box and cosmology --%
 % NOTE: BoxSize, Hubble_h, Omega, OmegaLambda are simulation-specific.
 %       Set these to the correct values before running a real validation.
-BoxSize             100.0               % Mpc/h — placeholder
+BoxSize             100.0               % Mpc/h - placeholder
 PartMass            {particle_mass}     % 1e10 Msun/h
-Hubble_h            0.0                 % placeholder — fill with simulation value
-Omega               0.0                 % placeholder — fill with simulation value
-OmegaLambda         0.0                 % placeholder — fill with simulation value
+Hubble_h            0.0                 % placeholder - fill with simulation value
+Omega               0.0                 % placeholder - fill with simulation value
+OmegaLambda         0.0                 % placeholder - fill with simulation value
 BaryonFrac          0.17
 
 %-- Merger tree input --%
 % lhalo_binary (TreeType=0): SAGE appends .<N> to TreeName.
-% Output file test_<base>_STC.0 → TreeName = test_<base>_STC; FirstFile = 0; LastFile = 0.
+% Output file test_<base>_STC.0 -> TreeName = test_<base>_STC; FirstFile = 0; LastFile = 0.
 TreeType            lhalo_binary
 TreeName            {tree_name}
 NtreesPerFile       -1                  % -1 = read from file header
@@ -117,32 +119,6 @@ IMF                 Chabrier
 FileWithSnapList
 """
 
-# numpy dtype for reading binary halo records (matches struct halo_data in core_simulation.h)
-_BINARY_HALO_DTYPE = np.dtype(
-    [
-        ("Descendant", np.int32),
-        ("FirstProgenitor", np.int32),
-        ("NextProgenitor", np.int32),
-        ("FirstHaloInFOFgroup", np.int32),
-        ("NextHaloInFOFgroup", np.int32),
-        ("Len", np.int32),
-        ("M_Mean200", np.float32),
-        ("Mvir", np.float32),
-        ("M_TopHat", np.float32),
-        ("Pos", np.float32, 3),
-        ("Vel", np.float32, 3),
-        ("VelDisp", np.float32),
-        ("Vmax", np.float32),
-        ("Spin", np.float32, 3),
-        ("MostBoundID", np.int64),
-        ("SnapNum", np.int32),
-        ("FileNr", np.int32),
-        ("SubhaloIndex", np.int32),
-        ("SubHalfMass", np.float32),
-    ]
-)
-
-
 def _read_hdf5_params(hdf5_path: str) -> tuple[float, int]:
     """Return (particle_mass, lowest_redshift_snap) from an HDF5 output file."""
     with h5py.File(hdf5_path, "r") as f:
@@ -162,7 +138,7 @@ def _read_hdf5_params(hdf5_path: str) -> tuple[float, int]:
 def _read_binary_params(binary_path: str) -> int:
     """Return the lowest-redshift snapshot number from a binary output file.
 
-    Particle mass is not stored in the binary format — the caller must supply it
+    Particle mass is not stored in the binary format - the caller must supply it
     via the particle_mass parameter of run_functional_validation().
     """
     with open(binary_path, "rb") as f:
@@ -212,11 +188,11 @@ def run_functional_validation(
     -------
     dict with keys:
         "status"     : "PASS" | "FAIL" | "NOT_RUN"
-        "reason"     : str — human-readable summary
+        "reason"     : str - human-readable summary
         "returncode" : int | None
         "stdout"     : str
         "stderr"     : str
-        "log_path"   : str | None — path to the parameter file used
+        "log_path"   : str | None - path to the parameter file used
     """
     sage_binary = os.environ.get("SAGE_BINARY_PATH")
     if not sage_binary:
@@ -244,7 +220,7 @@ def run_functional_validation(
                     f"SAGE_BINARY_PATH='{sage_binary}' is set but the path is not "
                     "accessible inside the container. To enable functional validation, "
                     "bind-mount the directory containing the binary into the container. "
-                    "See README.md §Container Setup and container/docker-compose.yml for "
+                    "See README.md section Container Setup and container/docker-compose.yml for "
                     "instructions."
                 ),
                 "returncode": None,
@@ -307,7 +283,7 @@ def run_functional_validation(
     # Strip the trailing .0.hdf5 or .0 suffix so SAGE reconstructs the full name.
     # -----------------------------------------------------------------------
     output_stem = str(Path(output_path).resolve())
-    # Remove known suffixes: .0.hdf5 → strip .hdf5 then .0; .0 → strip .0
+    # Remove known suffixes: .0.hdf5 -> strip .hdf5 then .0; .0 -> strip .0
     if output_stem.endswith(".hdf5"):
         output_stem = output_stem[: -len(".hdf5")]
     # Strip the trailing .<N> (file index) so TreeName is the bare base

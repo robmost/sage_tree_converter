@@ -1,5 +1,5 @@
 """
-binary_writer.py — Utility functions for writing SAGE LHaloTree binary output files.
+binary_writer.py - Utility functions for writing SAGE LHaloTree binary output files.
 
 Public API mirrors hdf5_writer.py so drivers can call either writer with identical
 arguments. The binary format is SAGE TreeType=0, read by read_tree_lhalo_binary.c.
@@ -12,7 +12,7 @@ File layout:
 
 Unit difference from HDF5:
     The HDF5 reader (read_tree_lhalo_hdf5.c) multiplies Pos and Spin by 0.001 after
-    reading (kpc/h → Mpc/h). The binary reader does NOT. Drivers produce field dicts
+    reading (kpc/h -> Mpc/h). The binary reader does NOT. Drivers produce field dicts
     in HDF5 on-disk units (SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s)); this
     module divides both by 1000 before packing.
 
@@ -26,6 +26,8 @@ import sys
 from typing import BinaryIO
 
 import numpy as np
+
+from utils.schema import HALO_RECORD_DTYPE, MANDATORY_FIELDS
 
 if sys.byteorder != "little":
     raise RuntimeError(
@@ -46,102 +48,62 @@ assert _HALO_STRUCT_SIZE == 104, (
     "Check _HALO_STRUCT_FMT against core_simulation.h."
 )
 
-MANDATORY_FIELDS = frozenset(
-    {
-        "Descendant",
-        "FirstProgenitor",
-        "NextProgenitor",
-        "FirstHaloInFOFGroup",
-        "NextHaloInFOFGroup",
-        "SubhaloLen",
-        "Group_M_Crit200",
-        "SubhaloVMax",
-        "SubhaloIDMostBound",
-        "SnapNum",
-        "SubhaloPos",
-        "SubhaloVel",
-        "SubhaloSpin",
-    }
+# HALO_RECORD_DTYPE (utils.schema) is the canonical packed little-endian layout;
+# its byte layout is identical to struct.pack(_HALO_STRUCT_FMT), so _pack_tree can
+# fill columns and emit one .tobytes() instead of a per-halo Python loop.
+assert HALO_RECORD_DTYPE.itemsize == _HALO_STRUCT_SIZE, (
+    f"HALO_RECORD_DTYPE size {HALO_RECORD_DTYPE.itemsize} != struct size {_HALO_STRUCT_SIZE}."
 )
 
 
 def _pack_tree(fields: dict) -> bytes:
-    """Pack all halos in a tree into a bytes object (n_halos * 104 bytes)."""
+    """Pack all halos in a tree into a bytes object (n_halos * 104 bytes).
+
+    Fills a packed structured array and emits a single .tobytes(); byte-identical
+    to packing each halo with struct.pack(_HALO_STRUCT_FMT, ...).
+    """
     n = len(fields["Descendant"])
 
-    desc = np.asarray(fields["Descendant"], dtype=np.int32)
-    fp = np.asarray(fields["FirstProgenitor"], dtype=np.int32)
-    np_ = np.asarray(fields["NextProgenitor"], dtype=np.int32)
-    fhifof = np.asarray(fields["FirstHaloInFOFGroup"], dtype=np.int32)
-    nhifof = np.asarray(fields["NextHaloInFOFGroup"], dtype=np.int32)
-    length = np.asarray(fields["SubhaloLen"], dtype=np.int32)
-
-    m_mean200 = np.asarray(fields.get("Group_M_Mean200", np.zeros(n, np.float32)), dtype=np.float32)
-    mvir = np.asarray(fields["Group_M_Crit200"], dtype=np.float32)
-    m_tophat = np.asarray(
-        fields.get("Group_M_TopHat200", np.zeros(n, np.float32)), dtype=np.float32
-    )
-
-    # SubhaloPos is in kpc/h (HDF5 on-disk convention).
-    # Binary reader expects Mpc/h — divide by 1000.
+    # SubhaloPos is in kpc/h, SubhaloSpin in (kpc/h)(km/s) (HDF5 on-disk convention).
+    # The binary reader expects Mpc/h - divide both by 1000.
     pos_raw = np.asarray(fields["SubhaloPos"], dtype=np.float32)
     if pos_raw.ndim != 2 or pos_raw.shape[1] != 3:
         raise ValueError(f"SubhaloPos must have shape (N, 3), got {pos_raw.shape}.")
-    pos = pos_raw * np.float32(1e-3)
-
     vel = np.asarray(fields["SubhaloVel"], dtype=np.float32)
     if vel.ndim != 2 or vel.shape[1] != 3:
         raise ValueError(f"SubhaloVel must have shape (N, 3), got {vel.shape}.")
-
-    veldisp = np.asarray(fields.get("SubhaloVelDisp", np.zeros(n, np.float32)), dtype=np.float32)
-    vmax = np.asarray(fields["SubhaloVMax"], dtype=np.float32)
-
-    # SubhaloSpin is in (kpc/h)(km/s) (HDF5 on-disk convention).
-    # Binary reader expects (Mpc/h)(km/s) — divide by 1000.
     spin_raw = np.asarray(fields["SubhaloSpin"], dtype=np.float32)
     if spin_raw.ndim != 2 or spin_raw.shape[1] != 3:
         raise ValueError(f"SubhaloSpin must have shape (N, 3), got {spin_raw.shape}.")
-    spin = spin_raw * np.float32(1e-3)
 
-    mostbound = np.asarray(fields["SubhaloIDMostBound"], dtype=np.int64)
-    snapnum = np.asarray(fields["SnapNum"], dtype=np.int32)
-    filenr = np.asarray(fields.get("FileNr", np.full(n, -1, np.int32)), dtype=np.int32)
-    subhalo_idx = np.full(n, -1, dtype=np.int32)
-    subhalf = np.zeros(n, dtype=np.float32)
+    rec = np.empty(n, dtype=HALO_RECORD_DTYPE)
+    rec["Descendant"] = np.asarray(fields["Descendant"], dtype=np.int32)
+    rec["FirstProgenitor"] = np.asarray(fields["FirstProgenitor"], dtype=np.int32)
+    rec["NextProgenitor"] = np.asarray(fields["NextProgenitor"], dtype=np.int32)
+    rec["FirstHaloInFOFGroup"] = np.asarray(fields["FirstHaloInFOFGroup"], dtype=np.int32)
+    rec["NextHaloInFOFGroup"] = np.asarray(fields["NextHaloInFOFGroup"], dtype=np.int32)
+    rec["Len"] = np.asarray(fields["SubhaloLen"], dtype=np.int32)
+    rec["M_Mean200"] = np.asarray(
+        fields.get("Group_M_Mean200", np.zeros(n, np.float32)), dtype=np.float32
+    )
+    rec["M_Crit200"] = np.asarray(fields["Group_M_Crit200"], dtype=np.float32)
+    rec["M_TopHat"] = np.asarray(
+        fields.get("Group_M_TopHat200", np.zeros(n, np.float32)), dtype=np.float32
+    )
+    rec["Pos"] = pos_raw * np.float32(1e-3)
+    rec["Vel"] = vel
+    rec["VelDisp"] = np.asarray(
+        fields.get("SubhaloVelDisp", np.zeros(n, np.float32)), dtype=np.float32
+    )
+    rec["Vmax"] = np.asarray(fields["SubhaloVMax"], dtype=np.float32)
+    rec["Spin"] = spin_raw * np.float32(1e-3)
+    rec["MostBoundID"] = np.asarray(fields["SubhaloIDMostBound"], dtype=np.int64)
+    rec["SnapNum"] = np.asarray(fields["SnapNum"], dtype=np.int32)
+    rec["FileNr"] = np.asarray(fields.get("FileNr", np.full(n, -1, np.int32)), dtype=np.int32)
+    rec["SubhaloIndex"] = -1
+    rec["SubHalfMass"] = 0.0
 
-    buf = bytearray(n * _HALO_STRUCT_SIZE)
-    for i in range(n):
-        struct.pack_into(
-            _HALO_STRUCT_FMT,
-            buf,
-            i * _HALO_STRUCT_SIZE,
-            int(desc[i]),
-            int(fp[i]),
-            int(np_[i]),
-            int(fhifof[i]),
-            int(nhifof[i]),
-            int(length[i]),
-            float(m_mean200[i]),
-            float(mvir[i]),
-            float(m_tophat[i]),
-            float(pos[i, 0]),
-            float(pos[i, 1]),
-            float(pos[i, 2]),
-            float(vel[i, 0]),
-            float(vel[i, 1]),
-            float(vel[i, 2]),
-            float(veldisp[i]),
-            float(vmax[i]),
-            float(spin[i, 0]),
-            float(spin[i, 1]),
-            float(spin[i, 2]),
-            int(mostbound[i]),
-            int(snapnum[i]),
-            int(filenr[i]),
-            int(subhalo_idx[i]),
-            float(subhalf[i]),
-        )
-    return bytes(buf)
+    return rec.tobytes()
 
 
 def write_header(
@@ -196,7 +158,7 @@ def write_placeholder_header(f: BinaryIO, n_trees: int) -> None:
         Open binary file object (mode "wb"). Must be at position 0.
     n_trees : int
         Number of trees that will be written to this file.  The placeholder
-        occupies 8 + n_trees × 4 bytes (matching the real header layout).
+        occupies 8 + n_trees x 4 bytes (matching the real header layout).
     """
     size = 8 + n_trees * 4  # nforests (4B) + totnhalos (4B) + nhalos[n_trees] (4B each)
     f.write(b"\x00" * size)
@@ -238,7 +200,7 @@ def write_tree(
         first; halo data is appended at the current file position.
     tree_idx : int
         Accepted for API symmetry with hdf5_writer; ignored (binary format is
-        sequential — trees are identified by position, not by name).
+        sequential - trees are identified by position, not by name).
     fields : dict[str, array-like]
         Mapping from SAGE field name to its data array. All mandatory fields must
         be present. Optional fields are used if included.

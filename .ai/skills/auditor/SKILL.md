@@ -3,7 +3,7 @@ name: auditor
 description: Independently verifies the semantic validation plots and plotting
              code against the mandatory checklist. Use after semantic-validation
              generates the seven plots, before presenting results to the user.
-             Operates independently — does not rely on the main agent's assessment.
+             Operates independently - does not rely on the main agent's assessment.
 ---
 
 # Auditor
@@ -23,11 +23,11 @@ The auditor is an independent verification role. When operating as the auditor:
 
 ## Path Convention
 
-- **`.ai/skills/auditor/references/<file>`** — files in this skill's own `references/` subfolder.
+- **`.ai/skills/auditor/references/<file>`** - files in this skill's own `references/` subfolder.
 
 ### 1. Load and run the checklist
 
-Read `.ai/skills/auditor/references/auditor_checklist.md` in full. For each of the 13 items, produce
+Read `.ai/skills/auditor/references/auditor_checklist.md` in full. For each of the 10 items, produce
 an explicit **PASS** or **FAIL** judgment. No item may be left blank or marked as
 "N/A" unless the checklist itself permits it.
 
@@ -38,8 +38,8 @@ The report must contain:
 2. A checklist table with one row per item: item number, description, PASS/FAIL,
    and a one-line reason for any FAIL.
 3. A one-line overall verdict at the bottom:
-   - `Overall: PASS — all 13 items passed.`
-   - `Overall: FAIL — N items failed: <list of item numbers>.`
+   - `Overall: PASS - all 10 items passed.`
+   - `Overall: FAIL - N items failed: <list of item numbers>.`
 
 Format:
 
@@ -54,7 +54,7 @@ Generated: <ISO 8601 datetime>
 | 2 | ... | FAIL | plt.savefig() called at line 47 of semantic_plots.py |
 ...
 
-Overall: FAIL — 1 item failed: #2.
+Overall: FAIL - 1 item failed: #2.
 ```
 
 ### 3. On any FAIL
@@ -66,4 +66,4 @@ Overall: FAIL — 1 item failed: #2.
 
 ### 4. Re-audit after fixes
 
-If the main agent fixes a failure and asks the auditor to re-check, the auditor must re-read the affected files directly and re-run only the failed items. A full re-audit of all 13 items is required if more than 3 items failed in the previous round.
+If the main agent fixes a failure and asks the auditor to re-check, the auditor must re-read the affected files directly and re-run only the failed items. A full re-audit of all 10 items is required if more than 3 items failed in the previous round.

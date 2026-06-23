@@ -1,2 +1,2 @@
-# drivers package — format-specific conversion drivers.
-# Each module exposes two public functions: convert() and read_trees().
+# drivers package - format-specific conversion drivers.
+# Each module exposes one public function: convert().

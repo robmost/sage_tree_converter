@@ -1,8 +1,8 @@
 """
-subfind_lhalotree_binary.py — Driver for the classic LHaloTree binary format.
+subfind_lhalotree_binary.py - Driver for the classic LHaloTree binary format.
 
 Reads the Gadget-2/Subfind LHaloTree binary files produced by the Millennium
-Simulation pipeline (e.g. trees_063.0 – trees_063.7) and writes a single
+Simulation pipeline (e.g. trees_063.0 - trees_063.7) and writes a single
 SAGE LHaloTree HDF5 or binary file.
 
 Binary layout per file:
@@ -36,35 +36,16 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
+from utils.schema import HALO_RECORD_DTYPE as HALO_DTYPE
 from utils.split_writer import SplitWriter
 
 # Dark matter particle mass for the Millennium / mini-Millennium simulation
 # (Springel et al. 2005). Units: 10^10 Msun/h.
 PARTICLE_MASS = 0.0860
 
-HALO_DTYPE = np.dtype(
-    [
-        ("Descendant", np.int32),
-        ("FirstProgenitor", np.int32),
-        ("NextProgenitor", np.int32),
-        ("FirstHaloInFOFGroup", np.int32),
-        ("NextHaloInFOFGroup", np.int32),
-        ("Len", np.int32),
-        ("M_Mean200", np.float32),
-        ("M_Crit200", np.float32),
-        ("M_TopHat", np.float32),
-        ("Pos", np.float32, 3),
-        ("Vel", np.float32, 3),
-        ("VelDisp", np.float32),
-        ("Vmax", np.float32),
-        ("Spin", np.float32, 3),
-        ("MostBoundID", np.int64),
-        ("SnapNum", np.int32),
-        ("FileNr", np.int32),
-        ("SubhaloIndex", np.int32),
-        ("SubHalfMass", np.float32),
-    ]
-)  # 104 bytes per halo — confirmed against mini-Millennium file sizes
+# HALO_DTYPE (the 104-byte SAGE LHaloTree record) is the canonical layout from
+# utils.schema - the same input and output binary format. See _build_fields for
+# the field -> SAGE-schema mapping.
 
 
 def _discover_files(input_path: str) -> list[Path]:
@@ -140,61 +121,6 @@ def _build_fields(halos: np.ndarray) -> dict:
     }
 
 
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    """Read LHaloTree binary files into the SAGE LHaloTree schema without writing output.
-
-    Reuses _discover_files, _read_file_header, and _build_fields. Used by
-    semantic validation to load the original input data as the reference column.
-
-    Returns
-    -------
-    dict[int, dict[str, np.ndarray]]
-        tree_idx (0-based, matching convert() write order) → field dict.
-        SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s), masses in 1e10 Msun/h.
-    """
-    files = _discover_files(input_path)
-
-    work = []
-    for file_path in files:
-        with open(file_path, "rb") as fp:
-            n_trees_in_file, tree_n_halos = _read_file_header(fp)
-            header_bytes = 4 + 4 + n_trees_in_file * 4
-        offset = header_bytes
-        for local_idx in range(n_trees_in_file):
-            work.append((file_path, local_idx, int(tree_n_halos[local_idx]), offset))
-            offset += int(tree_n_halos[local_idx]) * HALO_DTYPE.itemsize
-
-    if n_trees is not None:
-        work = work[:n_trees]
-
-    result: dict[int, dict] = {}
-    current_file_path = None
-    current_fp: BufferedReader | None = None
-    try:
-        for global_tree_idx, (file_path, local_idx, n_halos, byte_offset) in enumerate(
-            tqdm(work, desc="Reading trees")
-        ):
-            if file_path != current_file_path:
-                if current_fp is not None:
-                    current_fp.close()
-                current_fp = open(file_path, "rb")
-                current_file_path = file_path
-            assert current_fp is not None
-            current_fp.seek(byte_offset)
-            raw = current_fp.read(n_halos * HALO_DTYPE.itemsize)
-            halos = np.frombuffer(raw, dtype=HALO_DTYPE)
-            result[global_tree_idx] = _build_fields(halos)
-    finally:
-        if current_fp is not None:
-            current_fp.close()
-
-    return result
-
-
 def convert(
     input_path: str,
     output_path: str,
@@ -209,7 +135,7 @@ def convert(
     ----------
     input_path : str
         Path to a single binary tree file, or a directory containing
-        files named trees_<snap>.<N> (e.g. trees_063.0 – trees_063.7).
+        files named trees_<snap>.<N> (e.g. trees_063.0 - trees_063.7).
     output_path : str
         Path for the output file.
     n_trees : int or None
@@ -291,5 +217,5 @@ def convert(
     except SystemExit:
         raise
     except Exception as exc:
-        print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
+        print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
         sys.exit(1)

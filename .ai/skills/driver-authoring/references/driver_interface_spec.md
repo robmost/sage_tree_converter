@@ -12,7 +12,7 @@ def convert(
 ) -> None:
 ```
 
-Both `convert()` and `read_trees()` are public functions every driver module must expose. The main driver
+`convert()` is the single public function every driver module must expose. The main driver
 (`conversion-engine/main_driver.py`) imports it by name:
 
 ```python
@@ -41,25 +41,25 @@ exactly:
 ```text
 output.hdf5
 ├── Header/
-│   ├── [attr] ParticleMass         — float64, 10^10 M_sun/h
-│   ├── [attr] NtreesPerFile        — int32
-│   ├── [attr] NhalosPerFile        — int32
-│   ├── [attr] NumberOfOutputFiles  — int32
-│   └── TreeNHalos                  — 1D int32 dataset, length = NtreesPerFile
+│   ├── [attr] ParticleMass         - float64, 10^10 M_sun/h
+│   ├── [attr] NtreesPerFile        - int32
+│   ├── [attr] NhalosPerFile        - int32
+│   ├── [attr] NumberOfOutputFiles  - int32
+│   └── TreeNHalos                  - 1D int32 dataset, length = NtreesPerFile
 └── Tree0/
-    ├── Descendant             — int32 (N,)
-    ├── FirstProgenitor        — int32 (N,)
-    ├── NextProgenitor         — int32 (N,)
-    ├── FirstHaloInFOFGroup    — int32 (N,)
-    ├── NextHaloInFOFGroup     — int32 (N,)
-    ├── SubhaloLen             — int32 (N,)
-    ├── Group_M_Crit200        — float32 (N,)
-    ├── SubhaloVMax            — float32 (N,)
-    ├── SubhaloIDMostBound     — int64 (N,)
-    ├── SnapNum                — int32 (N,)
-    ├── SubhaloPos             — float32 (N, 3)  [kpc/h on disk]
-    ├── SubhaloVel             — float32 (N, 3)
-    └── SubhaloSpin            — float32 (N, 3)  [(kpc/h)(km/s) on disk]
+    ├── Descendant             - int32 (N,)
+    ├── FirstProgenitor        - int32 (N,)
+    ├── NextProgenitor         - int32 (N,)
+    ├── FirstHaloInFOFGroup    - int32 (N,)
+    ├── NextHaloInFOFGroup     - int32 (N,)
+    ├── SubhaloLen             - int32 (N,)
+    ├── Group_M_Crit200        - float32 (N,)
+    ├── SubhaloVMax            - float32 (N,)
+    ├── SubhaloIDMostBound     - int64 (N,)
+    ├── SnapNum                - int32 (N,)
+    ├── SubhaloPos             - float32 (N, 3)  [kpc/h on disk]
+    ├── SubhaloVel             - float32 (N, 3)
+    └── SubhaloSpin            - float32 (N, 3)  [(kpc/h)(km/s) on disk]
 ...
 └── Tree<NtreesPerFile-1>/
     └── <same fields>
@@ -71,7 +71,7 @@ may be included with their sentinel values if not available in the input.
 ### lhalo_binary
 
 The driver must produce a file that matches `reference/sage_lhalotree_binary_schema.md`
-exactly. Use `conversion-engine/utils/binary_writer` — do not write the binary struct
+exactly. Use `conversion-engine/utils/binary_writer` - do not write the binary struct
 manually.
 
 ```text
@@ -82,7 +82,7 @@ output          (no file extension)
   Offset 8+4*nforests: 104-byte halo_data records (sequential, all trees)
 ```
 
-## h5py writing pattern (lhalo_hdf5)
+## On-disk HDF5 layout (lhalo_hdf5, for reference)
 
 ```python
 import h5py
@@ -116,22 +116,33 @@ with h5py.File(output_path, "w") as f:
         grp.create_dataset("SubhaloSpin",         data=spin[i].astype(np.float32))  # (kpc/h)(km/s)
 ```
 
-## binary_writer pattern (lhalo_binary)
+## Writing output - use `SplitWriter` (both formats)
+
+The blocks above show the raw on-disk layout for reference only. Drivers do **not** call
+`hdf5_writer` or `binary_writer` directly - write through `SplitWriter`, which selects the
+writer from `output_format`, streams trees, distributes them across `n_output_files`, and
+deletes partial files on error (see `SKILL.md` section 2 and
+`conversion-engine/drivers/_template.py`):
 
 ```python
-from utils import binary_writer
+from utils.split_writer import SplitWriter
 
-bw = binary_writer.BinaryWriter(output_path)
-bw.write_header(n_trees=n_trees, tree_nhalos=tree_n_halos_array)
-from tqdm import tqdm
-for i in tqdm(range(n_trees), desc="Writing trees"):
-    bw.write_tree(fields_dict)  # keys: SubhaloPos in kpc/h, SubhaloSpin in (kpc/h)(km/s)
-bw.close()
+with SplitWriter(
+    output_path=output_path,
+    output_format=output_format,
+    n_output_files=n_output_files,
+    n_trees_total=n_trees_total,   # must be known before opening
+    particle_mass=particle_mass_1e10,
+) as writer:
+    for fields in tree_stream:     # one field dict per tree, in write order
+        writer.write_tree(fields)
 ```
 
-`fields_dict` keys must match the mandatory field list in `reference/sage_lhalotree_binary_schema.md`
-Section 4. The writer divides `SubhaloPos` and `SubhaloSpin` by 1000 internally before
-struct-packing — do not pre-divide in the driver.
+Each `fields` dict must contain the mandatory keys - single source
+`conversion-engine/utils/schema.py::MANDATORY_FIELDS` - with `SubhaloPos` in kpc/h,
+`SubhaloSpin` in (kpc/h)(km/s), masses in 10^10 Msun/h. For `lhalo_binary`, `SplitWriter`
+divides `SubhaloPos` and `SubhaloSpin` by 1000 internally before struct-packing - do not
+pre-divide in the driver.
 
 ## Error handling contract
 
@@ -173,18 +184,8 @@ def convert(
     # 1. Read input
     # 2. Apply field mapping and unit conversions
     # 3. Reconstruct pointers
-    # 4. Write output (HDF5 via hdf5_writer or binary via binary_writer)
-    ...
-
-
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    # Same parsing logic as convert() but accumulates into a dict instead of writing.
-    # Returns {tree_idx: {field_name: np.ndarray}} with SAGE LHaloTree HDF5 units.
+    # 4. Write output via SplitWriter (HDF5 or binary, selected by output_format)
     ...
 ```
 
-No other public functions beyond these two. Private helper functions (prefixed with `_`) are allowed.
+No other public functions. Private helper functions (prefixed with `_`) are allowed.

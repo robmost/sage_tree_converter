@@ -1,5 +1,5 @@
 """
-split_writer.py — SplitWriter context manager for streaming SAGE LHaloTree output.
+split_writer.py - SplitWriter context manager for streaming SAGE LHaloTree output.
 
 Provides a uniform write interface for all drivers regardless of output format
 (HDF5 or binary) and number of output files.  Eliminates in-memory tree
@@ -49,16 +49,16 @@ def _derive_output_paths(output_path: str, n_files: int) -> list[str]:
 
     Examples
     --------
-    "output/sim_STC.0.hdf5" + 3 → ["output/sim_STC.0.hdf5",
+    "output/sim_STC.0.hdf5" + 3 -> ["output/sim_STC.0.hdf5",
                                      "output/sim_STC.1.hdf5",
                                      "output/sim_STC.2.hdf5"]
-    "output/sim_STC.0"      + 3 → ["output/sim_STC.0",
+    "output/sim_STC.0"      + 3 -> ["output/sim_STC.0",
                                      "output/sim_STC.1",
                                      "output/sim_STC.2"]
     """
     p = Path(output_path)
     if p.suffix == ".hdf5":
-        # Strip .hdf5 → "output/sim_STC.0", then strip ".0" → "output/sim_STC"
+        # Strip .hdf5 -> "output/sim_STC.0", then strip ".0" -> "output/sim_STC"
         stem = str(p.with_suffix(""))
         base = stem.rsplit(".", 1)[0]
         return [f"{base}.{i}.hdf5" for i in range(n_files)]
@@ -101,16 +101,16 @@ class SplitWriter:
     ----------
     output_path : str
         Path to the first output file (index 0).  Additional files are derived
-        by replacing the trailing index token (e.g. ".0.hdf5" → ".1.hdf5").
+        by replacing the trailing index token (e.g. ".0.hdf5" -> ".1.hdf5").
     output_format : str
         "lhalo_hdf5" or "lhalo_binary".
     n_output_files : int
-        Requested number of output files (must be ≥ 1).  Clamped to
+        Requested number of output files (must be >= 1).  Clamped to
         n_trees_total if larger so no empty files are created.
     n_trees_total : int
-        Total number of trees that will be written across all files (must be ≥ 1).
+        Total number of trees that will be written across all files (must be >= 1).
     particle_mass : float
-        Dark matter particle mass in units of 10¹⁰ M☉/h, written to each
+        Dark matter particle mass in units of 10^10 Msun/h, written to each
         file's header.
     """
 
@@ -123,9 +123,9 @@ class SplitWriter:
         particle_mass: float,
     ) -> None:
         if n_output_files < 1:
-            raise ValueError(f"n_output_files must be ≥ 1, got {n_output_files}.")
+            raise ValueError(f"n_output_files must be >= 1, got {n_output_files}.")
         if n_trees_total < 1:
-            raise ValueError(f"n_trees_total must be ≥ 1, got {n_trees_total}.")
+            raise ValueError(f"n_trees_total must be >= 1, got {n_trees_total}.")
         if output_format not in ("lhalo_hdf5", "lhalo_binary"):
             raise ValueError(
                 f"output_format must be 'lhalo_hdf5' or 'lhalo_binary', got {output_format!r}."
@@ -178,7 +178,7 @@ class SplitWriter:
         else:
             return h5py.File(path, "w")
 
-    def _finalise_file(self, file_idx: int, handle: BinaryIO | h5py.File) -> None:
+    def _finalise_file(self, handle: BinaryIO | h5py.File) -> None:
         n = len(self._file_n_halos)
         total = sum(self._file_n_halos)
         if isinstance(handle, h5py.File):
@@ -203,7 +203,7 @@ class SplitWriter:
 
     def _rotate(self) -> None:
         assert self._current_handle is not None
-        self._finalise_file(self._file_idx, self._current_handle)
+        self._finalise_file(self._current_handle)
         self._current_handle = None
         self._file_idx += 1
         self._tree_idx_in_file = 0
@@ -224,7 +224,7 @@ class SplitWriter:
         Parameters
         ----------
         fields : dict[str, array-like]
-            SAGE field dict — same contract as hdf5_writer.write_tree() and
+            SAGE field dict - same contract as hdf5_writer.write_tree() and
             binary_writer.write_tree().
         """
         assert self._current_handle is not None
@@ -252,7 +252,7 @@ class SplitWriter:
     def close(self) -> None:
         """Finalise and close all output files."""
         if self._current_handle is not None:
-            self._finalise_file(self._file_idx, self._current_handle)
+            self._finalise_file(self._current_handle)
             self._current_handle = None
 
     def _cleanup(self) -> None:

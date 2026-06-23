@@ -1,5 +1,5 @@
 """
-subfind_gadget4_hdf5.py — Gadget-4 built-in SubLink merger tree HDF5 driver (v4).
+subfind_gadget4_hdf5.py - Gadget-4 built-in SubLink merger tree HDF5 driver (v4).
 
 Format summary
 --------------
@@ -27,20 +27,20 @@ Processing strategy (v4)
 2. For each Gadget-4 tree (start, n):
    a. Load the slice TreeHalos[start : start+n].
    b. Clamp out-of-range desc values to -1 (defensive).
-   c. Resolve same-snapshot desc links (iterative, ≤10 hops).
-   d. Sort halos: SnapNum descending, SubhaloLen descending → halo 0 = z=0 central.
-   e. Remap desc indices through the sort permutation (pre-sort → post-sort).
+   c. Resolve same-snapshot desc links (iterative, <=10 hops).
+   d. Sort halos: SnapNum descending, SubhaloLen descending -> halo 0 = z=0 central.
+   e. Remap desc indices through the sort permutation (pre-sort -> post-sort).
    f. Reconstruct FirstProgenitor/NextProgenitor by inverting Descendant (O(N log N)).
    g. Reconstruct FOF pointers from (SnapNum, GroupNr) (O(N log N)).
-   h. Apply unit conversions (×1000 for pos/spin).
+   h. Apply unit conversions (x1000 for pos/spin).
 3. Write one HDF5 Tree<idx> group per Gadget-4 tree.
 
 Unit conventions
 ----------------
-  SubhaloPos  : Mpc/h → kpc/h (×1000)
-  SubhaloSpin : (Mpc/h)(km/s) → (kpc/h)(km/s) (×1000)
-  Group_M_Crit200 : 10^10 Msun/h → direct copy
-  SubhaloVel  : km/s → direct copy
+  SubhaloPos  : Mpc/h -> kpc/h (x1000)
+  SubhaloSpin : (Mpc/h)(km/s) -> (kpc/h)(km/s) (x1000)
+  Group_M_Crit200 : 10^10 Msun/h -> direct copy
+  SubhaloVel  : km/s -> direct copy
 """
 
 import os
@@ -108,7 +108,7 @@ def _resolve_same_snap_desc(desc_in: np.ndarray, snap: np.ndarray) -> np.ndarray
     if still_same.any():
         warnings.warn(
             f"{still_same.sum()} same-snapshot Descendant links unresolved after 10 iterations"
-            " — setting Descendant = -1. This indicates an unusual input artifact.",
+            " - setting Descendant = -1. This indicates an unusual input artifact.",
             stacklevel=2,
         )
     desc_eff[still_same] = -1
@@ -211,7 +211,7 @@ def _process_tree(th: h5py.Group, start: int, n: int) -> dict:
     mass = _load_arr(th, "Group_M_Crit200", sl).astype(np.float32)
     # Gadget-4 sets Group_M_Crit200 only on FOF centrals (SubRankInGr==0); broadcast
     # to all satellites in same (SnapNum, GroupNr) so the output field is semantically
-    # correct. SAGE ignores this field for satellites (uses Len×PartMass instead).
+    # correct. SAGE ignores this field for satellites (uses LenxPartMass instead).
     unique_key = snap.astype(np.int64) * 10_000_000 + group_nr
     keys, inverse = np.unique(unique_key, return_inverse=True)
     per_key_max = np.zeros(keys.shape[0], dtype=np.float32)
@@ -230,7 +230,7 @@ def _process_tree(th: h5py.Group, start: int, n: int) -> dict:
     # Resolve same-snapshot desc links (tree-local indices throughout)
     desc_eff = _resolve_same_snap_desc(desc_raw, snap)
 
-    # Sort: SnapNum descending, SubhaloLen descending → halo 0 = z=0 central
+    # Sort: SnapNum descending, SubhaloLen descending -> halo 0 = z=0 central
     sort_order = np.lexsort((-sub_len.astype(np.int64), -snap.astype(np.int64)))
     inv_sort = np.empty(n, dtype=np.int32)
     inv_sort[sort_order] = np.arange(n, dtype=np.int32)
@@ -315,7 +315,7 @@ def convert(
 
             _pm_override = (sim_params or {}).get("particle_mass_msun_per_h")
             if _pm_override is not None:
-                particle_mass = float(_pm_override) * 1e-10  # Msun/h → 10^10 Msun/h
+                particle_mass = float(_pm_override) * 1e-10  # Msun/h -> 10^10 Msun/h
             else:
                 sample_size = min(100_000, int(_ds(th, "SubhaloLen").shape[0]))
                 sub_mass_s = _load_arr(th, "SubhaloMass", slice(sample_size)).copy()
@@ -323,7 +323,7 @@ def convert(
                 particle_mass = _estimate_particle_mass(sub_mass_s, sub_len_s)
                 warnings.warn(
                     f"particle_mass not provided; estimated from SubhaloMass/SubhaloLen: "
-                    f"{particle_mass:.4e} × 10^10 Msun/h. "
+                    f"{particle_mass:.4e} x 10^10 Msun/h. "
                     "Pass --sim-config with particle_mass_msun_per_h to override.",
                     stacklevel=2,
                 )
@@ -354,37 +354,6 @@ def convert(
     except Exception as exc:
         import traceback
 
-        print(f"ERROR: conversion failed — {exc}", file=sys.stderr)
+        print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
-
-
-def read_trees(
-    input_path: str,
-    n_trees: int | None = None,
-    sim_params: dict | None = None,
-) -> dict[int, dict]:
-    """Read trees into SAGE LHaloTree schema without writing output.
-
-    Applies the same per-tree processing as convert() so tree_idx values match.
-    Called by semantic validation to load the original data as the reference column.
-
-    Returns
-    -------
-    dict[int, dict[str, np.ndarray]]
-        tree_idx (0-based) → field dict. SubhaloPos in kpc/h,
-        SubhaloSpin in (kpc/h)(km/s), masses in 10^10 Msun/h.
-    """
-    result: dict[int, dict] = {}
-    with h5py.File(input_path, "r") as in_f:
-        tt: h5py.Group = in_f["TreeTable"]  # type: ignore[assignment]
-        starts = _load_arr(tt, "StartOffset").astype(np.int64)
-        lengths = _load_arr(tt, "Length").astype(np.int64)
-        n_g4_trees = int(len(starts))
-        n_to_read = min(n_trees, n_g4_trees) if n_trees is not None else n_g4_trees
-
-        th: h5py.Group = in_f["TreeHalos"]  # type: ignore[assignment]
-        for tree_idx in tqdm(range(n_to_read), desc="Reading trees"):
-            result[tree_idx] = _process_tree(th, int(starts[tree_idx]), int(lengths[tree_idx]))
-
-    return result
