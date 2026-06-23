@@ -342,6 +342,14 @@ I'll identify your input format and map its fields to the SAGE LHaloTree schema.
   4. [G1] Confirm mapping + select output format + file count
 ```
 
+> **ASCII inputs require an explicit format.** Format auto-detection keys on the file
+> extension, and `.txt`/`.dat` both map to "ascii", so it cannot tell two ASCII formats
+> apart (it returns no match). For ASCII inputs (AHF, Rockstar/Consistent Trees) always
+> pass `--format <format_id>` to the driver / batch runner. Single-file HDF5 inputs
+> (`.hdf5`/`.h5`) can be auto-detected; directory inputs (e.g. the LHaloTree binary format)
+> are never auto-detected and also need `--format`. Confirming the format is recommended
+> in every case.
+
 ### Stage 2 - Test Engine
 
 ```
