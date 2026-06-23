@@ -99,8 +99,10 @@ def convert(
         # ------------------------------------------------------------------
         # TODO: for each halo field, apply the scale_factor or conversion_expr
         # defined in 'assets/proposed_mapping_<format_id>.json'.
-        # Reference units: masses -> 10^10 Msun/h, positions -> Mpc/h,
-        #                  velocities -> km/s, spin -> (Mpc/h)(km/s).
+        # Driver-produced (on-disk) units: masses -> 10^10 Msun/h, positions -> kpc/h,
+        #                  velocities -> km/s, spin -> (kpc/h)(km/s).
+        # SAGE's HDF5 reader rescales positions and spin by 0.001 to Mpc/h internally
+        # (binary_writer does the same /1000 before packing). Do not pre-divide here.
 
         # ------------------------------------------------------------------
         # 3. Reconstruct LHaloTree pointers
