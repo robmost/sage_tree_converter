@@ -78,9 +78,8 @@ def _load_binary_trees(binary_path: str) -> dict[int, dict[str, np.ndarray]]:
         nhalos_per_forest = np.frombuffer(fp.read(nforests * 4), dtype=np.int32).copy()
         for idx in range(nforests):
             n = int(nhalos_per_forest[idx])
-            if n == 0:
-                trees[idx] = {}
-                continue
+            # n == 0 reads b"", so np.frombuffer yields empty arrays and the tree
+            # dict keeps the full schema (matching the HDF5 loader).
             raw = fp.read(n * _BINARY_HALO_DTYPE.itemsize)
             halos = np.frombuffer(raw, dtype=_BINARY_HALO_DTYPE).copy()
             trees[idx] = {
