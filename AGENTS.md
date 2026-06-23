@@ -190,6 +190,12 @@ Before invoking the conversion driver in Stage 2:
 
 1. Obtain the input file size in bytes: `stat -c%s <input_file>` (Linux) or `stat -f%z <input_file>` (macOS).
 1. Read `SAGE_MEMORY_MULTIPLIER` from `.env` (default `3.0`).
+1. **Choose a format-aware multiplier.** The `3.0` default suits binary/HDF5 inputs
+   (`subfind_lhalotree_binary`, `subfind_gadget4_hdf5`), which the drivers stream or read
+   in compact arrays. ASCII inputs (`ahf_mergetree_ascii`, `rockstar_consistent_trees_ascii`)
+   hold the whole catalog in memory as a Python dict-of-dicts during tree identification,
+   typically **10-20x** the input byte size. For ASCII inputs use a multiplier of **~12-15**
+   (or higher for AHF) rather than the `3.0` default, so the estimate is not optimistic.
 1. Estimate peak memory: `input_file_size_bytes x SAGE_MEMORY_MULTIPLIER`.
 1. Read available memory on Linux inside Docker/Apptainer with `grep MemAvailable /proc/meminfo` (reports kB; convert to bytes).
 1. Read available memory on macOS host with `vm_stat | grep "Pages free"` then multiply by page size (`sysctl -n hw.pagesize`), or use `$PYTHON_BIN -c "import psutil; print(psutil.virtual_memory().available)"` if psutil is installed.
@@ -352,6 +358,15 @@ I'll run a test conversion on ~100 trees and validate the output structurally.
        - not set         -> skip
   5. [G2] Confirm test validation
 ```
+
+> **The "~100 trees" test is a small _output_, not necessarily a small _read_.** For
+> ASCII inputs (`ahf_mergetree_ascii`, `rockstar_consistent_trees_ascii`) the `n_trees`
+> limit is applied _after_ the input is fully parsed and trees are identified: the driver
+> reads every snapshot/catalog file and builds the global tree structure, then writes only
+> the first N. A true cheap subset is infeasible for these formats because the tree ID is
+> global to the catalog. Expect Stage-2 wall-time and memory on a large ASCII simulation to
+> be close to a full conversion's, and run the memory pre-check (Section 8) accordingly. For
+> binary/HDF5 inputs the read is bounded by the requested trees, so the test stays cheap.
 
 ### Stage 3 - Full Engine
 
