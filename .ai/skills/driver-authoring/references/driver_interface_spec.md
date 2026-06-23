@@ -146,21 +146,24 @@ pre-divide in the driver.
 
 ## Error handling contract
 
-- On any unrecoverable error: print a message to stderr and call `sys.exit(1)`.
+- On any unrecoverable error: raise `ConversionError` (imported from `errors`) with a
+  message describing the cause. `main_driver.convert_one` propagates that message so the
+  batch runner can report it (including across worker processes). Do not call `sys.exit(1)`;
+  it is caught as a generic failure and hides the cause.
 - Include the tree index, halo index, and field name in error messages.
 - Do not use bare `except:` clauses that swallow exceptions silently.
-- Do not write a partial output file on error; delete the incomplete file if created.
+- Do not write a partial output file on error. When writing through `SplitWriter`, its
+  `__exit__` already deletes partially-written files - do not call `os.remove()` yourself.
 
 ```python
-import sys, os
+from errors import ConversionError
 
 try:
     # ... conversion ...
-except Exception as e:
-    print(f"ERROR in tree {tree_idx}: {e}", file=sys.stderr)
-    if os.path.exists(output_path):
-        os.remove(output_path)
-    sys.exit(1)
+except ConversionError:
+    raise
+except Exception as exc:
+    raise ConversionError(f"ERROR in tree {tree_idx}: {exc}") from exc
 ```
 
 ## Module structure
@@ -172,6 +175,8 @@ import os
 import numpy as np
 import h5py
 from tqdm import tqdm
+
+from errors import ConversionError
 
 
 def convert(
