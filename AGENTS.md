@@ -305,10 +305,10 @@ The following files at the project root configure code quality tooling. Do not d
 
 | File | Purpose |
 | ---- | ------- |
-| `pyproject.toml` | Ruff linter/formatter and basedpyright config. |
-| `Makefile` | Developer shortcuts: `make lint`, `make fmt`, `make typecheck`, `make check`. |
+| `pyproject.toml` | Ruff linter/formatter, basedpyright config, pytest config, and Python runtime dependencies. |
+| `Makefile` | Developer shortcuts: `make lint`, `make fmt`, `make typecheck`, `make test`, `make check`. |
 | `.pre-commit-config.yaml` | Git pre-commit hooks (ruff check + format on every commit). |
-| `pyproject.toml` | Ruff linter/formatter, basedpyright config, and Python runtime dependencies. |
+| `tests/` | Unit tests (pytest). Pure and fast; do not require the `input/` datasets. Do not modify during an active conversion session. |
 | `runner/batch_runner.py` | Direct conversion batch runner (independent of the agent workflow). |
 | `runner/conversion_config.toml` | Template TOML config for the batch runner. Do not modify during an active session. |
 | `container/Dockerfile` | Docker container image definition. |

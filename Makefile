@@ -1,5 +1,5 @@
 CONFIG ?= runner/conversion_config.toml
-SOURCES = conversion-engine/ assets/ runner/
+SOURCES = conversion-engine/ assets/ runner/ tests/
 
 # Read PYTHON_BIN from .env (same variable used by all conversion scripts).
 # Falls back to python3 if .env is absent or PYTHON_BIN is unset.
@@ -8,7 +8,7 @@ ifeq ($(PYTHON_BIN),)
 PYTHON_BIN := python3
 endif
 
-.PHONY: lint fmt typecheck check convert
+.PHONY: lint fmt typecheck test check convert
 
 lint:
 	ruff check $(SOURCES)
@@ -20,7 +20,10 @@ fmt:
 typecheck:
 	basedpyright --pythonpath $(PYTHON_BIN) conversion-engine/ runner/
 
-check: lint typecheck
+test:
+	$(PYTHON_BIN) -m pytest tests/
+
+check: lint typecheck test
 
 convert:
 	$(PYTHON_BIN) runner/batch_runner.py $(CONFIG)

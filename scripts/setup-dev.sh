@@ -4,7 +4,8 @@
 #   1. Enables the project git hooks. The commit-msg hook rejects any commit
 #      message that contains non-ASCII characters or a Co-authored-by trailer.
 #   2. Installs the package in editable mode with its dev tools (ruff,
-#      basedpyright), so `make lint`, `make typecheck` and `make fmt` work.
+#      basedpyright, pytest), so `make lint`, `make typecheck`, `make fmt`
+#      and `make test` work.
 #
 # Run once, from anywhere, after cloning:
 #   ./scripts/setup-dev.sh
@@ -30,6 +31,7 @@ echo "Setup complete."
 echo "  make lint       # ruff check"
 echo "  make typecheck  # basedpyright"
 echo "  make fmt        # ruff format + ruff check --fix"
+echo "  make test       # pytest"
 echo
 echo "Commit messages are checked by .githooks/commit-msg:"
 echo "  ASCII only, and no Co-authored-by trailer."
