@@ -16,13 +16,13 @@ The converter translates merger tree outputs from common halo finders and tree-b
 | Entry point | `claude` / `agy` / `codex` CLI | `runner/batch_runner.py` or `conversion-engine/main_driver.py` |
 | Requires LLM CLI | Yes | No |
 | Handles unknown formats | Yes | No - registered formats only |
-| Validation pipeline | Automatic (syntactic + functional + semantic) | Manual (invoke scripts explicitly) |
+| Validation pipeline | Automatic (syntactic + semantic; functional if a SAGE binary is set) | Manual (invoke scripts explicitly) |
 | Multiple jobs per session | No | Yes (TOML batch config) |
 | Parallel jobs | No | Yes (`--workers N`) |
 | KDB registration | Yes (Stage 4) | No |
 | Human-in-the-loop gates | Yes (G1-G4) | No |
 
-**Agent workflow** is for formats that are new or unknown to the KDB. The LLM CLI (Claude Code, Antigravity CLI, or Codex) orchestrates a four-stage, human-in-the-loop gated pipeline: it discovers the format schema, maps fields, authors a new driver if needed, validates the output (syntactic + functional + semantic), and registers the result in the KDB. One conversion per session; validation gates cannot be skipped.
+**Agent workflow** is for formats that are new or unknown to the KDB. The LLM CLI (Claude Code, Antigravity CLI, or Codex) orchestrates a four-stage, human-in-the-loop gated pipeline: it discovers the format schema, maps fields, authors a new driver if needed, validates the output (syntactic and semantic, plus functional when a SAGE binary is available), and registers the result in the KDB. One conversion per session; validation gates cannot be skipped.
 
 **Direct conversion** is for formats that already have a registered driver. You invoke the conversion engine directly (single job via `main_driver.py`, or one or many jobs via the TOML batch runner). Validation scripts exist but must be invoked manually. Parallel execution is supported.
 
@@ -34,8 +34,8 @@ The converter translates merger tree outputs from common halo finders and tree-b
 | --- | --- | --- |
 | AHF | MergerTree | ASCII |
 | Rockstar | Consistent Trees | ASCII |
-| FOF + Subfind (Gadget-2) | LHaloTree | HDF5 |
-| FOF + Subfind (Gadget-4) | built-in | Binary / HDF5 |
+| FOF + Subfind (Gadget-2) | LHaloTree | Binary |
+| FOF + Subfind (Gadget-4) | built-in | HDF5 |
 
 ### Output
 
@@ -83,7 +83,7 @@ flowchart LR
         direction TB
         l["Full conversion run"]
         l --> m["Semantic validation<br/>(7 plots)"]
-        m --> n["Auditor review<br/>(13-point checklist)"]
+        m --> n["Auditor review<br/>(10-point checklist)"]
         n --> g3[["G3 - Approve plots"]]
     end
 
@@ -248,7 +248,7 @@ $PYTHON_BIN runner/batch_runner.py runner/conversion_config.toml
 $PYTHON_BIN runner/batch_runner.py runner/conversion_config.toml --job my_dataset
 
 # After `pip install -e .` from the repo checkout, the entry point is also available:
-# (editable install only,  non-editable `pip install .` is not supported)
+# (editable install only, non-editable `pip install .` is not supported)
 sage-convert runner/conversion_config.toml
 ```
 
@@ -256,7 +256,7 @@ Edit `runner/conversion_config.toml` to declare your jobs. Each `[job.<name>]` s
 
 | Key | Required | Default | Notes |
 | --- | --- | --- | --- |
-| `format_id` | yes | - | Must be a registered format ID (see table in [Direct Conversion - Script Reference](#direct-conversion--script-reference)) |
+| `format_id` | yes | - | Must be a registered format ID (see table in [Direct Conversion - Script Reference](#direct-conversion---script-reference)) |
 | `input` | yes | - | Path to the input file or directory |
 | `output` | yes | - | Path for the converted output file |
 | `output_format` | no | `"lhalo_hdf5"` | `"lhalo_hdf5"` or `"lhalo_binary"` |
@@ -307,8 +307,10 @@ $PYTHON_BIN conversion-engine/main_driver.py \
     --input  input/<dataset_name>/<file_or_dir> \
     --output output/<base>_STC.0.hdf5 \
     --format <format_id> \
-    --output-format lhalo_hdf5   # or lhalo_binary -> output/<base>_STC.0
-    --n-output-files 1           # number of output files (default 1); use >1 to split large outputs
+    --output-format lhalo_hdf5 \
+    --n-output-files 1
+# --output-format:  lhalo_hdf5 (default) or lhalo_binary (-> output/<base>_STC.0)
+# --n-output-files: number of output files (default 1); use >1 to split large outputs
 ```
 
 When `--n-output-files N` is greater than 1, output files are named `<base>_STC.0.hdf5`, `<base>_STC.1.hdf5`, ..., `<base>_STC.N-1.hdf5`. Trees are distributed evenly across files.
@@ -407,13 +409,15 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 ├── conversion-engine/
 │   ├── main_driver.py       # Single-job direct conversion entry point
 │   ├── drivers/             # Format-specific conversion modules
-│   ├── utils/               # HDF5 and binary writers
+│   ├── utils/               # HDF5/binary writers, SplitWriter, shared schema
 │   └── validation/          # Syntactic, functional, and semantic validation
 ├── conversation-examples/   # Few-shot examples for the agent workflow KDB
 ├── format-database/         # KDB: JSON schema mappings per input format
 ├── input/                   # Source merger trees, organised as input/<dataset_name>/
 ├── output/                  # Stage 3 writes converted files here
 ├── reference/               # Static schema and style references
+├── scripts/                 # Developer helper scripts (setup-dev.sh)
+├── .githooks/               # Git hooks (commit-msg: reject non-ASCII and Co-authored-by)
 ├── .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
 ├── Makefile                 # Shortcuts: make lint / fmt / typecheck / check / convert
 └── pyproject.toml           # Ruff + basedpyright configuration; sage-convert entry point; Python deps
