@@ -36,6 +36,7 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
+from errors import ConversionError
 from utils.schema import HALO_RECORD_DTYPE as HALO_DTYPE
 from utils.split_writer import SplitWriter
 
@@ -214,8 +215,10 @@ def convert(
             file=sys.stderr,
         )
 
+    except ConversionError:
+        raise
     except SystemExit:
         raise
     except Exception as exc:
         print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
-        sys.exit(1)
+        raise ConversionError(f"conversion failed - {exc}") from exc

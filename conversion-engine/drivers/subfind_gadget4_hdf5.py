@@ -51,6 +51,7 @@ import h5py
 import numpy as np
 from tqdm import tqdm
 
+from errors import ConversionError
 from utils.split_writer import SplitWriter
 
 _POS_SPIN_SCALE = np.float32(1000.0)
@@ -349,6 +350,8 @@ def convert(
                 file=sys.stderr,
             )
 
+    except ConversionError:
+        raise
     except SystemExit:
         raise
     except Exception as exc:
@@ -356,4 +359,4 @@ def convert(
 
         print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
-        sys.exit(1)
+        raise ConversionError(f"conversion failed - {exc}") from exc

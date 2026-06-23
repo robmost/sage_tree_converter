@@ -68,6 +68,7 @@ from typing import BinaryIO
 import numpy as np
 from tqdm import tqdm
 
+from errors import ConversionError
 from utils.split_writer import SplitWriter
 
 # ---------------------------------------------------------------------------
@@ -264,7 +265,9 @@ def _generate_trees(
                     f"ERROR: failed to parse data row in '{filepath}': {line!r} - {exc}",
                     file=sys.stderr,
                 )
-                sys.exit(1)
+                raise ConversionError(
+                    f"failed to parse data row in '{filepath}': {line!r} - {exc}"
+                ) from exc
 
     if current_rows and (n_trees_limit is None or n_yielded < n_trees_limit):
         yield np.array(current_rows, dtype=np.float64)
@@ -758,7 +761,7 @@ def convert(
         n_trees_total = min(n_trees, n_trees_available) if n_trees else n_trees_available
         if n_trees_total == 0:
             print("ERROR: no trees found in input.", file=sys.stderr)
-            sys.exit(1)
+            raise ConversionError("no trees found in input.")
 
         fl_path = forests_list_path if use_forest_mode else None
         lo_path = locations_path if use_forest_mode else None
@@ -784,7 +787,9 @@ def convert(
                         f"ERROR: output unit {n_trees_written} has zero halos.",
                         file=sys.stderr,
                     )
-                    sys.exit(1)
+                    raise ConversionError(
+                        f"output unit {n_trees_written} has zero halos."
+                    )
                 writer.write_tree(_build_fields(halos, particle_mass_msun_per_h))
                 n_trees_written += 1
                 total_halos += n
@@ -794,8 +799,10 @@ def convert(
             f"Output: {writer.output_paths}"
         )
 
+    except ConversionError:
+        raise
     except SystemExit:
         raise
     except Exception as exc:
         print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
-        sys.exit(1)
+        raise ConversionError(f"conversion failed - {exc}") from exc

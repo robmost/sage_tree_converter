@@ -18,9 +18,10 @@ INTERFACE CONTRACT
                       output_format="lhalo_hdf5", n_output_files=1) -> None
 - On success: write valid SAGE LHaloTree output file(s) derived from output_path;
               return None.
-- On error:   print a message to stderr and call sys.exit(1).
-              SplitWriter.__exit__ deletes any partially-written output files
-              automatically; do NOT call os.remove() in the except handler.
+- On error:   raise ConversionError (from 'errors') with a message describing the
+              cause.  main_driver.convert_one propagates that message so the batch
+              runner can report it.  SplitWriter.__exit__ deletes any partially-written
+              output files automatically; do NOT call os.remove() in the except handler.
 - n_trees:    when provided, convert only the first n_trees trees.
               The output file(s) must still be valid with correct internal indexing.
 - n_output_files: number of output files to split across (default 1).
@@ -48,6 +49,7 @@ import sys
 import numpy as np  # noqa: F401
 from tqdm import tqdm  # noqa: F401
 
+from errors import ConversionError
 from utils.split_writer import SplitWriter  # noqa: F401
 
 
@@ -131,8 +133,10 @@ def convert(
         # SplitWriter handles both HDF5 and binary transparently, distributes
         # trees across n_output_files files, and deletes partial files on error.
 
+    except ConversionError:
+        raise
     except NotImplementedError:
         raise
     except Exception as exc:
         print(f"ERROR: conversion failed - {exc}", file=sys.stderr)
-        sys.exit(1)
+        raise ConversionError(f"conversion failed - {exc}") from exc

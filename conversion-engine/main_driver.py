@@ -32,6 +32,8 @@ import types
 from datetime import datetime
 from pathlib import Path
 
+from errors import ConversionError
+
 # ---------------------------------------------------------------------------
 # Format registry — maps format_id to the driver module filename (no .py).
 # ---------------------------------------------------------------------------
@@ -204,6 +206,8 @@ def convert_one(
             output_format=output_format,
             n_output_files=n_output_files,
         )
+    except ConversionError as exc:
+        raise RuntimeError(str(exc)) from exc
     except SystemExit as exc:
         raise RuntimeError("Driver exited with an error. See messages above.") from exc
     except Exception as exc:

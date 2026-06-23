@@ -159,7 +159,23 @@ The driver is moved to `conversion-engine/drivers/` only in Stage 4 via `kdb-ext
 
 ### 5. Error handling
 
-- The driver must call `sys.exit(1)` (or raise an uncaught exception) on any error.
+- The driver must `raise ConversionError(<message>)` (imported from `errors`) on any
+  error. `main_driver.convert_one` propagates the message verbatim, so the batch runner
+  can report the real cause - including across worker processes, where a driver's stderr
+  would otherwise be lost. The standard pattern is a terminal handler in `convert()`:
+
+  ```python
+  from errors import ConversionError
+
+  try:
+      ...  # conversion work
+  except ConversionError:
+      raise
+  except Exception as exc:
+      raise ConversionError(f"conversion failed - {exc}") from exc
+  ```
+
+- Do not call `sys.exit(1)`; it is caught as a generic failure and hides the cause.
 - Do not silently skip invalid data or continue past errors.
 - Use informative error messages: include the tree index, halo index, and the
   field name in any error output.
