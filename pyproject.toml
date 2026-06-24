@@ -14,7 +14,7 @@ dependencies = [
 dev = [
     "ruff>=0.15",
     "basedpyright>=1.39",
-    "pytest>=7.0",
+    "pytest>=8.3",
 ]
 
 [project.scripts]
