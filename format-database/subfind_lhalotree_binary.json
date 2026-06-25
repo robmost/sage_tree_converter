@@ -164,7 +164,7 @@
   "n_snapshots": 64,
   "known_caveats": [
     "SubhaloIndex and SubHalfMass are present in the binary struct but are not part of the SAGE LHaloTree HDF5 schema and are discarded during conversion.",
-    "ParticleMass is not stored in the LHaloTree binary. When particle_mass_msun_per_h is not supplied via --sim-config, the driver estimates it from a group mass (M_TopHat, else M_Crit200/M_Mean200) divided by Len over the most massive FOF centrals and emits a warning; the estimate is approximate because the binary carries no per-subhalo mass, so pass --sim-config for the exact value. The mini-Millennium reference value is 0.0860 x 10^10 Msun/h (Springel et al. 2005).",
+    "ParticleMass is not stored in the LHaloTree binary. When particle_mass_msun_per_h is not supplied via --sim-config, the driver estimates it from a group mass (M_Crit200 - the field SAGE reads for central virial masses - else M_TopHat/M_Mean200) divided by Len over the most massive FOF centrals and emits a warning; the estimate is approximate because the binary carries no per-subhalo mass, so pass --sim-config for the exact value. The mini-Millennium reference value is 0.0860 x 10^10 Msun/h (Springel et al. 2005).",
     "The binary files must be named trees_<snap>.<N> (e.g. trees_063.0). The driver discovers all such files in a directory and sorts them by file-extension number.",
     "Multiple input binary files are merged into a single output file (HDF5 or binary depending on --output-format) with a global tree index. SAGE reads this as NumberOfOutputFiles=1."
   ]

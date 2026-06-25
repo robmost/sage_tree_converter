@@ -94,10 +94,11 @@ def _read_file_header(fp: BufferedReader) -> tuple[int, np.ndarray]:
     return n_trees, tree_n_halos
 
 
-# Group-mass fields to estimate particle mass from, in order of preference. The binary
-# stores no subhalo mass, so the estimate is approximate; M_TopHat (tophat virial mass) is
-# the closest proxy to the bound mass that Len counts.
-_PM_MASS_FIELDS = ("M_TopHat", "M_Crit200", "M_Mean200")
+# Group-mass fields to estimate particle mass from, in order of preference. M_Crit200 is the
+# group virial mass SAGE reads for centrals, so calibrating the particle mass to it keeps
+# satellite masses (Len * PartMass) on the same scale as SAGE's central masses. The binary
+# stores no subhalo mass, so the estimate is approximate. M_TopHat / M_Mean200 are fallbacks.
+_PM_MASS_FIELDS = ("M_Crit200", "M_TopHat", "M_Mean200")
 
 
 def _estimate_pm_from_sample(work: list) -> float:
@@ -245,7 +246,7 @@ def convert(
                 )
             warnings.warn(
                 f"particle_mass not provided; estimated {effective_pm:.4e} x 10^10 Msun/h "
-                "from a group mass (M_TopHat, else M_Crit200/M_Mean200) / Len of massive "
+                "from a group mass (M_Crit200, else M_TopHat/M_Mean200) / Len of massive "
                 "centrals (approximate). Pass --sim-config with particle_mass_msun_per_h "
                 "to set it exactly.",
                 stacklevel=2,
