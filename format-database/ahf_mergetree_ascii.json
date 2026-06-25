@@ -49,7 +49,7 @@
       "target_units": "integer index within Tree<X> halo array",
       "scale_factor": null,
       "conversion_expr": "see pointer_logic",
-      "notes": "Built by grouping all halos at each snapshot that share the same top-level central (hostHaloID=0 ancestor). Within each group, halos are sorted by Mhalo descending (central first). The chain links central → sat1 → sat2 → ... → -1."
+      "notes": "Built by grouping all halos at each snapshot that share the same top-level central (the hostHaloID=0 ancestor from get_top_central). Within each group, halos are sorted by Mhalo descending, then the true central (the union-find host, NOT merely the most massive member) is forced to the head of the chain: central -> sat1 -> sat2 -> ... -> -1. This corrects both FirstHaloInFOFGroup and the chain order for stripped centrals, since SAGE's satellite iterator starts at Halo[central].NextHaloInFOFGroup. Implemented via utils.fof_topology.build_fof_chains."
     },
     "SubhaloLen": {
       "source_field": "npart",
@@ -182,6 +182,7 @@
     "AHF snap-skipping: when MergerTree cannot find a progenitor at the immediately preceding snapshot, it searches further back in time. Progenitor-descendant links may therefore span non-adjacent snapshots. Such halos will have SnapNum values that differ by more than 1 across a Descendant-FirstProgenitor link, which is unusual but valid for SAGE (SAGE uses SnapNum to order halos temporally, not to enforce strict adjacency).",
     "AHF hostHaloID encodes a multi-level subhalo hierarchy (sub-sub-halos etc.). The driver flattens this to a two-level structure for SAGE (top-level central + all satellites at any depth). Sub-subhalo hierarchical structure is not preserved in SAGE's FOF group chain.",
     "The SUSSING2013 halo ID encoding assumes the AHF run used WITH_MPI: ID = snap_id * 1e16 + mpi_rank * 1e10 + halo_1based_index. For a single-process run (no MPI), the encoding is snap_id * 1e12 + halo_1based_index (from specific.c line 2150). The data files for this dataset use the MPI encoding (snap IDs visible as the leading two digits of 18-digit IDs), which the driver auto-detects by checking whether floor(ID / 1e16) yields a plausible snapshot number.",
-    "The AHF_croco files list progenitors ordered by merit at the time of writing, which is SharedPart / min(HaloPart_desc, HaloPart_prog) or a variant — the exact merit formula depends on the MergerTree compile-time flags. The driver treats the order as merit-descending and assigns FirstProgenitor to the first-listed progenitor, consistent with the AHF convention."
+    "The AHF_croco files list progenitors ordered by merit at the time of writing, which is SharedPart / min(HaloPart_desc, HaloPart_prog) or a variant — the exact merit formula depends on the MergerTree compile-time flags. The driver treats the order as merit-descending and assigns FirstProgenitor to the first-listed progenitor, consistent with the AHF convention.",
+    "Flyby handling is OPT-IN via sim_params['merge_flybys'] (default off), same as the Consistent-Trees driver. An AHF union-find tree can contain more than one independent z=0 central. Enabling merge_flybys folds the non-dominant z=0 centrals into the most massive one (reproducing SAGE's fix_flybys); default OFF keeps them as independent Type-0 centrals. This is a modelling choice that changes the z=0 population, not a bug fix."
   ]
 }

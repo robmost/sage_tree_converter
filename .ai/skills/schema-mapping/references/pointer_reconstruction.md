@@ -84,16 +84,29 @@ for i in range(N):
     uid = int(upids[i])
     FirstHaloInFOFGroup[i] = i if uid == -1 else id_to_idx.get(uid, i)
 
-# NextHaloInFOFGroup — group by (snap, central_idx); sort by mvir desc; link
+# NextHaloInFOFGroup — group by (snap, central_idx); sort by mvir desc; central heads.
+# The true central must lead the chain (not the heaviest member): SAGE iterates
+# satellites from Halo[central].NextHaloInFOFGroup and would skip a stripped central's
+# group otherwise. Use the shared helper utils.fof_topology.central_first.
 from collections import defaultdict
+
+from utils.fof_topology import central_first
+
 groups = defaultdict(list)
 for i in range(N):
     groups[(int(snaps[i]), int(FirstHaloInFOFGroup[i]))].append(i)
-for members in groups.values():
+for (snapnum, central), members in groups.items():
     members.sort(key=lambda i: mvirs[i], reverse=True)
+    members = central_first(members, central)
     for j in range(len(members) - 1):
         NextHaloInFOFGroup[members[j]] = members[j + 1]
 ```
+
+> **Central-first is a universal LHaloTree invariant** — it applies to every driver that
+> builds FOF chains, with the central identified per format (Consistent-Trees `upid==-1`,
+> AHF union-find host, Gadget-4 min `SubhaloNr`). Collapsing a forest's multiple z=0
+> centrals into one (`fix_flybys`) is a separate, **opt-in** modelling choice
+> (`sim_params["merge_flybys"]`, default off) via `utils.fof_topology.merge_flybys`.
 
 ### Forest-level processing — required for correct FOF group links
 

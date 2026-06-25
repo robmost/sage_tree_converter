@@ -160,6 +160,20 @@ the except handler - SplitWriter's `__exit__` already handles cleanup.
 If you find yourself writing a nested loop over halos, stop and redesign using
 a hash map or sort-based approach before continuing.
 
+**FOF chains.** Identify the true FOF central for this format (e.g. a parent-id of -1, a
+union-find host, or a Subfind binding-rank field) and build the spatial pointers with
+`utils.fof_topology.build_fof_chains` so the central heads `NextHaloInFOFGroup` - SAGE
+iterates satellites from `Halo[central].NextHaloInFOFGroup`, so the most massive member is
+*not* necessarily the head. Expose FOF reconstruction as a dedicated function. Flyby merging
+(folding a forest's extra z=0 centrals into one) is opt-in via `sim_params["merge_flybys"]`
+using `utils.fof_topology.merge_flybys` - never on by default.
+
+**No hardcoded simulation constants.** A driver targets a *family* of simulations (shared
+halo finder + merger tree + file format), so particle mass, box size, and N-particles must
+not be hardcoded to one simulation. Source them: (1) `sim_params` override, (2) derive from
+the data - use `utils.sim_params.estimate_particle_mass` when a mass and particle count are
+available, (3) else fail or warn loudly.
+
 ### 4. Write location
 
 Write the draft driver to `assets/drivers/<format_id>.py`.
@@ -231,8 +245,10 @@ would scale to O(n_tasks x index_size) total memory across the job array.
 
 ### 7. Reference the template driver
 
-Read `conversion-engine/drivers/_template.py` as a skeleton before writing the
-new driver. It documents the required function signatures, import patterns, and
+Read `.ai/skills/driver-authoring/assets/driver_template.py` as a skeleton before
+writing the new driver. It is a live symlink to the canonical
+`conversion-engine/drivers/_template.py` (never drifts) and documents the required
+function signatures, import patterns, the FOF and particle-mass patterns, and the
 HDF5/binary writing utilities in a self-contained example.
 
 ### 8. Verify Python dependencies before first run
