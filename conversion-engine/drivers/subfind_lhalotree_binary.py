@@ -1,8 +1,8 @@
 """
 subfind_lhalotree_binary.py - Driver for the classic LHaloTree binary format.
 
-Reads the Gadget-2/Subfind LHaloTree binary files produced by the Millennium
-Simulation pipeline (e.g. trees_063.0 - trees_063.7) and writes a single
+Reads the Gadget-2/Subfind LHaloTree binary files (e.g. produced by the Millennium
+Simulation pipeline, trees_063.0 - trees_063.7) and writes a single
 SAGE LHaloTree HDF5 or binary file.
 
 Binary layout per file:
@@ -30,6 +30,7 @@ SubhaloIndex and SubHalfMass are read but discarded (not in schema).
 import os
 import re
 import sys
+import warnings
 from io import BufferedReader
 from pathlib import Path
 
@@ -38,15 +39,15 @@ from tqdm import tqdm
 
 from errors import ConversionError
 from utils.schema import HALO_RECORD_DTYPE as HALO_DTYPE
+from utils.sim_params import estimate_particle_mass
 from utils.split_writer import SplitWriter
-
-# Dark matter particle mass for the Millennium / mini-Millennium simulation
-# (Springel et al. 2005). Units: 10^10 Msun/h.
-PARTICLE_MASS = 0.0860
 
 # HALO_DTYPE (the 104-byte SAGE LHaloTree record) is the canonical layout from
 # utils.schema - the same input and output binary format. See _build_fields for
 # the field -> SAGE-schema mapping.
+
+# Halos to read when estimating particle mass from the data (bounded sample).
+_PM_SAMPLE_HALOS = 50_000
 
 
 def _discover_files(input_path: str) -> list[Path]:
@@ -91,6 +92,56 @@ def _read_file_header(fp: BufferedReader) -> tuple[int, np.ndarray]:
             f"!= TotNHalos={tot_n_halos}."
         )
     return n_trees, tree_n_halos
+
+
+# Group-mass fields to estimate particle mass from, in order of preference. The binary
+# stores no subhalo mass, so the estimate is approximate; M_TopHat (tophat virial mass) is
+# the closest proxy to the bound mass that Len counts.
+_PM_MASS_FIELDS = ("M_TopHat", "M_Crit200", "M_Mean200")
+
+
+def _estimate_pm_from_sample(work: list) -> float:
+    """Estimate particle mass (10^10 Msun/h) from a group mass / Len of FOF centrals.
+
+    Reads up to _PM_SAMPLE_HALOS halos from the start of the work list. Within each tree a
+    central has FirstHaloInFOFGroup == its own local index. Returns 0.0 if no usable halo.
+    """
+    cols: dict[str, list[np.ndarray]] = {f: [] for f in _PM_MASS_FIELDS}
+    lens: list[np.ndarray] = []
+    sampled = 0
+    current_path = None
+    fp: BufferedReader | None = None
+    try:
+        for file_path, _local_idx, n_halos, byte_offset in work:
+            if file_path != current_path:
+                if fp is not None:
+                    fp.close()
+                fp = open(file_path, "rb")
+                current_path = file_path
+            assert fp is not None
+            fp.seek(byte_offset)
+            halos = np.frombuffer(fp.read(n_halos * HALO_DTYPE.itemsize), dtype=HALO_DTYPE)
+            central = (halos["FirstHaloInFOFGroup"] == np.arange(n_halos, dtype=np.int32)) & (
+                halos["Len"] > 0
+            )
+            for f in _PM_MASS_FIELDS:
+                cols[f].append(halos[f][central])
+            lens.append(halos["Len"][central])
+            sampled += n_halos
+            if sampled >= _PM_SAMPLE_HALOS:
+                break
+    finally:
+        if fp is not None:
+            fp.close()
+    if not lens:
+        return 0.0
+    length = np.concatenate(lens)
+    for f in _PM_MASS_FIELDS:
+        mass = np.concatenate(cols[f])
+        positive = mass > 0
+        if positive.any():
+            return estimate_particle_mass(mass[positive], length[positive])
+    return 0.0
 
 
 def _build_fields(halos: np.ndarray) -> dict:
@@ -154,7 +205,6 @@ def convert(
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
     _pm_override = (sim_params or {}).get("particle_mass_msun_per_h")
-    effective_pm = float(_pm_override) * 1e-10 if _pm_override is not None else PARTICLE_MASS
 
     try:
         # ------------------------------------------------------------------
@@ -179,6 +229,24 @@ def convert(
             work = work[:n_trees]
 
         total_trees = len(work)
+
+        # Particle mass (10^10 Msun/h): override, else estimate from the data and warn.
+        # The LHaloTree binary stores no cosmology, so the value cannot be recovered exactly.
+        if _pm_override is not None:
+            effective_pm = float(_pm_override) * 1e-10
+        else:
+            effective_pm = _estimate_pm_from_sample(work)
+            if effective_pm <= 0:
+                raise ConversionError(
+                    "could not estimate particle mass from the input; pass "
+                    "particle_mass_msun_per_h via --sim-config."
+                )
+            warnings.warn(
+                f"particle_mass not provided; estimated {effective_pm:.4e} x 10^10 Msun/h "
+                "from M_Crit200/Len of massive centrals (approximate). Pass --sim-config "
+                "with particle_mass_msun_per_h to set it exactly.",
+                stacklevel=2,
+            )
 
         # ------------------------------------------------------------------
         # 2. Write output
