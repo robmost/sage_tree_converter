@@ -195,7 +195,9 @@ def convert(
     sim_params : dict or None
         Simulation parameter overrides from --sim-config JSON.
         Key used: particle_mass_msun_per_h (Msun/h, converted to 10^10 Msun/h
-        internally). Falls back to PARTICLE_MASS (Millennium default) if absent.
+        internally). If absent, the particle mass is estimated from a group mass / Len
+        of massive FOF centrals (with a warning); if it cannot be estimated, a
+        ConversionError is raised.
     output_format : str
         'lhalo_hdf5' (default) writes HDF5 via utils.hdf5_writer.
         'lhalo_binary' writes SAGE binary (TreeType=0) via utils.binary_writer.
@@ -243,8 +245,9 @@ def convert(
                 )
             warnings.warn(
                 f"particle_mass not provided; estimated {effective_pm:.4e} x 10^10 Msun/h "
-                "from M_Crit200/Len of massive centrals (approximate). Pass --sim-config "
-                "with particle_mass_msun_per_h to set it exactly.",
+                "from a group mass (M_TopHat, else M_Crit200/M_Mean200) / Len of massive "
+                "centrals (approximate). Pass --sim-config with particle_mass_msun_per_h "
+                "to set it exactly.",
                 stacklevel=2,
             )
 

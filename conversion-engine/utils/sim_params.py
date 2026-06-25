@@ -30,7 +30,7 @@ def estimate_particle_mass(
     m = mass[valid].astype(np.float64)
     n = length[valid].astype(np.float64)
     if n_sample is None:
-        n_sample = max(1, int(valid.sum()) // 1000)
-    n_sample = min(int(n_sample), m.size)
+        n_sample = int(valid.sum()) // 1000
+    n_sample = max(1, min(int(n_sample), m.size))
     top = np.argpartition(n, -n_sample)[-n_sample:]
     return float(np.median(m[top] / n[top]))

@@ -28,3 +28,11 @@ def test_estimate_samples_largest_by_length():
     length = np.array([5, 5, 5, 1000, 2000], dtype=np.int64)
     mass = np.array([50.0, 50.0, 50.0, 100.0, 200.0])  # big halos -> ratio 0.1
     assert estimate_particle_mass(mass, length, n_sample=2) == 0.1
+
+
+def test_estimate_clamps_nonpositive_n_sample():
+    # n_sample <= 0 must not select the whole array; it clamps to the single largest.
+    length = np.array([5, 5, 1000], dtype=np.int64)
+    mass = np.array([50.0, 50.0, 100.0])  # largest-by-length ratio = 0.1
+    assert estimate_particle_mass(mass, length, n_sample=0) == 0.1
+    assert estimate_particle_mass(mass, length, n_sample=-3) == 0.1

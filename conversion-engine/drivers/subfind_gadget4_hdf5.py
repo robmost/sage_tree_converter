@@ -184,6 +184,8 @@ def _build_fof_pointers(
     n = len(snap)
     fhfof = np.full(n, -1, dtype=np.int32)
     nhfof = np.full(n, -1, dtype=np.int32)
+    if n == 0:
+        return fhfof, nhfof
 
     local_ids = np.arange(n, dtype=np.int32)
     snap_32 = snap.astype(np.int32)

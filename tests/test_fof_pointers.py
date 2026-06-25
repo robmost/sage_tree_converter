@@ -184,6 +184,16 @@ def test_gadget4_central_is_min_subhalonr_not_max_len():
     assert nhfof[1] == -1
 
 
+def test_gadget4_build_fof_pointers_empty_tree():
+    from drivers.subfind_gadget4_hdf5 import _build_fof_pointers
+
+    e_i = np.array([], dtype=np.int32)
+    e_l = np.array([], dtype=np.int64)
+    fhfof, nhfof = _build_fof_pointers(e_i, e_l, e_i, e_l)
+    assert len(fhfof) == 0
+    assert len(nhfof) == 0
+
+
 # ---------------------------------------------------------------------------
 # Gadget-4 windowed read equivalence
 # ---------------------------------------------------------------------------
