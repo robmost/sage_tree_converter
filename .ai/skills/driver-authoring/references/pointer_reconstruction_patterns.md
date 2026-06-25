@@ -90,29 +90,48 @@ already integer indices into the per-tree array.
 
 **When to use:** Building FirstHaloInFOFGroup and NextHaloInFOFGroup.
 
-**Design:**
+**Invariant (read this first):** SAGE walks a FOF group's satellites by starting at
+`Halo[FirstHaloInFOFGroup].NextHaloInFOFGroup` and following the chain. The **true FOF
+central must head the chain** — *not merely the most massive member*. A stripped central
+can be lighter than one of its satellites; if you head the chain by mass alone, SAGE skips
+every halo listed before the central and undercounts z=0 satellites. This is a universal
+LHaloTree requirement, so every driver that builds FOF chains must enforce it, using
+whatever signal identifies the central in that format:
+
+| Format | Central definition |
+|--------|--------------------|
+| Consistent-Trees | `upid == -1` |
+| AHF | union-find top central (`hostHaloID == 0` ancestor) |
+| Gadget-4 (SubLink) | smallest `SubhaloNr` in the group (`SubRankInGr` is absent) |
+
+**Design:** build a per-halo `central_idx` array (the flat index of each halo's FOF central,
+self for centrals) and pass it to the shared helper `utils.fof_topology.build_fof_chains`,
+which groups by `(snap, central)`, orders members by `sort_value` descending, forces the
+central to the head, and returns both pointer arrays:
 
 ```python
-from collections import defaultdict
+from utils.fof_topology import build_fof_chains
 
-# Group halos by (snapshot, group_id) — O(N)
-groups = defaultdict(list)
-for i in range(N):
-    groups[(snap[i], group_id[i])].append(i)
-
-FirstHaloInFOFGroup = np.full(N, -1, dtype=np.int32)
-NextHaloInFOFGroup = np.full(N, -1, dtype=np.int32)
-
-for members in groups.values():
-    members.sort(key=lambda i: mass[i], reverse=True)  # central = most massive
-    central = members[0]
-    for m in members:
-        FirstHaloInFOFGroup[m] = central
-    for j in range(len(members) - 1):
-        NextHaloInFOFGroup[members[j]] = members[j + 1]
+# central_idx[i] = flat index of halo i's FOF central (i for a central), resolved per
+# format (upid==-1, union-find host, or min SubhaloNr). sort_value is typically mass.
+FirstHaloInFOFGroup, NextHaloInFOFGroup = build_fof_chains(snap, central_idx, sort_value)
 ```
 
-**Complexity:** O(N log N) (dominated by per-group sort), O(N) space.
+For a vectorised driver (large flat arrays), reproduce the same result with a lexsort that
+places the central first within each `(snap, group)` group, then `descending sort_value`.
+
+**Complexity:** O(N log N) (dominated by the per-group sort), O(N) space.
+
+### Flyby merging (Consistent-Trees / union-find forests) — OPT-IN
+
+A forest can contain several independent z=0 FOF centrals. SAGE's native Consistent-Trees
+reader applies `fix_flybys`, which demotes every non-dominant z=0 central to a satellite of
+the most massive one. This is a **modelling choice, not a correctness fix** — it materially
+changes the z=0 population (e.g. ~55k halos flip Type-0 -> Type-1 in micro-uchuu), and some
+readers (MIMIC) deliberately keep flyby groups independent. Expose it as opt-in via
+`sim_params["merge_flybys"]` (default off) and apply it with
+`utils.fof_topology.merge_flybys`, which also sign-flips the demoted centrals' MostBoundID
+(canonical flyby marker) where the format provides one. Do **not** enable it by default.
 
 ---
 

@@ -103,6 +103,14 @@ def convert(
         #                  velocities -> km/s, spin -> (kpc/h)(km/s).
         # SAGE's HDF5 reader rescales positions and spin by 0.001 to Mpc/h internally
         # (binary_writer does the same /1000 before packing). Do not pre-divide here.
+        #
+        # Simulation-specific constants (particle mass, box size, N-particles) must NOT be
+        # hardcoded to one simulation. Source them: (1) sim_params override, (2) derive from
+        # the data, (3) else fail/warn. Use the shared estimator when a mass and a particle
+        # count are available:
+        #   from utils.sim_params import estimate_particle_mass
+        #   pm = sim_params.get("particle_mass_msun_per_h")
+        #   particle_mass = pm * 1e-10 if pm else estimate_particle_mass(mass, length)
 
         # ------------------------------------------------------------------
         # 3. Reconstruct LHaloTree pointers
@@ -111,8 +119,16 @@ def convert(
         # LHaloTree-style integer indices within each tree's halo array.
         # Valid index range: [0, TreeNHalos[i]-1]. Sentinel: -1.
         # Progenitors must have SnapNum < descendant SnapNum.
-        # Spatial pointers must share the same SnapNum.
         # Use O(N) algorithms (hash maps, sorting) - never O(N^2) search loops.
+        #
+        # FOF spatial pointers: identify the true FOF central per this format (e.g. a
+        # parent-id == -1, a union-find host, or a binding-rank field) and build the chains
+        # with the shared helper so the central heads NextHaloInFOFGroup (SAGE iterates
+        # satellites from Halo[central].NextHaloInFOFGroup):
+        #   from utils.fof_topology import build_fof_chains
+        #   fhifof, nhifof = build_fof_chains(snaps, central_idx, sort_value)
+        # For Consistent-Trees-style forests, flyby merging is opt-in via
+        # sim_params["merge_flybys"] (utils.fof_topology.merge_flybys).
 
         # ------------------------------------------------------------------
         # 4. Write output via SplitWriter

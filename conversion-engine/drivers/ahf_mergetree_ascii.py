@@ -36,6 +36,8 @@ import numpy as np
 from tqdm import tqdm
 
 from errors import ConversionError
+from utils.fof_topology import build_fof_chains, merge_flybys
+from utils.sim_params import estimate_particle_mass
 from utils.split_writer import SplitWriter
 
 # ---------------------------------------------------------------------------
@@ -353,7 +355,9 @@ def _prepare_trees(input_path: str, n_trees: int | None) -> _PreparedTrees:
     )
 
 
-def _build_tree_field_dict(tree_idx: int, root: int, ctx: _PreparedTrees) -> dict:
+def _build_tree_field_dict(
+    tree_idx: int, root: int, ctx: _PreparedTrees, merge_flybys_enabled: bool = False
+) -> dict:
     """Build the SAGE LHaloTree field dict for one tree."""
     halo_props = ctx.halo_props
     descendants = ctx.descendants
@@ -365,8 +369,6 @@ def _build_tree_field_dict(tree_idx: int, root: int, ctx: _PreparedTrees) -> dic
     descendant = np.full(N, -1, dtype=np.int32)
     first_progenitor = np.full(N, -1, dtype=np.int32)
     next_progenitor = np.full(N, -1, dtype=np.int32)
-    first_halo_in_fof = np.full(N, -1, dtype=np.int32)
-    next_halo_in_fof = np.full(N, -1, dtype=np.int32)
     subhalo_len = np.zeros(N, dtype=np.int32)
     group_m_crit200 = np.zeros(N, dtype=np.float32)
     group_m_mean200 = np.zeros(N, dtype=np.float32)
@@ -422,19 +424,25 @@ def _build_tree_field_dict(tree_idx: int, root: int, ctx: _PreparedTrees) -> dic
             next_progenitor[fi_cur] = fi_next
 
     # --- Spatial pointers: FirstHaloInFOFGroup / NextHaloInFOFGroup ---
-    fof_groups: dict[tuple, list] = defaultdict(list)
+    # Each halo's FOF central is its union-find host (self for centrals); the central heads
+    # the chain via build_fof_chains.
+    central_flat_idx = np.empty(N, dtype=np.int32)
     for flat_idx, hid in enumerate(ordered_hids):
-        h = halo_props[hid]
-        central = ctx.get_top_central(hid)
-        fof_groups[(h["snap_id"], central)].append((h["Mhalo"], flat_idx))
+        loc = haloID_to_flat.get(ctx.get_top_central(hid))
+        central_flat_idx[flat_idx] = loc[1] if loc is not None and loc[0] == tree_idx else flat_idx
+    first_halo_in_fof, next_halo_in_fof = build_fof_chains(
+        snap_num, central_flat_idx, group_m_crit200
+    )
 
-    for group_members in fof_groups.values():
-        group_members.sort(key=lambda x: -x[0])
-        central_fi = group_members[0][1]
-        for _, fi in group_members:
-            first_halo_in_fof[fi] = central_fi
-        for k in range(len(group_members) - 1):
-            next_halo_in_fof[group_members[k][1]] = group_members[k + 1][1]
+    # Optionally fold final-snapshot flyby groups into the most massive central (opt-in).
+    if merge_flybys_enabled:
+        first_halo_in_fof, next_halo_in_fof, subhalo_id_mbp = merge_flybys(
+            first_halo_in_fof,
+            next_halo_in_fof,
+            group_m_crit200,
+            snap_num,
+            subhalo_id_mbp,
+        )
 
     return {
         "Descendant": descendant,
@@ -493,21 +501,14 @@ def convert(
     try:
         ctx = _prepare_trees(input_path, n_trees)
 
-        # Estimate particle mass (in Msun/h) if not user-supplied
+        # Particle mass (Msun/h): override, else estimate from Mhalo / npart.
         _pm_override = (sim_params or {}).get("particle_mass_msun_per_h")
-        if _pm_override is None:
-            top_hids = sorted(
-                ctx.snap_halos[ctx.max_snap],
-                key=lambda hid: ctx.halo_props[hid]["Mhalo"],
-                reverse=True,
-            )[:20]
-            m_estimates = [
-                ctx.halo_props[hid]["Mhalo"] / max(ctx.halo_props[hid]["npart"], 1)
-                for hid in top_hids
-            ]
-            m_particle_msun = float(np.median(m_estimates)) if m_estimates else 1e7
-        else:
+        if _pm_override is not None:
             m_particle_msun = float(_pm_override)
+        else:
+            masses = np.array([h["Mhalo"] for h in ctx.halo_props.values()])
+            npart = np.array([h["npart"] for h in ctx.halo_props.values()])
+            m_particle_msun = estimate_particle_mass(masses, npart) or 1e7
 
         particle_mass_1e10 = m_particle_msun / 1e10
         print(
@@ -524,10 +525,11 @@ def convert(
             n_trees_total=ctx.n_trees_convert,
             particle_mass=particle_mass_1e10,
         ) as writer:
+            merge_flybys_enabled = bool((sim_params or {}).get("merge_flybys", False))
             for tree_idx, root in enumerate(
                 tqdm(ctx.sorted_roots[: ctx.n_trees_convert], desc="Converting trees")
             ):
-                fields = _build_tree_field_dict(tree_idx, root, ctx)
+                fields = _build_tree_field_dict(tree_idx, root, ctx, merge_flybys_enabled)
                 writer.write_tree(fields)
                 total_halos += len(fields["Descendant"])
 

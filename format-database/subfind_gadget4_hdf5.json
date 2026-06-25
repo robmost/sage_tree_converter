@@ -41,7 +41,7 @@
       "target_units": "integer index within Tree<X> halo array",
       "scale_factor": null,
       "conversion_expr": "see pointer_logic",
-      "notes": "Reconstructed from (SnapNum, GroupNr) grouping. TreeHalos/TreeFirstHaloInFOFgroup is DISCARDED — it contains cross-tree pointers that cannot be resolved within a single tree slice."
+      "notes": "Reconstructed from (SnapNum, GroupNr) grouping. The FOF central is the halo with the smallest SubhaloNr in each group (Subfind binding-rank order; verified to match TreeFirstHaloInFOFgroup on every group of the gadget4-dust reference). TreeHalos/TreeFirstHaloInFOFgroup is DISCARDED for pointer reconstruction because it carries cross-tree pointers, but min(SubhaloNr) recovers the same central."
     },
     "NextHaloInFOFGroup": {
       "source_field": "derived",
@@ -49,7 +49,7 @@
       "target_units": "integer index within Tree<X> halo array",
       "scale_factor": null,
       "conversion_expr": "see pointer_logic",
-      "notes": "Reconstructed from (SnapNum, GroupNr) grouping. TreeHalos/TreeNextHaloInFOFgroup is DISCARDED for the same reason as TreeFirstHaloInFOFgroup."
+      "notes": "Reconstructed from (SnapNum, GroupNr) grouping. The central (min SubhaloNr) heads the chain and satellites follow by descending SubhaloLen: central -> sat1 -> ... -> -1. Central-first matters because SAGE's satellite iterator starts at Halo[central].NextHaloInFOFGroup. TreeHalos/TreeNextHaloInFOFgroup is DISCARDED for the same reason as TreeFirstHaloInFOFgroup."
     },
     "SubhaloLen": {
       "source_field": "TreeHalos/SubhaloLen",
@@ -166,6 +166,8 @@
     "Group_M_Mean200 and Group_M_TopHat200 are not present in Gadget-4 built-in tree output; sentinel 0.0 is written for both.",
     "SubhaloIDMostbound is stored as uint32 in Gadget-4 vs the int64 expected by SAGE; an explicit cast is required.",
     "Config shows both SUBFIND and SUBFIND_HBT enabled; SUBFIND_HBT is the active finder. Field names are identical to standard SUBFIND output.",
-    "SubhaloHalfmassRad, SubhaloVmaxRad, TreeFirstDescendant, TreeNextDescendant, TreeMainProgenitor, and TreeProgenitor are present in the source but not mapped to any SAGE field."
+    "SubhaloHalfmassRad, SubhaloVmaxRad, TreeFirstDescendant, TreeNextDescendant, TreeMainProgenitor, and TreeProgenitor are present in the source but not mapped to any SAGE field.",
+    "TreeHalos has NO SubRankInGr field, so the FOF central is identified as the smallest-SubhaloNr halo in each (SnapNum, GroupNr) group. A Gadget-4 TreeTable entry is effectively a forest and routinely contains many independent FOF groups at z=0 (e.g. >1000 in large entries); these are kept as independent Type-0 centrals (the natural L-Halo interpretation), not merged. fix_flybys-style merging is a Consistent-Trees concept and is not applied here.",
+    "I/O: the driver caches the /TreeHalos dataset handles once and reads consecutive trees in bounded ~128 MB bulk windows, slicing each tree out of memory instead of issuing a per-tree hyperslab read for every field. Output is byte-identical to per-tree reads; this is a throughput optimisation only."
   ]
 }

@@ -37,7 +37,8 @@ Pointer reconstruction (all O(N) or O(N log N)):
                       sequential integers assigned across all tree blocks in the file)
   FirstHaloInFOFGroup: upid -> combined-array index via id->idx dict; self if upid==-1
                        or cross-forest reference (upid not in combined id set)
-  NextHaloInFOFGroup: group by (snap, central_idx), sort by mvir desc, singly-linked
+  NextHaloInFOFGroup: build_fof_chains - central heads each chain (utils.fof_topology)
+  Flyby merge:        opt-in via sim_params["merge_flybys"] (default off); see KDB caveats
 
 Forest-level processing (when forests.list + locations.dat are present):
   Consistent Trees assigns each #tree block a forest ID via forests.list.  Within a
@@ -59,7 +60,6 @@ Field conversions:
 import os
 import re
 import sys
-from collections import defaultdict
 from collections.abc import Generator
 from contextlib import ExitStack
 from pathlib import Path
@@ -69,6 +69,7 @@ import numpy as np
 from tqdm import tqdm
 
 from errors import ConversionError
+from utils.fof_topology import build_fof_chains, merge_flybys
 from utils.split_writer import SplitWriter
 
 # ---------------------------------------------------------------------------
@@ -169,6 +170,10 @@ def _compute_particle_mass(omega_m: float, box_size: float, n_side: int = _N_SID
 
     m_p = Omega_M * rho_crit0 * L_box^3 / N_particles
     where L_box is in Mpc/h and rho_crit0 = 2.775e11 h^2 Msun/Mpc^3.
+
+    Consistent Trees carries no per-halo particle count (SubhaloLen is itself derived from
+    the particle mass), so this format derives the mass from cosmology + n_side rather than
+    the shared mass/count estimator used by the other drivers.
     """
     return omega_m * _RHO_CRIT0_H2 * (box_size**3) / (float(n_side) ** 3)
 
@@ -358,20 +363,8 @@ def _reconstruct_pointers(halos: np.ndarray) -> dict[str, np.ndarray]:
         for h in path:
             fhifof[h] = root
 
-    # ---- NextHaloInFOFGroup ------------------------------------------------
-    # Group halos by (snap, central_idx); sort by mvir descending;
-    # build singly-linked list: central -> sat_0 -> sat_1 -> ... -> -1.
-    nhifof = np.full(n, -1, dtype=np.int32)
-    groups: dict[tuple[int, int], list[tuple[float, int]]] = defaultdict(list)
-    for i in range(n):
-        key = (int(snaps[i]), int(fhifof[i]))
-        groups[key].append((float(mvirs[i]), i))
-
-    for members in groups.values():
-        members.sort(key=lambda x: x[0], reverse=True)
-        idxs = [idx for _, idx in members]
-        for j in range(len(idxs) - 1):
-            nhifof[idxs[j]] = idxs[j + 1]
+    # ---- FOF chains (central heads each NextHaloInFOFGroup chain) -----------
+    fhifof, nhifof = build_fof_chains(snaps, fhifof, mvirs)
 
     return {
         "Descendant": desc,
@@ -507,11 +500,29 @@ def _read_tree_block(fh: BinaryIO, offset: int) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def _build_fields(halos: np.ndarray, particle_mass_msun_per_h: float) -> dict:
-    """Reconstruct pointers and build the complete SAGE field dict."""
+def _build_fields(
+    halos: np.ndarray,
+    particle_mass_msun_per_h: float,
+    merge_flybys_enabled: bool = False,
+) -> dict:
+    """Reconstruct pointers and build the complete SAGE field dict.
+
+    ``merge_flybys_enabled`` (opt-in) folds extra z=0 FOF centrals into the most massive
+    one; see utils.fof_topology.merge_flybys.
+    """
     n = len(halos)
     ptrs = _reconstruct_pointers(halos)
     mvir = halos[:, _C_MVIR]
+    most_bound = np.full(n, -1, dtype=np.int64)  # Consistent-Trees has no most-bound ID
+    if merge_flybys_enabled:
+        fhifof, nhifof, most_bound = merge_flybys(
+            ptrs["FirstHaloInFOFGroup"],
+            ptrs["NextHaloInFOFGroup"],
+            mvir,
+            halos[:, _C_SNAP_NUM],
+            most_bound,
+        )
+        ptrs = {**ptrs, "FirstHaloInFOFGroup": fhifof, "NextHaloInFOFGroup": nhifof}
     jx, jy, jz = halos[:, _C_JX], halos[:, _C_JY], halos[:, _C_JZ]
     with np.errstate(invalid="ignore", divide="ignore"):
         inv_mvir = np.where(mvir > 0, 1.0 / mvir, 0.0)
@@ -520,7 +531,7 @@ def _build_fields(halos: np.ndarray, particle_mass_msun_per_h: float) -> dict:
         **ptrs,
         "SubhaloLen": np.round(mvir / particle_mass_msun_per_h).astype(np.int32),
         "SnapNum": halos[:, _C_SNAP_NUM].astype(np.int32),
-        "SubhaloIDMostBound": np.full(n, -1, dtype=np.int64),
+        "SubhaloIDMostBound": most_bound,
         "FileNr": np.full(n, -1, dtype=np.int32),
         "Group_M_Crit200": (halos[:, _C_M200C] * 1e-10).astype(np.float32),
         "Group_M_Mean200": (halos[:, _C_M200B] * 1e-10).astype(np.float32),
@@ -569,8 +580,7 @@ def _prepare_forest_mode(
     for fid in forest_order:
         expected_trees = forest_to_trees.get(fid, [fid])
         available_trees = [
-            t for t in expected_trees
-            if t in tree_offsets and tree_offsets[t][0].exists()
+            t for t in expected_trees if t in tree_offsets and tree_offsets[t][0].exists()
         ]
         if available_trees:
             forest_queue.append((fid, available_trees))
@@ -607,9 +617,7 @@ def _forest_mode_units(
         )
 
     needed_files: set[Path] = {
-        tree_offsets[tid][0]
-        for _, available_trees in forest_queue
-        for tid in available_trees
+        tree_offsets[tid][0] for _, available_trees in forest_queue for tid in available_trees
     }
 
     n_done = 0
@@ -667,7 +675,10 @@ def _get_output_units(
         and locations_path.exists()
     ):
         yield from _forest_mode_units(
-            tree_files, forests_list_path, locations_path, n_limit,
+            tree_files,
+            forests_list_path,
+            locations_path,
+            n_limit,
             _precomputed=_precomputed,
         )
     else:
@@ -777,9 +788,13 @@ def convert(
             particle_mass=particle_mass_1e10,
         ) as writer:
             tree_stream = _get_output_units(
-                tree_files, n_trees, fl_path, lo_path,
+                tree_files,
+                n_trees,
+                fl_path,
+                lo_path,
                 _precomputed=precomputed,
             )
+            merge_flybys_enabled = bool((sim_params or {}).get("merge_flybys", False))
             for halos in tree_stream:
                 n = len(halos)
                 if n == 0:
@@ -787,10 +802,10 @@ def convert(
                         f"ERROR: output unit {n_trees_written} has zero halos.",
                         file=sys.stderr,
                     )
-                    raise ConversionError(
-                        f"output unit {n_trees_written} has zero halos."
-                    )
-                writer.write_tree(_build_fields(halos, particle_mass_msun_per_h))
+                    raise ConversionError(f"output unit {n_trees_written} has zero halos.")
+                writer.write_tree(
+                    _build_fields(halos, particle_mass_msun_per_h, merge_flybys_enabled)
+                )
                 n_trees_written += 1
                 total_halos += n
 
