@@ -2,6 +2,11 @@
 
 Detailed pass conditions and expected output for each of the six checks.
 
+All six checks are executed by `run_syntactic_checks.py` (this skill's
+`scripts/` folder) - do not run them by hand. Use this file to understand what
+a reported FAIL means and, via the per-check commands below, to inspect the
+file while diagnosing one.
+
 ---
 
 ## Check 1 - File Integrity
@@ -30,7 +35,7 @@ FILE_CONTENTS {
 **Fallback (if h5dump unavailable):**
 
 ```bash
-python -c "import h5py; f = h5py.File('<output.hdf5>', 'r'); print(list(f.keys())); f.close()"
+$PYTHON_BIN -c "import h5py; f = h5py.File('<output.hdf5>', 'r'); print(list(f.keys())); f.close()"
 ```
 
 **PASS condition:** Command exits with status 0 and lists at least `Header` and one or more `Tree<X>` groups.

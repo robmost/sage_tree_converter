@@ -17,7 +17,7 @@ The converter translates merger tree outputs from common halo finders and tree-b
 | Multiple jobs per session | No | Yes (TOML batch config) |
 | Parallel jobs | No | Yes (`--workers N`) |
 | KDB registration | Yes (Stage 4) | No |
-| Human-in-the-loop gates | Yes (G1-G4) | No |
+| Human-in-the-loop gates | Yes (gates G1-G3, close-out G4) | No |
 
 **Agent workflow** is for formats that are new or unknown to the KDB. The LLM CLI (Claude Code, Antigravity CLI, or Codex) orchestrates a four-stage, human-in-the-loop gated pipeline: it discovers the format schema, maps fields, authors a new driver if needed, validates the output (syntactic and semantic, plus functional when a SAGE binary is available), and registers the result in the KDB. One conversion per session; validation gates cannot be skipped.
 
@@ -100,6 +100,10 @@ flowchart LR
 
 **Stage preambles.** At the start of each stage the converter outputs a brief summary and step diagram of that stage's steps. These are informational only and do not require a response.
 
+**Auditor.** The Stage 3 audit runs as an independent headless CLI subprocess (`scripts/run_auditor.sh`): a fresh `claude` / `codex` / `agy` process that has not seen the session inspects the rendered plots against a 10-item adversarial checklist (`.ai/agents/auditor.md`) and writes `assets/auditor_report.md`. Set `AUDITOR_CLI` in `.env` to pick the CLI.
+
+**Session state.** Gate progress and the G1 choices are recorded in `assets/session_state.json` (via `scripts/session_state.py`), so an interrupted or resumed session can recover exactly where it stood.
+
 ### **Gate legend**
 
 - `G1`: Schema confirmed + output format + file count selected
@@ -128,6 +132,7 @@ cp .env.example .env
 #    ANTHROPIC_API_KEY=...
 #    SAGE_BINARY_PATH=...   # optional: enables Stage 2 functional validation
 #    PYTHON_BIN=...         # optional: override if running outside containers
+#    AUDITOR_CLI=...        # optional: CLI for the Stage 3 auditor subprocess (claude/codex/agy)
 
 # 3. Place your merger tree files in a named subdirectory of input/:
 #      input/<dataset_name>/   (e.g. input/gadget4-dust/ or input/bolshoi/)
@@ -387,7 +392,8 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 
 ```text
 .
-|-- .ai/skills/              # Skill definitions (kdb-lookup, driver-authoring, validation, ...)
+|-- .ai/skills/              # Skill definitions (kdb-lookup, format-discovery, driver-authoring, validation, kdb-register, ...)
+|-- .ai/agents/              # Canonical agent prompts (auditor.md, CLI-agnostic)
 |-- AGENTS.md                # Master agent orchestration document
 |-- assets/                  # Agent workflow working area for Stages 1-3
 |-- audits/                  # Archived audit files from completed sessions
@@ -410,7 +416,7 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 |-- input/                   # Source merger trees, organised as input/<dataset_name>/
 |-- output/                  # Stage 3 writes converted files here
 |-- reference/               # Static schema and style references
-|-- scripts/                 # Developer helper scripts (setup-dev.sh)
+|-- scripts/                 # Workflow scripts (estimate_output, extract_snaplist, run_semantic_plots, run_auditor, session_state, archive_session) + dev setup
 |-- tests/                   # Unit tests (pytest); pure, no input datasets needed
 |-- .githooks/               # Git hooks (commit-msg: reject non-ASCII and Co-authored-by)
 |-- .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit

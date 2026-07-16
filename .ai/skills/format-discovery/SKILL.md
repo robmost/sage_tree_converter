@@ -154,6 +154,10 @@ Write the mapping to `assets/proposed_mapping_<format_id>.json`, following
 `reference/format_database_template.json` (project root) exactly. The `format_id` is
 `<halo_finder_lower>_<tree_tool_lower>_<file_format_lower>` with underscores.
 
+Once the `format_id` is fixed, initialise the session state file (AGENTS.md
+Section 17): `$PYTHON_BIN scripts/session_state.py init --format-id <format_id>`,
+then `$PYTHON_BIN scripts/session_state.py set mapping_source web_discovery`.
+
 The draft must include:
 - All top-level keys from the template
 - An entry in `field_map` for every mandatory SAGE field
@@ -168,4 +172,6 @@ Present the draft mapping to the user with a summary of:
 
 Incorporate user corrections, update `assets/proposed_mapping_<format_id>.json`, and
 present again. Repeat until the mapping is stable, then compute the pre-G1
-estimates and present Gate G1 (AGENTS.md Section 3).
+estimates and present Gate G1 (AGENTS.md Section 3). After the user confirms,
+record the choices in the state file (`set output_format`, `set n_output_files`,
+`gate G1` - AGENTS.md Section 17).

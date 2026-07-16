@@ -1,5 +1,5 @@
 {
-  "_comment": "Template for a KDB schema mapping entry. Copy this file to format-database/<format_id>.json and fill in every field. Remove this _comment key in the real entry. The field_map must contain an entry for every mandatory SAGE field listed here. A KDB entry that omits a mandatory field is considered incomplete.",
+  "_comment": "Template for a KDB schema mapping entry. Copy this file to format-database/<format_id>.json and fill in every field. Remove this _comment key in the real entry. The field_map must contain an entry for every mandatory SAGE field listed here. A KDB entry that omits a mandatory field is considered incomplete. Set memory_multiplier to the format-aware peak-memory factor used by scripts/estimate_output.py: 3.0 for binary/HDF5 inputs, 12-15 for ASCII inputs.",
   "format_id": "<halo_finder>_<tree_tool>_<file_format>",
   "description": "<human-readable description of the input format>",
   "halo_finder": "<AHF | Rockstar | FOF+Subfind (Gadget-2) | FOF+Subfind (Gadget-4)>",

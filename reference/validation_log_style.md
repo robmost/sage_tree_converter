@@ -73,7 +73,9 @@ at the end of Stage 2 and extended at the end of Stage 3. Dynamic fields are sho
 | `assets/semantic_validation/lifespan_dist.pdf`    | PASS / FAIL |
 | `assets/semantic_validation/spatial_dist.pdf`     | PASS / FAIL |
 
-### Auditor Sub-agent Verdict
+### Auditor Verdict
+
+**Audit mode:** headless subprocess (claude / codex / agy) OR in-context fallback
 
 **Overall verdict:** PASS / FAIL
 

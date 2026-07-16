@@ -19,6 +19,8 @@ The LLM may only write to the directories marked **Write** for the current stage
 | `conversion-engine/`     | Read only         | Read + Write   |
 | `conversation-examples/` | Read only         | Read + Write   |
 | `.ai/skills/`            | Read only         | Read only      |
+| `.ai/agents/`            | Read only         | Read only      |
+| `scripts/`               | Read only         | Read only      |
 | `audits/`                | -                 | Read + Write   |
 
 * Stage 3 (full conversion) writes `output/<base>_STC.0.hdf5` (HDF5) or `output/<base>_STC.0` (binary) here. Stages 1 and 2 must not write to `output/`.
@@ -221,7 +223,7 @@ Read `PYTHON_BIN` from `.env` at the start of each session:
 grep -E '^PYTHON_BIN=' .env | cut -d= -f2-
 ```
 
-If absent or empty, default to `python3`. Use `$PYTHON_BIN` for every shell-context Python call. Never use bare `python` or `python3` directly in skill instructions or CLAUDE.md shell commands.
+If absent or empty, default to `python3`. Use `$PYTHON_BIN` for every shell-context Python call. Never use bare `python` or `python3` directly in skill instructions or AGENTS.md shell commands.
 
 Before the first conversion run, verify the interpreter has the required packages:
 
@@ -310,7 +312,7 @@ Always pass `output/<base>_STC.0.hdf5` (or `output/<base>_STC.0` for binary) as 
 
 The `_STC` suffix stands for **SAGE Tree Converter**. It is appended to all converted outputs (both Stage 2 and Stage 3) to distinguish them from the original input data. The `test_` prefix on Stage 2 outputs additionally marks them as partial (test) conversions.
 
-Derive `<base>` once, at the start of Stage 2. Use it unchanged in Stages 3 and 4.
+Derive `<base>` once, at the start of Stage 2, record it in the session state file (`scripts/session_state.py set base <base>`, Section 17), and use it unchanged in Stages 3 and 4.
 
 ---
 
@@ -326,6 +328,8 @@ The following files at the project root configure code quality tooling. Do not d
 | `tests/` | Unit tests (pytest). Pure and fast; do not require the `input/` datasets. Do not modify during an active conversion session. |
 | `runner/batch_runner.py` | Direct conversion batch runner (independent of the agent workflow). |
 | `runner/conversion_config.toml` | Template TOML config for the batch runner. Do not modify during an active session. |
+| `scripts/` | Workflow scripts (estimate_output, extract_snaplist, run_semantic_plots, run_auditor, session_state, archive_session, check_write_boundary) and dev setup. Invoke them; never edit them during a session. |
+| `.github/workflows/ci.yml` | CI workflow (`make check` on push/PR). |
 | `container/Dockerfile` | Docker container image definition. |
 | `container/docker-compose.yml` | Docker Compose orchestration. |
 | `container/apptainer.def` | Apptainer container definition for HPC environments. |

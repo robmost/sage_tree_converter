@@ -63,17 +63,21 @@ See `.ai/skills/kdb-lookup/references/matching_criteria.md` for the full match d
 
 If a full match is found:
 
-1. Present the matched entry's `format_id`, `description`, `driver_module`, and all `known_caveats`.
-2. Present the `field_map` as a readable table: SAGE field -> source field -> units -> conversion expression.
-3. Present the `pointer_logic` section.
-4. State clearly: "This is the KDB match for your input format."
-5. Compute the output-size and memory estimates required before G1 (AGENTS.md Section 3, "Before presenting G1").
-6. Ask the user to confirm (Gate G1 prompt from `AGENTS.md`).
+1. Initialise the session state file (AGENTS.md Section 17):
+   `$PYTHON_BIN scripts/session_state.py init --format-id <format_id>`, then
+   `$PYTHON_BIN scripts/session_state.py set mapping_source kdb_match`.
+2. Present the matched entry's `format_id`, `description`, `driver_module`, and all `known_caveats`.
+3. Present the `field_map` as a readable table: SAGE field -> source field -> units -> conversion expression.
+4. Present the `pointer_logic` section.
+5. State clearly: "This is the KDB match for your input format."
+6. Compute the output-size and memory estimates required before G1 (AGENTS.md Section 3, "Before presenting G1").
+7. Ask the user to confirm (Gate G1 prompt from `AGENTS.md`).
 
 Do not proceed to Stage 2 until the user confirms.
 
-After the user confirms (G1 passed), copy the matched KDB entry to
-`assets/proposed_mapping_<format_id>.json`:
+After the user confirms (G1 passed), record the choices in the state file
+(`set output_format`, `set n_output_files`, `gate G1` - AGENTS.md Section 17)
+and copy the matched KDB entry to `assets/proposed_mapping_<format_id>.json`:
 
 ```bash
 cp format-database/<format_id>.json assets/proposed_mapping_<format_id>.json
