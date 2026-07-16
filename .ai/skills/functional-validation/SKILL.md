@@ -160,16 +160,23 @@ Capture both stdout and any log file SAGE produces (look for files matching
    - A pointer error (invalid index, cross-snapshot pointer)
    - A SAGE parameter file error (wrong path, wrong tree type)
 4. Fix the driver in `assets/drivers/<format_id>.py` or the parameter file.
-5. Re-run the conversion:
-   ```bash
-   $PYTHON_BIN conversion-engine/main_driver.py \
-       --input <...> \
-       --output assets/test_<base>_STC.0[.hdf5] \
-       --output-format [lhalo_hdf5|lhalo_binary] \
-       --n-trees 100
-   ```
+5. Re-run the test conversion. **Use the invocation that matches where the
+   driver lives:**
+   - **Draft driver in `assets/drivers/`** (new format, not yet registered in
+     `FORMAT_REGISTRY`): invoke `convert()` as a library function exactly as in
+     `driver-authoring` SKILL.md Section 9. Do not go through `main_driver.py` -
+     it cannot resolve an unregistered format.
+   - **Registered driver in `conversion-engine/drivers/`:**
+     ```bash
+     $PYTHON_BIN conversion-engine/main_driver.py \
+         --input <...> \
+         --output assets/test_<base>_STC.0[.hdf5] \
+         --format <format_id> \
+         --output-format [lhalo_hdf5|lhalo_binary] \
+         --n-trees 100
+     ```
 6. Re-run syntactic validation (all six checks).
-7. If syntactic validation passes, re-run SAGE from step 3.
+7. If syntactic validation passes, re-run SAGE (step 4).
 8. Repeat until SAGE exits with status 0.
 
 ### 6. PASS condition
