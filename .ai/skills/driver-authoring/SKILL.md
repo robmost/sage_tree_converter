@@ -178,7 +178,7 @@ available, (3) else fail or warn loudly.
 
 Write the draft driver to `assets/drivers/<format_id>.py`.
 **Do not write to `conversion-engine/drivers/` at this stage.**
-The driver is moved to `conversion-engine/drivers/` only in Stage 4 via `kdb-extend`.
+The driver is moved to `conversion-engine/drivers/` only in Stage 4 via `kdb-register` (Path A).
 
 ### 5. Error handling
 
@@ -273,7 +273,7 @@ image dependencies and is not part of a conversion session.
 ### 9. Run the Stage 2 test conversion
 
 The driver lives in `assets/drivers/` and is not yet registered in
-`conversion-engine/main_driver.py` (registration happens in Stage 4 via `kdb-extend`).
+`conversion-engine/main_driver.py` (registration happens in Stage 4 via `kdb-register`, Path A).
 Do **not** attempt to invoke it through `main_driver.py`. Instead, invoke it directly
 by prepending `conversion-engine/` to `sys.path` (so `from utils import ...` resolves)
 and calling `convert()` as a library function:

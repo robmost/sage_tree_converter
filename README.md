@@ -90,8 +90,8 @@ flowchart LR
     subgraph s4["Stage 4: KDB Update"]
         direction TB
         o{"New format?"}
-        o -- "Yes" --> p["kdb-extend<br/>(Add driver + JSON)"]
-        o -- "No" --> q["kdb-update<br/>(Patch entry)"]
+        o -- "Yes" --> p["kdb-register Path A<br/>(Add driver + JSON)"]
+        o -- "No" --> q["kdb-register Path B<br/>(Patch entry)"]
         p & q --> r["Archive audit files"]
         r --> g4[["G4 - Session closed"]]
     end

@@ -38,7 +38,7 @@ All skills are located at `.ai/skills/`. Each skill is a subfolder containing a 
 | Stage 1 (Discovery) | `kdb-lookup/`, then `format-discovery/` if no KDB match |
 | Stage 2 (Test Engine) | `driver-authoring/` (if new driver needed), `syntactic-validation/`, `functional-validation/` |
 | Stage 3 (Full Engine) | `semantic-validation/`, `auditor/` |
-| Stage 4 (KDB Update) | `kdb-extend/` (new format) or `kdb-update/` (existing format) |
+| Stage 4 (KDB Update) | `kdb-register/` (Path A: new format; Path B: existing format) |
 
 ---
 
@@ -401,9 +401,9 @@ I'll convert all trees and check that the converted trees are physically plausib
 Stage 4 - KDB Update
 The conversion is validated. I'll register what we learned so this format is recognised immediately in future sessions.
 
-  1. KDB action
-       - new format      -> kdb-extend (add driver + JSON)
-       - existing format -> kdb-update (patch entry)
+  1. KDB action (kdb-register)
+       - new format      -> add driver + JSON
+       - existing format -> patch entry
   2. Archive session files
   3. Done
 ```
