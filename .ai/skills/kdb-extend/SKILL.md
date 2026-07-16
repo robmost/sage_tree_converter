@@ -201,4 +201,4 @@ After all five steps complete:
 4. Confirm `conversation-examples/<format_id>_example_<DDMMYYYY>.json` is valid JSON.
 5. Confirm `$AUDIT_DIR` exists and contains the expected files.
 
-Present a summary of what was written to the user and request confirmation (G4).
+Present the G4 close-out summary from AGENTS.md Section 3. G4 requires no reply; the session ends there.

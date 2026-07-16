@@ -42,7 +42,7 @@ All skills are located at `.ai/skills/`. Each skill is a subfolder containing a 
 
 ## 3. Gated Stage Protocol
 
-The workflow contains four gate points. The LLM must not advance past a gate without a positive user response. Present the exact gate prompt below; do not paraphrase.
+The workflow contains three gates (G1-G3) that each require a positive user response, plus a closing summary (G4) that requires none. The LLM must not advance past a gate without a positive user response. Present the exact gate prompt below; do not paraphrase.
 
 ### G1 - Schema Mapping Confirmation + Output Format + File Count (end of Stage 1)
 
@@ -68,10 +68,11 @@ Which output format and how many files?
   - binary - SAGE LHaloTree flat binary  (TreeType=0, 104 bytes/halo)
 
 Reply YES <format> <n_files>   (e.g., YES hdf5 4  or  YES binary 1).
+Replying YES confirms the mapping above is correct and complete AND selects
+the output format and file count. If the mapping is wrong or incomplete,
+reply with corrections instead of YES.
 If you have no preference, YES hdf5 1 selects the defaults.
 An explicit reply is required before Stage 2 begins.
-
-Do you confirm this mapping is correct and complete?
 ```
 
 #### G1 Input Validation Rules
@@ -122,7 +123,9 @@ Do you approve the conversion?
 Reply YES to proceed to Stage 4, or describe any issues you see.
 ```
 
-### G4 - KDB Update Confirmation (end of Stage 4)
+### G4 - Session Close-out (end of Stage 4)
+
+G4 is a closing summary, not a gate: no user reply is required, and nothing follows it. Output it after all Stage 4 steps are complete.
 
 ```text
 Stage 4 is complete.

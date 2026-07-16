@@ -200,4 +200,4 @@ After all five steps complete:
 1. Confirm `format-database/<format_id>.json` is valid JSON and contains the updated values.
 2. Confirm `conversation-examples/<format_id>_example_<DDMMYYYY>.json` is valid JSON and `kdb_action` is `"updated_entry"`.
 3. Confirm `$AUDIT_DIR` exists and contains the expected files.
-4. Present a one-line summary of what was changed to the user and request confirmation (G4).
+4. Present the G4 close-out summary from AGENTS.md Section 3. G4 requires no reply; the session ends there.
