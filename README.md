@@ -1,8 +1,5 @@
 # SAGE Universal Merger Tree Converter
 
-> [!NOTE]
-> **Gemini CLI was deprecated by Google on May 19, 2026** (EOL: June 18, 2026). This project now uses [Antigravity CLI](https://antigravity.google) (`agy`) as its Google-provided LLM entry point. See the [official announcement](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/), the [migration guide](https://antigravity.google/docs/gcli-migration), and the [community migration article](https://medium.com/google-cloud/migrating-to-antigravity-cli-a841c6964f37) for details.
-
 A toolkit for converting N-body simulation merger trees from various formats into SAGE-compatible LHaloTree files. It operates in two modes: **agent workflow** (LLM-orchestrated, for new or unknown formats) and **direct conversion** (script-based, for pre-registered formats).
 
 ## Overview
@@ -117,6 +114,9 @@ flowchart LR
 - Docker (recommended) **or** Apptainer (for HPC) **or** Python 3.13+ with packages from `pyproject.toml`
 - Claude Code CLI, Antigravity CLI (`agy`), or Codex CLI (agent workflow only)
 - An Anthropic or OpenAI API key; Antigravity CLI authenticates via OAuth (no API key required).
+
+> [!NOTE]
+> Gemini CLI was deprecated by Google on May 19, 2026 (EOL: June 18, 2026); Antigravity CLI (`agy`) is its replacement and this project's Google-provided LLM entry point. See the [migration guide](https://antigravity.google/docs/gcli-migration).
 
 ### Setup
 
