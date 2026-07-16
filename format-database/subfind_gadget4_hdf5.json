@@ -5,6 +5,7 @@
   "tree_tool": "Gadget-4 built-in",
   "file_format": "hdf5",
   "driver_module": "subfind_gadget4_hdf5.py",
+  "memory_multiplier": 3.0,
   "references": [
     "https://wwwmpa.mpa-garching.mpg.de/gadget4/",
     "https://wwwmpa.mpa-garching.mpg.de/gadget4/09_special_modules/",

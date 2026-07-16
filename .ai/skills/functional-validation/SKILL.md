@@ -43,64 +43,34 @@ is not accessible inside the container, functional validation is also reported a
 **This step is mandatory.** SAGE rejects an empty `FileWithSnapList` with a fatal
 error. Do not skip this step even if a snap list file appears to be unavailable.
 
-Run a streaming scan of the input data file to collect all unique `(snap_idx, scale_factor)` pairs and write them to `assets/<dataset>_snaplist.txt`, one scale factor per line ordered by snap_idx ascending:
+Use the checked-in script - do not write an ad-hoc scan:
 
-```bash
-$PYTHON_BIN - <<'EOF'
-import sys
-snap_to_scale = {}
-with open("<input_dat_file>", "r") as fh:
-    for raw in fh:
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        parts = line.split()
-        if len(parts) < 32:
-            continue
-        try:
-            scale = float(parts[0])   # column 0 = scale factor
-            snap  = int(float(parts[31]))  # column 31 = snap_idx
-        except ValueError:
-            continue
-        snap_to_scale.setdefault(snap, scale)
-snaps = sorted(snap_to_scale)
-print(f"Found {len(snaps)} snapshots: {snaps[0]}–{snaps[-1]}", file=sys.stderr)
-with open("assets/<dataset>_snaplist.txt", "w") as out:
-    for s in snaps:
-        out.write(f"{snap_to_scale[s]:.8f}\n")
-EOF
-```
-
-Column indices above apply to Rockstar/Consistent Trees ASCII. For other formats:
-
-- **Other ASCII formats (AHF, plain Consistent Trees variants):** identify the
-  scale-factor and snap-index columns from the driver's column map and adjust
-  `parts[0]` and `parts[31]` accordingly.
-- **Binary LHaloTree input (e.g., Subfind/Millennium):** there are no ASCII columns.
-  Extract `SnapNum` values from tree 0 of the converted output, then pair each unique
-  snapshot index with its scale factor from simulation metadata (e.g., a `snaplist.txt`
-  or `snap_times.txt` file in the input directory, or a cosmological parameter file):
+- **ASCII inputs** (Rockstar/Consistent Trees and similar column formats):
 
   ```bash
-  $PYTHON_BIN - <<'EOF'
-  import h5py, sys
-  snap_to_scale = {}
-  # Load scale factors from the simulation's own snap list
-  with open("<sim_dir>/snap_times.txt") as sf:
-      scales = [float(l) for l in sf if l.strip()]
-  with h5py.File("assets/test_<base>_STC.0.hdf5", "r") as f:
-      snaps = set(f["Tree0"]["SnapNum"][:].tolist())
-  for s in sorted(snaps):
-      snap_to_scale[s] = scales[s]
-  with open("assets/<dataset>_snaplist.txt", "w") as out:
-      for s in sorted(snap_to_scale):
-          out.write(f"{snap_to_scale[s]:.8f}\n")
-  EOF
+  $PYTHON_BIN scripts/extract_snaplist.py ascii \
+      --input <input_dat_file> \
+      --out assets/<dataset>_snaplist.txt
   ```
 
-  If no external snap list exists, check the input directory for `snap_times.txt`,
-  `output_list.txt`, or a Gadget parameter file with `TimeOfFirstSnapshot` /
-  `TimeBetSnapshot` entries. If none are found, flag this to the user before continuing.
+  The defaults (`--scale-col 0 --snap-col 31`) match Rockstar/Consistent Trees.
+  For other ASCII formats (e.g. AHF), identify the scale-factor and snap-index
+  columns from the driver's column map and pass `--scale-col` / `--snap-col`.
+
+- **Binary LHaloTree input** (e.g. Subfind/Millennium - no ASCII columns): pair
+  the converted output's `SnapNum` values with the simulation's own scale list
+  (`snap_times.txt`, `output_list.txt`, or similar in the input directory):
+
+  ```bash
+  $PYTHON_BIN scripts/extract_snaplist.py hdf5-output \
+      --output-file assets/test_<base>_STC.0.hdf5 \
+      --scales-file <sim_dir>/snap_times.txt \
+      --out assets/<dataset>_snaplist.txt
+  ```
+
+  If no external scale list exists, check the input directory for a Gadget
+  parameter file with `TimeOfFirstSnapshot` / `TimeBetSnapshot` entries. If
+  none are found, flag this to the user before continuing.
 
 ### 3. Generate a minimal SAGE parameter file
 

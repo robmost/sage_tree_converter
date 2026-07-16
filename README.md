@@ -366,25 +366,16 @@ Both scripts exit with code `0` on full pass and `1` on any failure. `--n-snapsh
 
 ### Semantic validation
 
-Semantic validation has no standalone CLI script. It renders seven output-only
-physical-plausibility plots of the converted file (no input/output comparison). Invoke the
-`generate_all_plots()` function from `conversion-engine/validation/semantic.py`:
+Semantic validation renders seven output-only physical-plausibility plots of the
+converted file (no input/output comparison):
 
-```python
-import sys
-sys.path.insert(0, "conversion-engine")
-import matplotlib.pyplot as plt
-from validation.semantic import generate_all_plots
-
-plt.style.use("reference/sage_validation.mplstyle")
-
-generate_all_plots(
-    output_path="output/<base>_STC.0.hdf5",   # or _STC.0 for binary
-    output_format="lhalo_hdf5",                # or lhalo_binary
-)
+```bash
+$PYTHON_BIN scripts/run_semantic_plots.py \
+    --file output/<base>_STC.0.hdf5 \
+    --output-format lhalo_hdf5   # or: --file output/<base>_STC.0 --output-format lhalo_binary
 ```
 
-Plots are written to `assets/semantic_validation/`.
+Plots are written to `assets/semantic_validation/` as PDFs plus PNG siblings.
 
 ### Functional validation (optional)
 

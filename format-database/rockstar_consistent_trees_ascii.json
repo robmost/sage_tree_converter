@@ -5,6 +5,7 @@
   "tree_tool": "Consistent Trees",
   "file_format": "ascii",
   "driver_module": "rockstar_consistent_trees_ascii.py",
+  "memory_multiplier": 12.0,
   "references": [
     "Behroozi et al. (2013), ApJ 762, 109 — Consistent Trees https://doi.org/10.1088/0004-637X/762/2/109",
     "Behroozi et al. (2012), ApJ 756, 2 — Rockstar https://doi.org/10.1088/0004-637X/756/1/2",

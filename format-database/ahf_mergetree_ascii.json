@@ -5,6 +5,7 @@
   "tree_tool": "MergerTree",
   "file_format": "ascii",
   "driver_module": "ahf_mergetree_ascii.py",
+  "memory_multiplier": 15.0,
   "references": [
     "Knollmann & Knebe (2009), ApJS 182, 608 — AHF: AMIGA's Halo Finder https://doi.org/10.1088/0067-0049/182/2/608",
     "AHF source v1.0-123, analysis/MergerTree/src/libio.c — write_mtree(), libio_halos.c — getHaloID / getSussing2013ID",
@@ -171,7 +172,7 @@
     "snap_index_max": 56,
     "n_particles_per_side": 512,
     "ic_type": "CDM_3LPT",
-    "particle_mass_msun_per_h": 1.0012e7,
+    "particle_mass_msun_per_h": 10012000.0,
     "particle_mass_note": "Confirmed from B25_N512_CDM_3LPT_z39_adapt.gizmo_parameters: Omega0=0.3099, BoxSize=25 Mpc/h, N=512^3. Formula: 0.3099 * 2.775e11 * 25^3 / 512^3 = 1.001e7 Msun/h. Matches driver estimate from Mhalo/npart."
   },
   "known_caveats": [

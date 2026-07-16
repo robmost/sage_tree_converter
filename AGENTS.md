@@ -48,12 +48,13 @@ The workflow contains three gates (G1-G3) that each require a positive user resp
 
 ### G1 - Schema Mapping Confirmation + Output Format + File Count (end of Stage 1)
 
-Before presenting G1, compute the following estimates from the input data:
-1. `n_trees_total` - count trees from the input file(s) (O(lines) scan or header read).
-2. `n_halos_estimate` - sample the first ~10 trees, average their halo counts, multiply by `n_trees_total`.
-3. `estimated_output_bytes` - `n_halos_estimate x 120` (HDF5 estimate) or `n_halos_estimate x 104` (binary).
-4. Available system memory - use `$PYTHON_BIN -c "import psutil; print(psutil.virtual_memory().available)"` if psutil is available, otherwise use `vm_stat` (macOS) or `/proc/meminfo` (Linux).
-5. `suggested_n_files` - `max(1, ceil(estimated_output_bytes / 8_000_000_000))`.
+Before presenting G1, compute the estimates with the checked-in script (a subprocess, so the file inspection rule in Section 7 does not constrain it):
+
+```bash
+$PYTHON_BIN scripts/estimate_output.py --input <input_path> --format <format_id>
+```
+
+It reports `n_trees_total`, the halo count (exact or estimated - it says which), estimated output size for both formats, `suggested_n_files` (8 GB target per file), and the memory pre-check figures (Section 8). For a format not yet in the KDB the script has no counter; state in the gate prompt that the estimates are unavailable and why, and do not improvise a replacement scan.
 
 Present the gate prompt verbatim, filling in the computed values:
 
@@ -198,21 +199,15 @@ Reading beyond the minimum needed to identify format or diagnose an error is pro
 
 ## 8. Memory Pre-check
 
-Before invoking the conversion driver in Stage 2:
+Before invoking the conversion driver in Stage 2, run (or re-use the pre-G1 run of):
 
-1. Obtain the input file size in bytes: `stat -c%s <input_file>` (Linux) or `stat -f%z <input_file>` (macOS).
-1. Read `SAGE_MEMORY_MULTIPLIER` from `.env` (default `3.0`).
-1. **Choose a format-aware multiplier.** The `3.0` default suits binary/HDF5 inputs
-   (`subfind_lhalotree_binary`, `subfind_gadget4_hdf5`), which the drivers stream or read
-   in compact arrays. ASCII inputs (`ahf_mergetree_ascii`, `rockstar_consistent_trees_ascii`)
-   hold the whole catalog in memory as a Python dict-of-dicts during tree identification,
-   typically **10-20x** the input byte size. For ASCII inputs use a multiplier of **~12-15**
-   (or higher for AHF) rather than the `3.0` default, so the estimate is not optimistic.
-1. Estimate peak memory: `input_file_size_bytes x SAGE_MEMORY_MULTIPLIER`.
-1. Read available memory on Linux inside Docker/Apptainer with `grep MemAvailable /proc/meminfo` (reports kB; convert to bytes).
-1. Read available memory on macOS host with `vm_stat | grep "Pages free"` then multiply by page size (`sysctl -n hw.pagesize`), or use `$PYTHON_BIN -c "import psutil; print(psutil.virtual_memory().available)"` if psutil is installed.
-1. If neither method succeeds, skip the check and log a note that available memory could not be determined.
-1. If the estimate exceeds available memory, **warn** the user with both figures and ask whether to proceed. Do not block; this is a warning only.
+```bash
+$PYTHON_BIN scripts/estimate_output.py --input <input_path> --format <format_id>
+```
+
+The script obtains the input size, picks the format-aware memory multiplier (the `memory_multiplier` key of the KDB entry - `3.0` for binary/HDF5 inputs, `12-15` for ASCII inputs, which hold the whole catalog in memory during tree identification; the `SAGE_MEMORY_MULTIPLIER` environment variable overrides it), estimates peak memory, and reads available memory (psutil, else `/proc/meminfo`). If available memory cannot be determined, it says so - log that note and continue.
+
+If the estimate exceeds available memory, the script prints a WARNING: **warn** the user with both figures and ask whether to proceed. Do not block; this is a warning only.
 
 ---
 

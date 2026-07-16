@@ -47,21 +47,19 @@ call `plt.savefig()` or `plt.close()` directly anywhere in the plotting code.
 
 ### 2. Generate the plots
 
-Invoke `generate_all_plots()` on the **converted output file** (there is no input column):
+Run the CLI wrapper on the **converted output file** (there is no input column):
 
-```python
-from validation.semantic import generate_all_plots
-
-# The output file path depends on the format chosen at G1:
-#   HDF5 output:   output/<base>_STC.0.hdf5
-#   Binary output: output/<base>_STC.0
-# where <base> is the dataset directory name (see AGENTS.md section 13 for the derivation rule).
-
-generate_all_plots(
-    output_path="output/<base>_STC.0[.hdf5]",
-    output_format="lhalo_hdf5",   # or "lhalo_binary" if binary output was chosen
-)
+```bash
+$PYTHON_BIN scripts/run_semantic_plots.py \
+    --file output/<base>_STC.0.hdf5 \
+    --output-format lhalo_hdf5
+# Binary output: --file output/<base>_STC.0 --output-format lhalo_binary
+# <base> comes from assets/session_state.json (AGENTS.md sections 13 and 17).
 ```
+
+The wrapper applies the style sheet, calls `generate_all_plots()` from
+`conversion-engine/validation/semantic.py`, and exits non-zero unless all
+seven plots are produced. Do not re-implement the plotting inline.
 
 `generate_all_plots()` handles the sampling internally:
 1. Identifies the lowest-redshift snapshot (`SnapNum == max(SnapNum)` across all trees).

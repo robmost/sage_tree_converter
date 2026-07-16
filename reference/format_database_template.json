@@ -6,13 +6,13 @@
   "tree_tool": "<MergerTree | Consistent Trees | LHaloTree | Gadget-4 built-in>",
   "file_format": "<ascii | binary-gadget1 | binary-gadget2 | hdf5>",
   "driver_module": "<format_id>.py",
+  "memory_multiplier": 3.0,
   "references": [
     "<URL to official documentation>",
     "<paper citation, e.g. Author et al. (YYYY), DOI>"
   ],
   "field_map": {
     "_comment": "One entry per mandatory SAGE LHaloTree field (see reference/sage_lhalotree_hdf5_schema.md for HDF5, reference/sage_lhalotree_binary_schema.md for binary). Field key names here are the writer-facing names used by both hdf5_writer and binary_writer — they must match exactly. Pointer fields are reconstructed via pointer_logic, not copied directly — set conversion_expr to 'see pointer_logic' for those.",
-
     "Descendant": {
       "source_field": "derived",
       "source_units": "halo ID or snapshot-relative index (format-dependent)",
@@ -53,7 +53,6 @@
       "conversion_expr": "see pointer_logic",
       "notes": "Spatial pointer. Next satellite in the FOF group chain. See pointer_logic.NextHaloInFOFGroup."
     },
-
     "SubhaloLen": {
       "source_field": "<source column/dataset name for particle count>",
       "source_units": "particles",

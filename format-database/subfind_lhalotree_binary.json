@@ -5,6 +5,7 @@
   "tree_tool": "LHaloTree",
   "file_format": "binary",
   "driver_module": "subfind_lhalotree_binary.py",
+  "memory_multiplier": 3.0,
   "references": [
     "Springel et al. 2005, Nature 435, 629 — Millennium Simulation (https://doi.org/10.1038/nature03597)",
     "Croton et al. 2016, ApJS 222, 22 — SAGE model (https://doi.org/10.3847/0067-0049/222/2/22)",
@@ -160,7 +161,7 @@
     "FirstHaloInFOFGroup": "Already a tree-local index. Central halo satisfies FirstHaloInFOFGroup[i] == i.",
     "NextHaloInFOFGroup": "Already a tree-local index. Copy directly."
   },
-  "particle_mass_1e10_msun_per_h": 0.0860,
+  "particle_mass_1e10_msun_per_h": 0.086,
   "n_snapshots": 64,
   "known_caveats": [
     "SubhaloIndex and SubHalfMass are present in the binary struct but are not part of the SAGE LHaloTree HDF5 schema and are discarded during conversion.",
