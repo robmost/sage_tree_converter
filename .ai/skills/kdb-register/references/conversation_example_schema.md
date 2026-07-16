@@ -71,4 +71,4 @@ File naming convention: `<format_id>_example_<DDMMYYYY>.json`
 - `issues_encountered` and `resolutions` must have the same length. Each resolution must directly address the corresponding issue by index.
 - If the same issue occurred multiple times (e.g. a unit error in two different fields), create one entry per occurrence, not a combined entry.
 - Do not include issues that were identified and resolved before the first conversion attempt (e.g. obvious typos in the parameter file). Only include issues that caused a test run to fail.
-- The conversation example is written once at the end of Stage 4. Do not update it after it is written unless the kdb-update skill is invoked in a later session.
+- The conversation example is written once at the end of Stage 4. Do not update it after it is written unless the kdb-register skill (Path B) is invoked in a later session.
