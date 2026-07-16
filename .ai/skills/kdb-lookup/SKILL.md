@@ -12,18 +12,7 @@ description: Searches the format-database/ KDB for a schema mapping that matches
 
 ## Stage Preamble
 
-Output the following to the user verbatim before any other action:
-
-```
-Stage 1 — Discovery
-I'll identify your input format and map its fields to the SAGE LHaloTree schema.
-
-  1. Inspect input files
-  2. KDB lookup
-       - match    -> load schema mapping
-       - no match -> web discovery + schema mapping
-  3. [G1] Confirm mapping + select output format
-```
+If the Stage 1 preamble has not already been output this session, output it now, verbatim, from AGENTS.md Section 15. Never re-output a preamble that has already been shown, and never paraphrase it.
 
 ## Path Convention
 
@@ -78,7 +67,8 @@ If a full match is found:
 2. Present the `field_map` as a readable table: SAGE field → source field → units → conversion expression.
 3. Present the `pointer_logic` section.
 4. State clearly: "This is the KDB match for your input format."
-5. Ask the user to confirm (Gate G1 prompt from `AGENTS.md`).
+5. Compute the output-size and memory estimates required before G1 (AGENTS.md Section 3, "Before presenting G1").
+6. Ask the user to confirm (Gate G1 prompt from `AGENTS.md`).
 
 Do not proceed to Stage 2 until the user confirms.
 

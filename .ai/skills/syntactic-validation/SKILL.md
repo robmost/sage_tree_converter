@@ -9,22 +9,7 @@ description: Runs the six structural checks on a converted SAGE LHaloTree HDF5
 
 ## Stage Preamble
 
-If the Stage 2 preamble has not already been output this session (i.e., `driver-authoring` was not read first), output the following verbatim now:
-
-```
-Stage 2 — Test Engine
-I'll run a test conversion on ~100 trees and validate the output structurally.
-
-  1. Driver check
-       - exists  -> proceed to step 2
-       - missing -> author driver -> proceed to step 2
-  2. Test conversion (~100 trees)
-  3. Syntactic validation (6 checks)
-  4. Functional validation
-       - SAGE binary set -> run SAGE dry-run
-       - not set         -> skip
-  5. [G2] Confirm test validation
-```
+If the Stage 2 preamble has not already been output this session, output it now, verbatim, from AGENTS.md Section 15. Never re-output a preamble that has already been shown, and never paraphrase it.
 
 ## Format Dispatch
 

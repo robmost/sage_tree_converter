@@ -11,17 +11,7 @@ description: Generates the seven mandatory semantic validation plots of the
 
 ## Stage Preamble
 
-Output the following to the user verbatim before any other action:
-
-```
-Stage 3 - Full Engine
-I'll convert all trees and check that the converted trees are physically plausible.
-
-  1. Full conversion
-  2. Semantic validation (7 plots)
-  3. Auditor review (10 checks)
-  4. [G3] Approve plots
-```
+If the Stage 3 preamble has not already been output this session, output it now, verbatim, from AGENTS.md Section 15. Never re-output a preamble that has already been shown, and never paraphrase it.
 
 ## Path Convention
 

@@ -10,7 +10,7 @@ description: Guides drafting or adapting a format-specific conversion driver for
 
 ## Stage Preamble
 
-The Stage 2 preamble is output from AGENTS.md section 15 at stage entry. Do not re-output it here - proceed directly to driver authoring.
+If the Stage 2 preamble has not already been output this session, output it now, verbatim, from AGENTS.md Section 15. Never re-output a preamble that has already been shown, and never paraphrase it.
 
 ## Instructions
 
