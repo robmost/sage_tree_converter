@@ -4,7 +4,7 @@ When searching for merger tree format documentation, evaluate each source agains
 the tiers below. Use the highest-tier source available. Always record the source URL
 or citation in the `references` field of the mapping JSON.
 
-## Tier 1 — Official Source (highest trust)
+## Tier 1 - Official Source (highest trust)
 
 - The official code repository for the halo finder or tree tool (GitHub, GitLab,
   Bitbucket, or institutional hosting)
@@ -16,7 +16,7 @@ or citation in the `references` field of the mapping JSON.
 **When to use:** Always prefer this over all other sources. If the field list is in
 source code (e.g. a struct or a `write_output` function), read it directly.
 
-## Tier 2 — Peer-reviewed Publication
+## Tier 2 - Peer-reviewed Publication
 
 - The primary paper introducing the halo finder or tree tool
 - Papers that describe the output format in a methods section
@@ -25,7 +25,7 @@ source code (e.g. a struct or a `write_output` function), read it directly.
 **When to use:** When Tier 1 is unavailable or incomplete. Record the full citation
 (Author et al., Year, Journal/arXiv, DOI).
 
-## Tier 3 — Reference Implementation
+## Tier 3 - Reference Implementation
 
 - A third-party code that reads or writes the format (e.g. a known analysis pipeline
   that parses the same files)
@@ -34,14 +34,14 @@ source code (e.g. a struct or a `write_output` function), read it directly.
 **When to use:** When Tier 1 and Tier 2 are unavailable. Confirm field names against
 the actual input file headers to reduce the risk of version mismatches.
 
-## Tier 4 — Author or Project Web Page
+## Tier 4 - Author or Project Web Page
 
 - The personal or institutional web page of the halo finder / tree tool authors
 - Tutorial pages that show example file content
 
-**When to use:** As a supplement to Tier 1–3, or when Tier 1–3 are unavailable.
+**When to use:** As a supplement to Tier 1-3, or when Tier 1-3 are unavailable.
 
-## Tier 5 — Secondary Discussion (lowest trust)
+## Tier 5 - Secondary Discussion (lowest trust)
 
 - Forum posts, Stack Overflow answers, mailing list archives
 - Blog posts or tutorials written by third parties

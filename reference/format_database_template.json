@@ -12,7 +12,7 @@
     "<paper citation, e.g. Author et al. (YYYY), DOI>"
   ],
   "field_map": {
-    "_comment": "One entry per mandatory SAGE LHaloTree field (see reference/sage_lhalotree_hdf5_schema.md for HDF5, reference/sage_lhalotree_binary_schema.md for binary). Field key names here are the writer-facing names used by both hdf5_writer and binary_writer — they must match exactly. Pointer fields are reconstructed via pointer_logic, not copied directly — set conversion_expr to 'see pointer_logic' for those.",
+    "_comment": "One entry per mandatory SAGE LHaloTree field (see reference/sage_lhalotree_hdf5_schema.md for HDF5, reference/sage_lhalotree_binary_schema.md for binary). Field key names here are the writer-facing names used by both hdf5_writer and binary_writer - they must match exactly. Pointer fields are reconstructed via pointer_logic, not copied directly - set conversion_expr to 'see pointer_logic' for those.",
     "Descendant": {
       "source_field": "derived",
       "source_units": "halo ID or snapshot-relative index (format-dependent)",
@@ -123,7 +123,7 @@
       "target_units": "(kpc/h)(km/s)",
       "scale_factor": "<e.g. 1 if source is already in (kpc/h)(km/s); 1000 if source is in (Mpc/h)(km/s)>",
       "conversion_expr": "<e.g. source_field * 1000 if source is in (Mpc/h)(km/s)>",
-      "notes": "Specific angular momentum 3-vector [Jx, Jy, Jz] — angular momentum per unit mass, NOT the dimensionless spin parameter lambda. On-disk values must be in (kpc/h)(km/s) for both output formats: the HDF5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing. Output shape: (N, 3)."
+      "notes": "Specific angular momentum 3-vector [Jx, Jy, Jz] - angular momentum per unit mass, NOT the dimensionless spin parameter lambda. On-disk values must be in (kpc/h)(km/s) for both output formats: the HDF5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing. Output shape: (N, 3)."
     },
     "SubhaloIDMostBound": {
       "source_field": "<source column/dataset name for most-bound particle ID, or null>",

@@ -4,7 +4,7 @@ Detailed pass conditions and expected output for each of the six checks.
 
 ---
 
-## Check 1 — File Integrity
+## Check 1 - File Integrity
 
 **Command:**
 
@@ -39,7 +39,7 @@ python -c "import h5py; f = h5py.File('<output.hdf5>', 'r'); print(list(f.keys()
 
 ---
 
-## Check 2 — Schema Compliance
+## Check 2 - Schema Compliance
 
 **Mandatory fields** (must be present in every `Tree<X>/` group):
 
@@ -72,7 +72,7 @@ python -c "import h5py; f = h5py.File('<output.hdf5>', 'r'); print(list(f.keys()
 
 ---
 
-## Check 3 — Pointer Integrity: Temporal
+## Check 3 - Pointer Integrity: Temporal
 
 For each tree with N halos, for each halo i in [0, N-1]:
 
@@ -88,7 +88,7 @@ For each tree with N halos, for each halo i in [0, N-1]:
 
 ---
 
-## Check 4 — Pointer Integrity: Spatial
+## Check 4 - Pointer Integrity: Spatial
 
 For each tree with N halos, for each halo i in [0, N-1]:
 
@@ -105,7 +105,7 @@ Additionally: if `FirstHaloInFOFGroup[i] == i`, this halo is the central (self-p
 
 ---
 
-## Check 5 — Snapshot Consistency
+## Check 5 - Snapshot Consistency
 
 For each halo in every tree: `0 <= SnapNum[i] < n_snapshots`.
 
@@ -117,12 +117,12 @@ For each halo in every tree: `0 <= SnapNum[i] < n_snapshots`.
 
 ---
 
-## Check 6 — Property Consistency
+## Check 6 - Property Consistency
 
 | Field | Valid range | Notes |
 | ----- | ----------- | ----- |
-| `Group_M_Crit200` | [0, 1e6] in 10¹⁰ M☉/h | Upper bound = 10¹⁶ M☉/h, reasonable for any simulated halo |
-| `SubhaloVel` magnitude | [0, 10000] km/s | 10,000 km/s ≈ 3% of speed of light |
+| `Group_M_Crit200` | [0, 1e6] in 10^10 Msun/h | Upper bound = 10^16 Msun/h, reasonable for any simulated halo |
+| `SubhaloVel` magnitude | [0, 10000] km/s | 10,000 km/s ~ 3% of speed of light |
 | `SubhaloVMax` | [0, 10000] km/s | Same physical upper bound |
 | `SubhaloPos` | finite (no NaN/Inf) | Values must be real numbers |
 | `Group_M_Crit200` | finite (no NaN/Inf) | No unphysical values |

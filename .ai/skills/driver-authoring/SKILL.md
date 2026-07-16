@@ -75,17 +75,17 @@ The driver must write a valid SAGE LHaloTree output file at `output_path`.
 
 ```text
 output.hdf5
-├── Header/
-│   ├── [attr] ParticleMass        - float64
-│   ├── [attr] NtreesPerFile       - int32
-│   ├── [attr] NhalosPerFile       - int32
-│   ├── [attr] NumberOfOutputFiles - int32
-│   └── TreeNHalos                 - 1D int32 dataset, length = NtreesPerFile
-└── Tree0/
-    └── <field>   - one 1D or 2D dataset per field
+|-- Header/
+|   |-- [attr] ParticleMass        - float64
+|   |-- [attr] NtreesPerFile       - int32
+|   |-- [attr] NhalosPerFile       - int32
+|   |-- [attr] NumberOfOutputFiles - int32
+|   `-- TreeNHalos                 - 1D int32 dataset, length = NtreesPerFile
+`-- Tree0/
+    `-- <field>   - one 1D or 2D dataset per field
 ...
-└── Tree<N-1>/
-    └── <field>
+`-- Tree<N-1>/
+    `-- <field>
 ```
 
 All mandatory fields from `reference/sage_lhalotree_hdf5_schema.md` (project root) must be written

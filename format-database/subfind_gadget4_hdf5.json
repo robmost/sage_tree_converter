@@ -9,7 +9,7 @@
   "references": [
     "https://wwwmpa.mpa-garching.mpg.de/gadget4/",
     "https://wwwmpa.mpa-garching.mpg.de/gadget4/09_special_modules/",
-    "Springel et al. (2021), MNRAS 506 2871 — Gadget-4 code paper"
+    "Springel et al. (2021), MNRAS 506 2871 - Gadget-4 code paper"
   ],
   "field_map": {
     "Descendant": {
@@ -26,7 +26,7 @@
       "target_units": "integer index within Tree<X> halo array",
       "scale_factor": null,
       "conversion_expr": "see pointer_logic",
-      "notes": "Reconstructed by inverting Descendant. TreeHalos/TreeFirstProgenitor is DISCARDED — it points forward in time in Gadget-4 (opposite to SAGE convention) and may contain cross-tree references."
+      "notes": "Reconstructed by inverting Descendant. TreeHalos/TreeFirstProgenitor is DISCARDED - it points forward in time in Gadget-4 (opposite to SAGE convention) and may contain cross-tree references."
     },
     "NextProgenitor": {
       "source_field": "derived",
@@ -66,7 +66,7 @@
       "target_units": "1e10 Msun/h",
       "scale_factor": 1,
       "conversion_expr": null,
-      "notes": "FOF group M200c (mass within R_200_crit). Gadget-4 sets this non-zero only on FOF centrals (SubRankInGr==0); all satellite subhalos are initialised to 0 in halotrees.cc. The driver broadcasts the central's value to all satellites in the same (SnapNum, GroupNr) group so the output field is semantically correct. SAGE ignores this field for satellites anyway (get_virial_mass() in model_misc.c falls through to Len×PartMass for non-central halos), so the propagation has no effect on SAGE physics. UnitMass_in_g=1.989e43 (10^10 Msun) with comoving h-factor included."
+      "notes": "FOF group M200c (mass within R_200_crit). Gadget-4 sets this non-zero only on FOF centrals (SubRankInGr==0); all satellite subhalos are initialised to 0 in halotrees.cc. The driver broadcasts the central's value to all satellites in the same (SnapNum, GroupNr) group so the output field is semantically correct. SAGE ignores this field for satellites anyway (get_virial_mass() in model_misc.c falls through to LenxPartMass for non-central halos), so the propagation has no effect on SAGE physics. UnitMass_in_g=1.989e43 (10^10 Msun) with comoving h-factor included."
     },
     "Group_M_Mean200": {
       "source_field": null,
@@ -90,7 +90,7 @@
       "target_units": "kpc/h",
       "scale_factor": 1000,
       "conversion_expr": "SubhaloPos * 1000",
-      "notes": "Gadget-4 UnitLength_in_cm=3.0857e24 (1 Mpc). Positions stored in comoving Mpc/h. SAGE schema requires kpc/h on disk; the HDF5 reader multiplies by 0.001 internally (kpc/h → Mpc/h). Shape (N, 3)."
+      "notes": "Gadget-4 UnitLength_in_cm=3.0857e24 (1 Mpc). Positions stored in comoving Mpc/h. SAGE schema requires kpc/h on disk; the HDF5 reader multiplies by 0.001 internally (kpc/h -> Mpc/h). Shape (N, 3)."
     },
     "SubhaloVel": {
       "source_field": "TreeHalos/SubhaloVel",
@@ -122,7 +122,7 @@
       "target_units": "(kpc/h)(km/s)",
       "scale_factor": 1000,
       "conversion_expr": "SubhaloSpin * 1000",
-      "notes": "Specific angular momentum vector [Jx, Jy, Jz] per unit mass — NOT the dimensionless spin parameter lambda. Gadget-4 stores in (Mpc/h)(km/s) = UnitLength * UnitVelocity. SAGE schema requires (kpc/h)(km/s) on disk; the HDF5 reader multiplies by 0.001 internally. Shape (N, 3)."
+      "notes": "Specific angular momentum vector [Jx, Jy, Jz] per unit mass - NOT the dimensionless spin parameter lambda. Gadget-4 stores in (Mpc/h)(km/s) = UnitLength * UnitVelocity. SAGE schema requires (kpc/h)(km/s) on disk; the HDF5 reader multiplies by 0.001 internally. Shape (N, 3)."
     },
     "SubhaloIDMostBound": {
       "source_field": "TreeHalos/SubhaloIDMostbound",
@@ -151,19 +151,19 @@
   },
   "pointer_logic": {
     "description": "Gadget-4 stores all halos in a single flat /TreeHalos array. /TreeTable provides StartOffset and Length for each tree. CRITICAL: TreeDescendant values are TREE-LOCAL indices (in [0, Length) or -1), NOT global flat-array indices. No offset subtraction is needed or correct. The five native pointer fields (TreeFirstProgenitor, TreeNextProgenitor, TreeFirstHaloInFOFgroup, TreeNextHaloInFOFgroup, TreeDescendant) are processed as follows: TreeDescendant is used directly; the other four are DISCARDED and reconstructed from scratch.",
-    "Descendant": "Load TreeHalos/TreeDescendant[start:start+n] directly — values are already tree-local [0, n) or -1. Clamp out-of-range values to -1 (defensive). Resolve same-snapshot links iteratively (up to 10 hops) using the original desc values for each hop to satisfy SAGE's strict forward-in-time requirement. After sorting halos within the tree (SnapNum desc, SubhaloLen desc), remap all tree-local indices through the sort permutation inverse.",
+    "Descendant": "Load TreeHalos/TreeDescendant[start:start+n] directly - values are already tree-local [0, n) or -1. Clamp out-of-range values to -1 (defensive). Resolve same-snapshot links iteratively (up to 10 hops) using the original desc values for each hop to satisfy SAGE's strict forward-in-time requirement. After sorting halos within the tree (SnapNum desc, SubhaloLen desc), remap all tree-local indices through the sort permutation inverse.",
     "FirstProgenitor": "DISCARD TreeHalos/TreeFirstProgenitor. Reconstruct by inverting the resolved Descendant array: for each halo i that has a valid Descendant d, record i as a progenitor of d. Sort progenitors of the same descendant by SubhaloLen descending; the most massive is FirstProgenitor[d]. Fully vectorised via lexsort, O(N log N).",
     "NextProgenitor": "DISCARD TreeHalos/TreeNextProgenitor. Reconstruct alongside FirstProgenitor: the second-most-massive progenitor of d becomes NextProgenitor[FirstProgenitor[d]], and so on, forming the sibling chain.",
     "FirstHaloInFOFGroup": "DISCARD TreeHalos/TreeFirstHaloInFOFgroup (contains cross-tree pointers). Reconstruct from (SnapNum, GroupNr): sort halos by (SnapNum, GroupNr, -SubhaloLen); the most massive halo in each (SnapNum, GroupNr) group is the central. FirstHaloInFOFGroup[i] = index of central in i's group. Fully vectorised via lexsort + cumsum, O(N log N).",
     "NextHaloInFOFGroup": "DISCARD TreeHalos/TreeNextHaloInFOFgroup. Reconstruct alongside FirstHaloInFOFGroup: consecutive members of the same (SnapNum, GroupNr) group form the satellite chain via NextHaloInFOFGroup."
   },
   "known_caveats": [
-    "CRITICAL — TreeDescendant is tree-local, not global: values are offsets into each tree's own halo slice ([0, Length) or -1). Do NOT subtract StartOffset from TreeDescendant. The mistake is easy because Tree0 has StartOffset=0, making global and local interpretations identical for that tree only.",
+    "CRITICAL - TreeDescendant is tree-local, not global: values are offsets into each tree's own halo slice ([0, Length) or -1). Do NOT subtract StartOffset from TreeDescendant. The mistake is easy because Tree0 has StartOffset=0, making global and local interpretations identical for that tree only.",
     "Same-snapshot TreeDescendant: Gadget-4 uses same-snapshot desc to record intra-snapshot FOF mergers (~0.2% of halos). These violate SAGE's strict forward-in-time Descendant requirement and must be resolved by following the chain forward until a cross-snapshot hop or -1 is reached.",
     "TreeFirstProgenitor and TreeNextProgenitor are forward-in-time pointers (Gadget-4 convention opposite to SAGE). They are discarded and reconstructed from TreeDescendant.",
     "TreeFirstHaloInFOFgroup and TreeNextHaloInFOFgroup contain cross-tree pointers and cannot be used directly. They are discarded and reconstructed from (SnapNum, GroupNr) grouping.",
-    "UnitLength_in_cm=3.0857e24 means the internal length unit is 1 Mpc (not 1 kpc). SubhaloPos is therefore in comoving Mpc/h and SubhaloSpin in (Mpc/h)(km/s). Both fields require ×1000 scaling before writing.",
-    "Group_M_Crit200 is an FOF group property set non-zero only on the FOF central (SubRankInGr==0); all satellite entries are 0 in the raw Gadget-4 output. The driver broadcasts the central's M200c to all satellites in the same (SnapNum, GroupNr) group before writing. SAGE's get_virial_mass() already ignores this field for satellites (uses Len×PartMass), so the propagation is purely for output correctness and does not affect SAGE runs.",
+    "UnitLength_in_cm=3.0857e24 means the internal length unit is 1 Mpc (not 1 kpc). SubhaloPos is therefore in comoving Mpc/h and SubhaloSpin in (Mpc/h)(km/s). Both fields require x1000 scaling before writing.",
+    "Group_M_Crit200 is an FOF group property set non-zero only on the FOF central (SubRankInGr==0); all satellite entries are 0 in the raw Gadget-4 output. The driver broadcasts the central's M200c to all satellites in the same (SnapNum, GroupNr) group before writing. SAGE's get_virial_mass() already ignores this field for satellites (uses LenxPartMass), so the propagation is purely for output correctness and does not affect SAGE runs.",
     "Group_M_Mean200 and Group_M_TopHat200 are not present in Gadget-4 built-in tree output; sentinel 0.0 is written for both.",
     "SubhaloIDMostbound is stored as uint32 in Gadget-4 vs the int64 expected by SAGE; an explicit cast is required.",
     "Config shows both SUBFIND and SUBFIND_HBT enabled; SUBFIND_HBT is the active finder. Field names are identical to standard SUBFIND output.",

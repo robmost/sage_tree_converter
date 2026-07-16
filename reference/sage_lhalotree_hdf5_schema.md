@@ -16,17 +16,17 @@ operation. All `lhalo_hdf5` output files must conform exactly to this schema.
 
 ```text
 <output>.hdf5
-├── Header/                         # HDF5 group
-│   ├── [attr] ParticleMass         # double
-│   ├── [attr] NtreesPerFile        # int32
-│   ├── [attr] NhalosPerFile        # int32
-│   ├── [attr] NumberOfOutputFiles  # int32
-│   └── TreeNHalos                  # dataset: 1D int32, length = NtreesPerFile
-└── Tree0/                          # HDF5 group — first merger tree (zero-indexed)
-    └── <field>                     # one dataset per field (see Section 3)
+|-- Header/                         # HDF5 group
+|   |-- [attr] ParticleMass         # double
+|   |-- [attr] NtreesPerFile        # int32
+|   |-- [attr] NhalosPerFile        # int32
+|   |-- [attr] NumberOfOutputFiles  # int32
+|   `-- TreeNHalos                  # dataset: 1D int32, length = NtreesPerFile
+`-- Tree0/                          # HDF5 group - first merger tree (zero-indexed)
+    `-- <field>                     # one dataset per field (see Section 3)
     ...
-└── Tree<NtreesPerFile-1>/          # HDF5 group — last merger tree
-    └── <field>
+`-- Tree<NtreesPerFile-1>/          # HDF5 group - last merger tree
+    `-- <field>
 ```
 
 ---
@@ -39,7 +39,7 @@ All four attributes are attached directly to the `Header/` group.
 
 | Attribute | HDF5 type | Description |
 | --- | --- | --- |
-| `ParticleMass` | `double` (float64) | Dark matter particle mass in units of 10¹⁰ M☉/h |
+| `ParticleMass` | `double` (float64) | Dark matter particle mass in units of 10^10 Msun/h |
 | `NtreesPerFile` | `int32` | Number of merger trees stored in this file |
 | `NhalosPerFile` | `int32` | Total number of halos across all trees in this file |
 | `NumberOfOutputFiles` | `int32` | Total number of tree files in the simulation set |
@@ -57,7 +57,7 @@ All four attributes are attached directly to the `Header/` group.
 ## 3. Tree Groups
 
 Each merger tree is stored in its own HDF5 group named `Tree<X>` where `X` is the
-zero-based tree index (`X` ∈ `[0, NtreesPerFile - 1]`).
+zero-based tree index (`X` in `[0, NtreesPerFile - 1]`).
 
 Within each `Tree<X>/` group, every field is stored as a 1D or 2D dataset. The first
 dimension of every dataset is `N = TreeNHalos[X]` (the number of halos in that tree).
@@ -82,10 +82,10 @@ in `[0, N - 1]`. The sentinel value `-1` indicates "no link".
 | Field | dtype | Shape | Units | Description |
 | --- | --- | --- | --- | --- |
 | `SubhaloLen` | int32 | (N,) | particles | Number of simulation particles bound to the halo |
-| `Group_M_Crit200` | float32 | (N,) | 10¹⁰ M☉/h | Mass within the radius enclosing 200 times the critical density |
+| `Group_M_Crit200` | float32 | (N,) | 10^10 Msun/h | Mass within the radius enclosing 200 times the critical density |
 | `SubhaloVMax` | float32 | (N,) | km/s | Maximum circular velocity: max(sqrt(GM(\<r\>)/r)) |
-| `SubhaloIDMostBound` | int64 | (N,) | — | Particle ID of the most bound particle. Dummy value (`-1`) is acceptable if unavailable in the input format. |
-| `SnapNum` | int32 | (N,) | — | Snapshot index of this halo. Valid range: `[0, N_snapshots - 1]`. |
+| `SubhaloIDMostBound` | int64 | (N,) | - | Particle ID of the most bound particle. Dummy value (`-1`) is acceptable if unavailable in the input format. |
+| `SnapNum` | int32 | (N,) | - | Snapshot index of this halo. Valid range: `[0, N_snapshots - 1]`. |
 
 ### 3.3 Vector Fields (mandatory)
 
@@ -93,9 +93,9 @@ Each vector field is stored as a 2D dataset with shape `(N, 3)`.
 
 | Field | dtype | Shape | Units | Description |
 | --- | --- | --- | --- | --- |
-| `SubhaloPos` | float32 | (N, 3) | **kpc/h** | Comoving position `[X, Y, Z]` of the halo centre. SAGE multiplies by 0.001 on read → Mpc/h internally. |
+| `SubhaloPos` | float32 | (N, 3) | **kpc/h** | Comoving position `[X, Y, Z]` of the halo centre. SAGE multiplies by 0.001 on read -> Mpc/h internally. |
 | `SubhaloVel` | float32 | (N, 3) | km/s | Peculiar velocity `[Vx, Vy, Vz]` of the halo |
-| `SubhaloSpin` | float32 | (N, 3) | **(kpc/h)(km/s)** | Specific angular momentum vector `[Jx, Jy, Jz]`. Angular momentum per unit mass, **not** the dimensionless spin parameter λ. SAGE multiplies by 0.001 on read → (Mpc/h)(km/s) internally. |
+| `SubhaloSpin` | float32 | (N, 3) | **(kpc/h)(km/s)** | Specific angular momentum vector `[Jx, Jy, Jz]`. Angular momentum per unit mass, **not** the dimensionless spin parameter lambda. SAGE multiplies by 0.001 on read -> (Mpc/h)(km/s) internally. |
 
 ### 3.4 Optional Fields
 
@@ -105,10 +105,10 @@ Use the sentinel value noted below when the field is unavailable in the input fo
 
 | Field | dtype | Shape | Units | Sentinel | Description |
 | --- | --- | --- | --- | --- | --- |
-| `Group_M_Mean200` | float32 | (N,) | 10¹⁰ M☉/h | `0.0` | Mass within the radius enclosing 200 times the mean density |
-| `Group_M_TopHat200` | float32 | (N,) | 10¹⁰ M☉/h | `0.0` | Mass within the tophat overdensity radius |
+| `Group_M_Mean200` | float32 | (N,) | 10^10 Msun/h | `0.0` | Mass within the radius enclosing 200 times the mean density |
+| `Group_M_TopHat200` | float32 | (N,) | 10^10 Msun/h | `0.0` | Mass within the tophat overdensity radius |
 | `SubhaloVelDisp` | float32 | (N,) | km/s | `0.0` | 1D velocity dispersion of the halo |
-| `FileNr` | int32 | (N,) | — | `-1` | Index of the source file this halo originated from (multi-file inputs) |
+| `FileNr` | int32 | (N,) | - | `-1` | Index of the source file this halo originated from (multi-file inputs) |
 
 ---
 
@@ -194,14 +194,14 @@ and walks through all satellites via `NextHaloInFOFGroup`, ending with `-1`.
 
 | Quantity | On-disk unit | SAGE internal unit after read |
 | --- | --- | --- |
-| Masses | 10¹⁰ M☉/h | 10¹⁰ M☉/h |
-| Positions (`SubhaloPos`) | **kpc/h** | Mpc/h (× 0.001 applied by reader) |
+| Masses | 10^10 Msun/h | 10^10 Msun/h |
+| Positions (`SubhaloPos`) | **kpc/h** | Mpc/h (x 0.001 applied by reader) |
 | Velocities | km/s (physical peculiar) | km/s |
-| Specific angular momentum (`SubhaloSpin`) | **(kpc/h)(km/s)** | (Mpc/h)(km/s) (× 0.001 applied by reader) |
+| Specific angular momentum (`SubhaloSpin`) | **(kpc/h)(km/s)** | (Mpc/h)(km/s) (x 0.001 applied by reader) |
 | Particle IDs | unitless integer | unitless integer |
 | Snapshot indices | unitless integer, zero-based | unitless integer, zero-based |
 
-> **Important**: `SubhaloPos` and `SubhaloSpin` must be stored in **kpc/h** and **(kpc/h)(km/s)** respectively. `read_tree_lhalo_hdf5.c` (`convert_units_for_forest`) unconditionally multiplies both fields by `0.001` after reading. Any driver producing lhalo_hdf5 output must pre-scale these two fields by × 1000 before writing.
+> **Important**: `SubhaloPos` and `SubhaloSpin` must be stored in **kpc/h** and **(kpc/h)(km/s)** respectively. `read_tree_lhalo_hdf5.c` (`convert_units_for_forest`) unconditionally multiplies both fields by `0.001` after reading. Any driver producing lhalo_hdf5 output must pre-scale these two fields by x 1000 before writing.
 
 ---
 
@@ -213,7 +213,7 @@ and walks through all satellites via `NextHaloInFOFGroup`, ending with `-1`.
    All `float32` fields must be stored as HDF5 `H5T_NATIVE_FLOAT`. `MostBoundID`
    must be stored as HDF5 `H5T_NATIVE_INT64`.
 3. Vector fields (`Pos`, `SubhaloVel`, `SubhaloSpin`) must be stored in row-major
-   order with shape `(N, 3)` — i.e., the three components of halo `i` are at
+   order with shape `(N, 3)` - i.e., the three components of halo `i` are at
    positions `[i, 0]`, `[i, 1]`, `[i, 2]`.
 4. Optional fields use their specified sentinel values when the input format does not
    provide the corresponding data.

@@ -1,7 +1,7 @@
 ---
 name: syntactic-validation
 description: Runs the six structural checks on a converted SAGE LHaloTree HDF5
-             file. Use after any conversion run — test or full — to verify the
+             file. Use after any conversion run - test or full - to verify the
              output file is structurally correct before proceeding.
 ---
 
@@ -34,8 +34,8 @@ The binary script implements five checks: `file_readable`, `header_consistency`,
 ## Path Convention
 
 Two path prefixes are used in this skill:
-- **`.ai/skills/syntactic-validation/references/<file>`** — files in this skill's own `references/` subfolder.
-- **`reference/<file>` (project root)** — files in the project-root `reference/` directory (e.g. `reference/sage_lhalotree_hdf5_schema.md`).
+- **`.ai/skills/syntactic-validation/references/<file>`** - files in this skill's own `references/` subfolder.
+- **`reference/<file>` (project root)** - files in the project-root `reference/` directory (e.g. `reference/sage_lhalotree_hdf5_schema.md`).
 
 Run the deterministic script. It implements **all six checks**, including
 Check 1 (file integrity, verified by opening the file with h5py). Do not

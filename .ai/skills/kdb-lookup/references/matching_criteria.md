@@ -5,9 +5,9 @@
 A KDB entry is a **full match** if and only if all three of the following agree with
 the identified input format:
 
-1. `halo_finder` — must match the detected halo finder exactly (case-insensitive).
-2. `tree_tool` — must match the detected merger tree tool exactly (case-insensitive).
-3. `file_format` — must match the detected file format exactly (case-insensitive).
+1. `halo_finder` - must match the detected halo finder exactly (case-insensitive).
+2. `tree_tool` - must match the detected merger tree tool exactly (case-insensitive).
+3. `file_format` - must match the detected file format exactly (case-insensitive).
 
 A partial match (two of three) is **never** accepted silently. It must be flagged to
 the user with a per-field breakdown.

@@ -387,35 +387,35 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 
 ```text
 .
-├── .ai/skills/              # Skill definitions (kdb-lookup, driver-authoring, validation, ...)
-├── AGENTS.md                # Master agent orchestration document
-├── assets/                  # Agent workflow working area for Stages 1-3
-├── audits/                  # Archived audit files from completed sessions
-├── runner/
-│   ├── batch_runner.py      # Direct conversion batch runner (reads TOML config)
-│   └── conversion_config.toml  # Template: declare one or more conversion jobs
-├── container/               # Container definitions (Docker and Apptainer)
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   ├── apptainer.def
-│   └── apptainer.env.sh
-├── conversion-engine/
-│   ├── main_driver.py       # Single-job direct conversion entry point
-│   ├── errors.py            # Shared exception types (ConversionError)
-│   ├── drivers/             # Format-specific conversion modules
-│   ├── utils/               # HDF5/binary writers, SplitWriter, shared schema
-│   └── validation/          # Syntactic, functional, and semantic validation
-├── conversation-examples/   # Few-shot examples for the agent workflow KDB
-├── format-database/         # KDB: JSON schema mappings per input format
-├── input/                   # Source merger trees, organised as input/<dataset_name>/
-├── output/                  # Stage 3 writes converted files here
-├── reference/               # Static schema and style references
-├── scripts/                 # Developer helper scripts (setup-dev.sh)
-├── tests/                   # Unit tests (pytest); pure, no input datasets needed
-├── .githooks/               # Git hooks (commit-msg: reject non-ASCII and Co-authored-by)
-├── .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
-├── Makefile                 # Shortcuts: make lint / fmt / typecheck / test / check / convert
-└── pyproject.toml           # Ruff + basedpyright + pytest configuration; sage-convert entry point; Python deps
+|-- .ai/skills/              # Skill definitions (kdb-lookup, driver-authoring, validation, ...)
+|-- AGENTS.md                # Master agent orchestration document
+|-- assets/                  # Agent workflow working area for Stages 1-3
+|-- audits/                  # Archived audit files from completed sessions
+|-- runner/
+|   |-- batch_runner.py      # Direct conversion batch runner (reads TOML config)
+|   `-- conversion_config.toml  # Template: declare one or more conversion jobs
+|-- container/               # Container definitions (Docker and Apptainer)
+|   |-- Dockerfile
+|   |-- docker-compose.yml
+|   |-- apptainer.def
+|   `-- apptainer.env.sh
+|-- conversion-engine/
+|   |-- main_driver.py       # Single-job direct conversion entry point
+|   |-- errors.py            # Shared exception types (ConversionError)
+|   |-- drivers/             # Format-specific conversion modules
+|   |-- utils/               # HDF5/binary writers, SplitWriter, shared schema
+|   `-- validation/          # Syntactic, functional, and semantic validation
+|-- conversation-examples/   # Few-shot examples for the agent workflow KDB
+|-- format-database/         # KDB: JSON schema mappings per input format
+|-- input/                   # Source merger trees, organised as input/<dataset_name>/
+|-- output/                  # Stage 3 writes converted files here
+|-- reference/               # Static schema and style references
+|-- scripts/                 # Developer helper scripts (setup-dev.sh)
+|-- tests/                   # Unit tests (pytest); pure, no input datasets needed
+|-- .githooks/               # Git hooks (commit-msg: reject non-ASCII and Co-authored-by)
+|-- .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
+|-- Makefile                 # Shortcuts: make lint / fmt / typecheck / test / check / convert
+`-- pyproject.toml           # Ruff + basedpyright + pytest configuration; sage-convert entry point; Python deps
 ```
 
 ## Unit Conventions

@@ -11,7 +11,7 @@ description: Runs a SAGE dry run on a converted test file to validate functional
 
 ## Path Convention
 
-- **`.ai/skills/functional-validation/references/<file>`** — files in this skill's own `references/` subfolder.
+- **`.ai/skills/functional-validation/references/<file>`** - files in this skill's own `references/` subfolder.
 
 This skill is invoked in Stage 2, after syntactic validation passes.
 
@@ -35,8 +35,8 @@ Do not treat this as a FAIL.
 
 **Running inside Docker or Apptainer:** if `SAGE_BINARY_PATH` is set but the binary
 is not accessible inside the container, functional validation is also reported as
-`NOT RUN` (not `FAIL`). To enable it, bind-mount the SAGE binary directory — see
-`README.md` §SAGE Binary for Functional Validation.
+`NOT RUN` (not `FAIL`). To enable it, bind-mount the SAGE binary directory - see
+`README.md` Section SAGE Binary for Functional Validation.
 
 ### 2. Extract the snapshot scale-factor list
 
@@ -83,7 +83,7 @@ simulation. **Use the correct `TreeType` for the output format:**
 | `lhalo_hdf5` | `TreeType = lhalo_hdf5` | `.hdf5` (set `TreeExtension = .hdf5`) |
 | `lhalo_binary` | `TreeType = lhalo_binary` | none (leave `TreeExtension` unset or empty) |
 
-**Stage 2 output naming (mandatory).** See AGENTS.md §13 for the canonical `<base>` derivation rule and the input directory enforcement guard. The test conversion must have been run with the path below; if the conversion was run with a different path, re-run it with the correct path before proceeding.
+**Stage 2 output naming (mandatory).** See AGENTS.md Section 13 for the canonical `<base>` derivation rule and the input directory enforcement guard. The test conversion must have been run with the path below; if the conversion was run with a different path, re-run it with the correct path before proceeding.
 
 | Output format | CLI flags |
 | ------------- | --------- |
@@ -97,8 +97,8 @@ Set `FirstFile = 0` and `LastFile = 0` for a single-file run.
 **Binary particle_mass requirement.** For `lhalo_binary`, the binary file contains no
 particle mass field. SAGE reads `PartMass` from the parameter file instead. Ensure the
 `PartMass` line in `assets/test_sage_params.par` is set to the correct value in
-units of 10¹⁰ M☉/h (same value used by the driver). The value comes from
-`--sim-config` (key: `particle_mass_msun_per_h`, converted to 10¹⁰ M☉/h) or the
+units of 10^10 Msun/h (same value used by the driver). The value comes from
+`--sim-config` (key: `particle_mass_msun_per_h`, converted to 10^10 Msun/h) or the
 driver's auto-detection/default.
 
 Create the output directory:

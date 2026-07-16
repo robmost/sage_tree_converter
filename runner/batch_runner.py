@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""batch_runner.py — Drive SAGE merger tree conversions from a TOML config file.
+"""batch_runner.py - Drive SAGE merger tree conversions from a TOML config file.
 
 Usage (single job):
     $PYTHON_BIN runner/batch_runner.py runner/conversion_config.toml --job my_dataset
@@ -160,7 +160,7 @@ def batch_run(jobs: list[ConversionJob], workers: int = 1) -> list[JobResult]:
 
     if workers <= 1:
         for job in jobs:
-            log.info("[%s] Starting: %s → %s", job.name, job.input, job.output)
+            log.info("[%s] Starting: %s -> %s", job.name, job.input, job.output)
             result = run_job(job)
             results.append(result)
             if result.status == "success":
@@ -257,7 +257,7 @@ def main() -> int:
     if failed:
         for r in results:
             if r.status == "failed":
-                log.error("  FAIL  %s — %s", r.name, r.error)
+                log.error("  FAIL  %s - %s", r.name, r.error)
 
     return 0 if failed == 0 else 1
 

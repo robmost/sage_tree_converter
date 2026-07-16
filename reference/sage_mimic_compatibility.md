@@ -11,8 +11,8 @@ and documents the differences between their LHaloTree readers.
 
 | Output format | SAGE | MIMIC | Notes |
 | --- | --- | --- | --- |
-| `lhalo_binary` | ✓ TreeType=0 | ✓ TreeType=1 | Same 104-byte struct; enum values differ (see §3) |
-| `lhalo_hdf5` | ✓ TreeType=1 | ✗ | Field names differ (see §2) |
+| `lhalo_binary` | yes TreeType=0 | yes TreeType=1 | Same 104-byte struct; enum values differ (see Section 3) |
+| `lhalo_hdf5` | yes TreeType=1 | no | Field names differ (see Section 2) |
 
 **Recommendation:** Use `lhalo_binary` when the converted trees must run in both SAGE and MIMIC.
 `lhalo_hdf5` is SAGE-only.
@@ -48,7 +48,7 @@ MIMIC-specific HDF5 output mode (not implemented).
 
 The integer values of the `TreeType` enum are **inverted** between SAGE and MIMIC:
 
-| Code | SAGE ([core_allvars.h:19–33](https://github.com/sage-home/sage-model/blob/master/src/core_allvars.h#L19-L33)) | MIMIC ([types.h:36–40](https://github.com/darrencroton/mimic/blob/master/src/include/types.h#L36-L40)) |
+| Code | SAGE ([core_allvars.h:19-33](https://github.com/sage-home/sage-model/blob/master/src/core_allvars.h#L19-L33)) | MIMIC ([types.h:36-40](https://github.com/darrencroton/mimic/blob/master/src/include/types.h#L36-L40)) |
 | --- | --- | --- |
 | 0 | `lhalo_binary` | `genesis_lhalo_hdf5` |
 | 1 | `lhalo_hdf5` | `lhalo_binary` |
@@ -66,10 +66,10 @@ When running SAGE on binary output from the converter:
 
 ## 4. HDF5 Unit Scaling (SAGE convention)
 
-For converter `lhalo_hdf5` output, SAGE applies ×0.001 to `SubhaloPos` and `SubhaloSpin` after reading:
+For converter `lhalo_hdf5` output, SAGE applies x0.001 to `SubhaloPos` and `SubhaloSpin` after reading:
 
-- `SubhaloPos`: stored in kpc/h on disk → converted to Mpc/h internally
-- `SubhaloSpin`: stored in (kpc/h)(km/s) on disk → converted to (Mpc/h)(km/s) internally
+- `SubhaloPos`: stored in kpc/h on disk -> converted to Mpc/h internally
+- `SubhaloSpin`: stored in (kpc/h)(km/s) on disk -> converted to (Mpc/h)(km/s) internally
 
 MIMIC cannot read converter HDF5 output because required dataset names differ (see Section 2), so this scaling convention is only relevant to SAGE for this output mode.
 
@@ -80,8 +80,8 @@ For binary output, no post-read scaling is applied by either SAGE or MIMIC.
 ## 5. Binary Struct Compatibility
 
 The 104-byte halo record struct is identical between SAGE (`struct halo_data`,
-[core_simulation.h:2–31](https://github.com/sage-home/sage-model/blob/master/src/core_simulation.h#L2-L31))
+[core_simulation.h:2-31](https://github.com/sage-home/sage-model/blob/master/src/core_simulation.h#L2-L31))
 and MIMIC (`struct RawHalo`,
-[types.h:8–33](https://github.com/darrencroton/mimic/blob/master/src/include/types.h#L8-L33)).
+[types.h:8-33](https://github.com/darrencroton/mimic/blob/master/src/include/types.h#L8-L33)).
 All 25 fields appear in the same order with the same C types.
 See `reference/sage_lhalotree_binary_schema.md` for the full field table.

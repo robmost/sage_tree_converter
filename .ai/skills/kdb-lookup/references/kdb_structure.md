@@ -35,8 +35,8 @@ NextHaloInFOFGroup), `source_field` is typically `"derived"` and `conversion_exp
 
 ## Known format_id examples
 
-- `ahf_mergertree_ascii` — AHF halo finder, MergerTree tool, ASCII output
-- `rockstar_ctrees_ascii` — Rockstar halo finder, Consistent Trees tool, ASCII output
-- `subfind_lhalotree_hdf5` — FOF+Subfind (Gadget-2), LHaloTree tool, HDF5 output
-- `subfind_gadget4_binary` — FOF+Subfind (Gadget-4), built-in tool, binary output
-- `subfind_gadget4_hdf5` — FOF+Subfind (Gadget-4), built-in tool, HDF5 output
+- `ahf_mergertree_ascii` - AHF halo finder, MergerTree tool, ASCII output
+- `rockstar_ctrees_ascii` - Rockstar halo finder, Consistent Trees tool, ASCII output
+- `subfind_lhalotree_hdf5` - FOF+Subfind (Gadget-2), LHaloTree tool, HDF5 output
+- `subfind_gadget4_binary` - FOF+Subfind (Gadget-4), built-in tool, binary output
+- `subfind_gadget4_hdf5` - FOF+Subfind (Gadget-4), built-in tool, HDF5 output

@@ -7,9 +7,9 @@
   "driver_module": "ahf_mergetree_ascii.py",
   "memory_multiplier": 15.0,
   "references": [
-    "Knollmann & Knebe (2009), ApJS 182, 608 — AHF: AMIGA's Halo Finder https://doi.org/10.1088/0067-0049/182/2/608",
-    "AHF source v1.0-123, analysis/MergerTree/src/libio.c — write_mtree(), libio_halos.c — getHaloID / getSussing2013ID",
-    "AHF source v1.0-123, src/libahf/ahf_halos.c — AngMom normalization (lines 4946-4960), sigV definition (line 4687), halo ID encoding (line 2150)"
+    "Knollmann & Knebe (2009), ApJS 182, 608 - AHF: AMIGA's Halo Finder https://doi.org/10.1088/0067-0049/182/2/608",
+    "AHF source v1.0-123, analysis/MergerTree/src/libio.c - write_mtree(), libio_halos.c - getHaloID / getSussing2013ID",
+    "AHF source v1.0-123, src/libahf/ahf_halos.c - AngMom normalization (lines 4946-4960), sigV definition (line 4687), halo ID encoding (line 2150)"
   ],
   "field_map": {
     "Descendant": {
@@ -18,7 +18,7 @@
       "target_units": "integer index within Tree<X> halo array",
       "scale_factor": null,
       "conversion_expr": "see pointer_logic",
-      "notes": "Inverted from AHF_croco progenitor links. Each AHF_croco file for snap N lists progenitors of snap-N halos in snap N-1; the driver inverts these to build a snap-N-1 → snap-N descendant map. If a progenitor appears in multiple descendant lists (only possible when MTREE_BOTH_WAYS is not set), the descendant with the highest shared-particle merit is kept."
+      "notes": "Inverted from AHF_croco progenitor links. Each AHF_croco file for snap N lists progenitors of snap-N halos in snap N-1; the driver inverts these to build a snap-N-1 -> snap-N descendant map. If a progenitor appears in multiple descendant lists (only possible when MTREE_BOTH_WAYS is not set), the descendant with the highest shared-particle merit is kept."
     },
     "FirstProgenitor": {
       "source_field": "derived",
@@ -66,7 +66,7 @@
       "target_units": "1e10 Msun/h",
       "scale_factor": 1e-10,
       "conversion_expr": "Mhalo * 1e-10",
-      "notes": "Column 4 in AHF_halos. AHF defines the virial mass using the overdensity threshold stored in column 36 (ovdens). For this dataset ovdens=200.00 (critical), so Mhalo is M_200c — a direct match for Group_M_Crit200."
+      "notes": "Column 4 in AHF_halos. AHF defines the virial mass using the overdensity threshold stored in column 36 (ovdens). For this dataset ovdens=200.00 (critical), so Mhalo is M_200c - a direct match for Group_M_Crit200."
     },
     "Group_M_Mean200": {
       "source_field": null,
@@ -114,7 +114,7 @@
       "target_units": "km/s",
       "scale_factor": 1,
       "conversion_expr": "Vmax",
-      "notes": "Column 17 in AHF_halos. AHF Vmax = sqrt(V2_max * phi_fac) where V2_max is the peak of GM(<r)/r — this is the correct max circular velocity definition matching the SAGE convention."
+      "notes": "Column 17 in AHF_halos. AHF Vmax = sqrt(V2_max * phi_fac) where V2_max is the peak of GM(<r)/r - this is the correct max circular velocity definition matching the SAGE convention."
     },
     "SubhaloSpin": {
       "source_field": "lambda, Lx, Ly, Lz, Mhalo, Rhalo",
@@ -153,7 +153,7 @@
     "description": "AHF/MergerTree does not produce pre-built LHaloTree pointer arrays. The driver must construct merger trees from scratch by (1) parsing all per-snapshot AHF_halos files and (2) parsing all AHF_croco progenitor-link files. Halo IDs follow the SUSSING2013 encoding: ID = snap_id * 1e16 + mpi_rank * 1e10 + halo_1based_index. Progenitor links in AHF_croco run backwards in time: each file for snapshot N lists, for every snap-N halo, all snap-(N-1) halos that share particles with it, sorted by merit descending. The driver inverts these to obtain descendant links, then identifies connected trees by DFS from snap-N_max roots, assigns flat tree-local indices, and builds all five SAGE pointer fields.",
     "step1_parse_catalogues": "For each snapshot S from snap_min to snap_max, parse the corresponding AHF_halos file. Store per-halo: HaloID, Mhalo, npart, Xc/Yc/Zc, VXc/VYc/VZc, Vmax, sigV, lambda, Lx/Ly/Lz, Rhalo, hostHaloID, SnapNum. Build a global dict halo_props[HaloID] = {...}.",
     "step2_parse_croco": "For each AHF_croco file (snap N, N from snap_min+1 to snap_max): parse every descendant block. Build progenitors[desc_ID] = [(merit1, prog_ID1), (merit2, prog_ID2), ...] sorted by merit descending. Simultaneously build descendants[prog_ID] = desc_ID (keep highest-merit descendant if a prog_ID appears under multiple desc_IDs, which should not occur with MTREE_BOTH_WAYS but is possible otherwise).",
-    "step3_identify_trees": "Starting from all halos at snap_max (z=0) that have no descendant entry in the descendants dict, perform a DFS/BFS backwards through progenitors to collect all temporally connected halos into a single tree. Halos at earlier snapshots with no descendant (orphan halos — e.g. from snap-skipping that was never resolved) are each placed in their own singleton tree. Process trees in order of decreasing Mhalo of the snap_max root.",
+    "step3_identify_trees": "Starting from all halos at snap_max (z=0) that have no descendant entry in the descendants dict, perform a DFS/BFS backwards through progenitors to collect all temporally connected halos into a single tree. Halos at earlier snapshots with no descendant (orphan halos - e.g. from snap-skipping that was never resolved) are each placed in their own singleton tree. Process trees in order of decreasing Mhalo of the snap_max root.",
     "step4_assign_indices": "Within each tree, assign flat integer indices [0, N_tree-1]. The ordering is: all halos sorted first by SnapNum descending (z=0 first, high-z last), then by Mhalo descending within each snapshot. This places the z=0 root at index 0 and ensures temporal consistency.",
     "Descendant": "For each halo H in the tree, look up descendants[H.HaloID]. If found, map the result HaloID to its flat index via haloID_to_flat_index[desc_HaloID]. If not found (H is a root), set Descendant[H] = -1.",
     "FirstProgenitor": "For each halo H: if H.HaloID is in progenitors and the list is non-empty, FirstProgenitor[H] = haloID_to_flat_index[progenitors[H.HaloID][0][1]] (the highest-merit progenitor). Otherwise -1.",
@@ -183,7 +183,7 @@
     "AHF snap-skipping: when MergerTree cannot find a progenitor at the immediately preceding snapshot, it searches further back in time. Progenitor-descendant links may therefore span non-adjacent snapshots. Such halos will have SnapNum values that differ by more than 1 across a Descendant-FirstProgenitor link, which is unusual but valid for SAGE (SAGE uses SnapNum to order halos temporally, not to enforce strict adjacency).",
     "AHF hostHaloID encodes a multi-level subhalo hierarchy (sub-sub-halos etc.). The driver flattens this to a two-level structure for SAGE (top-level central + all satellites at any depth). Sub-subhalo hierarchical structure is not preserved in SAGE's FOF group chain.",
     "The SUSSING2013 halo ID encoding assumes the AHF run used WITH_MPI: ID = snap_id * 1e16 + mpi_rank * 1e10 + halo_1based_index. For a single-process run (no MPI), the encoding is snap_id * 1e12 + halo_1based_index (from specific.c line 2150). The data files for this dataset use the MPI encoding (snap IDs visible as the leading two digits of 18-digit IDs), which the driver auto-detects by checking whether floor(ID / 1e16) yields a plausible snapshot number.",
-    "The AHF_croco files list progenitors ordered by merit at the time of writing, which is SharedPart / min(HaloPart_desc, HaloPart_prog) or a variant — the exact merit formula depends on the MergerTree compile-time flags. The driver treats the order as merit-descending and assigns FirstProgenitor to the first-listed progenitor, consistent with the AHF convention.",
+    "The AHF_croco files list progenitors ordered by merit at the time of writing, which is SharedPart / min(HaloPart_desc, HaloPart_prog) or a variant - the exact merit formula depends on the MergerTree compile-time flags. The driver treats the order as merit-descending and assigns FirstProgenitor to the first-listed progenitor, consistent with the AHF convention.",
     "Flyby handling is OPT-IN via sim_params['merge_flybys'] (default off), same as the Consistent-Trees driver. An AHF union-find tree can contain more than one independent z=0 central. Enabling merge_flybys folds the non-dominant z=0 centrals into the most massive one (reproducing SAGE's fix_flybys); default OFF keeps them as independent Type-0 centrals. This is a modelling choice that changes the z=0 population, not a bug fix."
   ]
 }

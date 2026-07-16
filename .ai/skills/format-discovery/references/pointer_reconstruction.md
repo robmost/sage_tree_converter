@@ -15,7 +15,7 @@ The input stores links as global halo IDs (e.g. AHF MergerTree format, where
 ### Hint Case A: Algorithm (O(N))
 
 ```python
-# Build id → flat_index map for all halos in this tree
+# Build id -> flat_index map for all halos in this tree
 id_to_idx = {halo_id[i]: i for i in range(N)}
 
 # Descendant
@@ -57,34 +57,34 @@ Key columns: `id` (1), `desc_id` (3), `upid` (6), `Depth_first_ID` (28),
 
 ```python
 # Build lookup maps (O(N))
-id_to_idx  = {int(ids[i]):  i for i in range(N)}  # global halo ID → flat index
-dfi_to_idx = {int(dfis[i]): i for i in range(N)}  # DFI → flat index
+id_to_idx  = {int(ids[i]):  i for i in range(N)}  # global halo ID -> flat index
+dfi_to_idx = {int(dfis[i]): i for i in range(N)}  # DFI -> flat index
 
-# Descendant — desc_id is the global ID of the descendant halo
+# Descendant - desc_id is the global ID of the descendant halo
 for i in range(N):
     desc[i] = id_to_idx.get(int(desc_ids[i]), -1)  # -1 when desc_id == -1
 
-# FirstProgenitor — depth-first ordering: halos[i+1] is the first progenitor
+# FirstProgenitor - depth-first ordering: halos[i+1] is the first progenitor
 # of halos[i] iff halos[i+1].desc_id == halos[i].id. No map needed.
 for i in range(N - 1):
     if int(desc_ids[i + 1]) == int(ids[i]):
         FirstProgenitor[i] = i + 1
 
-# NextProgenitor — Next_coprogenitor_depthfirst_ID (col 32) is the globally-
+# NextProgenitor - Next_coprogenitor_depthfirst_ID (col 32) is the globally-
 # sequential DFI of the next sibling progenitor. DFIs are unique across the
 # whole file; all co-progenitors of a halo are within the same #tree block.
 for i in range(N):
     nc_dfi = int(next_coprog_dfis[i])
     NextProgenitor[i] = dfi_to_idx.get(nc_dfi, -1)  # -1 when nc_dfi == -1
 
-# FirstHaloInFOFGroup — upid is the global ID of the ultimate host central.
+# FirstHaloInFOFGroup - upid is the global ID of the ultimate host central.
 # Self-pointer when upid == -1 (halo is its own central).
 # Unresolved upid (cross-forest or cross-file reference) also falls back to self.
 for i in range(N):
     uid = int(upids[i])
     FirstHaloInFOFGroup[i] = i if uid == -1 else id_to_idx.get(uid, i)
 
-# NextHaloInFOFGroup — group by (snap, central_idx); sort by mvir desc; central heads.
+# NextHaloInFOFGroup - group by (snap, central_idx); sort by mvir desc; central heads.
 # The true central must lead the chain (not the heaviest member): SAGE iterates
 # satellites from Halo[central].NextHaloInFOFGroup and would skip a stripped central's
 # group otherwise. Use the shared helper utils.fof_topology.central_first.
@@ -102,33 +102,33 @@ for (snapnum, central), members in groups.items():
         NextHaloInFOFGroup[members[j]] = members[j + 1]
 ```
 
-> **Central-first is a universal LHaloTree invariant** — it applies to every driver that
+> **Central-first is a universal LHaloTree invariant** - it applies to every driver that
 > builds FOF chains, with the central identified per format (Consistent-Trees `upid==-1`,
 > AHF union-find host, Gadget-4 min `SubhaloNr`). Collapsing a forest's multiple z=0
 > centrals into one (`fix_flybys`) is a separate, **opt-in** modelling choice
 > (`sim_params["merge_flybys"]`, default off) via `utils.fof_topology.merge_flybys`.
 
-### Forest-level processing — required for correct FOF group links
+### Forest-level processing - required for correct FOF group links
 
 `upid` frequently references halos in **other** `#tree` blocks within the same
 Consistent Trees forest. Processing each block independently causes those lookups
-to fail, silently treating every affected satellite as its own central — this
-produces a systematic deficit of massive galaxies after SAGE (~4× in practice).
+to fail, silently treating every affected satellite as its own central - this
+produces a systematic deficit of massive galaxies after SAGE (~4x in practice).
 
 **Fix:** when `forests.list` and `locations.dat` are present, combine all `#tree`
 blocks of a complete forest into one array before calling reconstruction.
 `id_to_idx` then covers the full forest, resolving all cross-tree `upid` references.
 
 ```python
-# forests.list: TreeRootID → ForestID (iterate in forests.list appearance order)
-# locations.dat: TreeRootID → (filepath, byte_offset)  ← O(1) random access
+# forests.list: TreeRootID -> ForestID (iterate in forests.list appearance order)
+# locations.dat: TreeRootID -> (filepath, byte_offset)  <- O(1) random access
 
 combined = np.vstack([
     read_tree_block(file_handle, offset)
     for tree_id in forest_to_trees[forest_id]
     for file_handle, offset in [tree_to_handle_and_offset[tree_id]]
 ])
-# DFI sort is unconditional — applies even to single-tree forests, because
+# DFI sort is unconditional - applies even to single-tree forests, because
 # file order is not guaranteed to be strict DFI order and the FirstProgenitor
 # i+1 rule requires it.
 combined = combined[np.argsort(combined[:, _C_DFI])]
@@ -138,7 +138,7 @@ pointers = reconstruct_pointers(combined)  # cross-tree upid now resolved
 A forest is *complete* when every tree listed in `forests.list` for it has an entry
 in `locations.dat`. When a forest is incomplete (e.g. a single-shard Bolshoi file
 where most forests span multiple files), the driver concatenates and DFI-sorts
-whatever blocks are available — there is no per-tree fallback path.
+whatever blocks are available - there is no per-tree fallback path.
 
 ---
 

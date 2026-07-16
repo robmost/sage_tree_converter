@@ -7,8 +7,8 @@
   "driver_module": "subfind_lhalotree_binary.py",
   "memory_multiplier": 3.0,
   "references": [
-    "Springel et al. 2005, Nature 435, 629 — Millennium Simulation (https://doi.org/10.1038/nature03597)",
-    "Croton et al. 2016, ApJS 222, 22 — SAGE model (https://doi.org/10.3847/0067-0049/222/2/22)",
+    "Springel et al. 2005, Nature 435, 629 - Millennium Simulation (https://doi.org/10.1038/nature03597)",
+    "Croton et al. 2016, ApJS 222, 22 - SAGE model (https://doi.org/10.3847/0067-0049/222/2/22)",
     "https://github.com/sage-home/sage-model"
   ],
   "field_map": {
@@ -66,7 +66,7 @@
       "target_units": "1e10 Msun/h",
       "scale_factor": 1,
       "conversion_expr": null,
-      "notes": "Mass within r_200 (critical). Rename only — units already correct."
+      "notes": "Mass within r_200 (critical). Rename only - units already correct."
     },
     "Group_M_Mean200": {
       "source_field": "M_Mean200",
@@ -74,7 +74,7 @@
       "target_units": "1e10 Msun/h",
       "scale_factor": 1,
       "conversion_expr": null,
-      "notes": "Mass within r_200 (mean). Rename only — units already correct."
+      "notes": "Mass within r_200 (mean). Rename only - units already correct."
     },
     "Group_M_TopHat200": {
       "source_field": "M_TopHat",
@@ -82,7 +82,7 @@
       "target_units": "1e10 Msun/h",
       "scale_factor": 1,
       "conversion_expr": null,
-      "notes": "Top-hat virial mass. Rename only — units already correct."
+      "notes": "Top-hat virial mass. Rename only - units already correct."
     },
     "SubhaloPos": {
       "source_field": "Pos",
@@ -146,7 +146,7 @@
       "target_units": "dimensionless",
       "scale_factor": null,
       "conversion_expr": null,
-      "notes": "Source file number (0–7 for mini-Millennium). Carried through unchanged."
+      "notes": "Source file number (0-7 for mini-Millennium). Carried through unchanged."
     }
   },
   "dropped_fields": {

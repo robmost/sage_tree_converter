@@ -20,7 +20,7 @@ For pointer reconstruction, see `pointer_reconstruction.md`.
 
 ## Halo Property Fields
 
-### `SubhaloLen` — particle count
+### `SubhaloLen` - particle count
 
 > **Canonical name:** `SubhaloLen` (HDF5 dataset name and driver dict key). The binary writer maps this to the on-disk field name `Len`.
 
@@ -33,25 +33,25 @@ For pointer reconstruction, see `pointer_reconstruction.md`.
 
 ---
 
-### `Group_M_Crit200` — halo mass within R_200_crit
+### `Group_M_Crit200` - halo mass within R_200_crit
 
 Always verify: is the mass defined using **critical** overdensity (not mean)?
 
 | Halo finder | Typical source field | Input units | Conversion expression |
 | ----------- | -------------------- | ----------- | --------------------- |
-| AHF | `Mvir` | M☉/h | `source * 1e-10` |
-| Rockstar | `Mvir` | M☉/h | `source * 1e-10` |
-| FOF+Subfind (Gadget-2) | `Group_M_Crit200` | 10¹⁰ M☉/h | Direct copy |
-| FOF+Subfind (Gadget-4) | `Group_M_Crit200` or `Group_M_Mean200` | 10¹⁰ M☉/h | Verify which overdensity. |
+| AHF | `Mvir` | Msun/h | `source * 1e-10` |
+| Rockstar | `Mvir` | Msun/h | `source * 1e-10` |
+| FOF+Subfind (Gadget-2) | `Group_M_Crit200` | 10^10 Msun/h | Direct copy |
+| FOF+Subfind (Gadget-4) | `Group_M_Crit200` or `Group_M_Mean200` | 10^10 Msun/h | Verify which overdensity. |
 
 AHF `Mvir` uses a virial overdensity criterion; confirm it matches M_crit200 for the
 cosmology used. If it does not, record this in `known_caveats`.
 
 ---
 
-### `SubhaloVMax` — maximum circular velocity
+### `SubhaloVMax` - maximum circular velocity
 
-**Must be** max(√(GM(\<r\>)/r)), not the velocity modulus.
+**Must be** max(sqrt(GM(\<r\>)/r)), not the velocity modulus.
 
 | Halo finder | Typical source field | Input units | Notes |
 | ----------- | -------------------- | ----------- | ----- |
@@ -61,7 +61,7 @@ cosmology used. If it does not, record this in `known_caveats`.
 
 ---
 
-### `SubhaloIDMostBound` — most-bound particle ID
+### `SubhaloIDMostBound` - most-bound particle ID
 
 > **Canonical name:** `SubhaloIDMostBound` (HDF5 dataset name and driver dict key). The binary writer maps this to the on-disk field name `MostBoundID`.
 
@@ -73,19 +73,19 @@ cosmology used. If it does not, record this in `known_caveats`.
 
 ---
 
-### `SnapNum` — snapshot index
+### `SnapNum` - snapshot index
 
 | Halo finder | Typical source field | Notes |
 | ----------- | -------------------- | ----- |
 | AHF | Derived from filename or file structure | Verify zero-based |
-| Rockstar (Consistent Trees) | `scale` column → mapped to snapshot index | Use the scale factor to snapshot index table from the simulation |
+| Rockstar (Consistent Trees) | `scale` column -> mapped to snapshot index | Use the scale factor to snapshot index table from the simulation |
 | FOF+Subfind | `SnapNum` attribute or derived from file index | Verify zero-based |
 
 ---
 
 ## Vector Fields
 
-### `SubhaloPos` — comoving position [X, Y, Z] — **on-disk unit: kpc/h**
+### `SubhaloPos` - comoving position [X, Y, Z] - **on-disk unit: kpc/h**
 
 > SAGE's `read_tree_lhalo_hdf5.c` multiplies by 0.001 after reading. Write in **kpc/h**; SAGE recovers Mpc/h internally.
 
@@ -93,36 +93,36 @@ cosmology used. If it does not, record this in `known_caveats`.
 | ----------- | --------------------- | ----------- | ------------------ |
 | AHF | `Xc`, `Yc`, `Zc` | kpc/h | Direct copy (`source * 1`) |
 | Rockstar | `x`, `y`, `z` | Mpc/h | `source * 1e3` |
-| FOF+Subfind (binary LHaloTree) | `Pos` (shape N×3) | Mpc/h | `source * 1e3` |
-| FOF+Subfind (Gadget HDF5) | `SubhaloPos` (shape N×3) | kpc/h | Direct copy (`source * 1`) |
+| FOF+Subfind (binary LHaloTree) | `Pos` (shape Nx3) | Mpc/h | `source * 1e3` |
+| FOF+Subfind (Gadget HDF5) | `SubhaloPos` (shape Nx3) | kpc/h | Direct copy (`source * 1`) |
 
 ---
 
-### `SubhaloVel` — peculiar velocity [Vx, Vy, Vz] in km/s
+### `SubhaloVel` - peculiar velocity [Vx, Vy, Vz] in km/s
 
 | Halo finder | Typical source fields | Input units | Conversion |
 | ----------- | --------------------- | ----------- | ---------- |
 | AHF | `VXc`, `VYc`, `VZc` | km/s | Direct copy |
 | Rockstar | `vx`, `vy`, `vz` | km/s | Direct copy |
-| FOF+Subfind | `SubhaloVel` (shape N×3) | km/s | Direct copy |
+| FOF+Subfind | `SubhaloVel` (shape Nx3) | km/s | Direct copy |
 
 ---
 
-### `SubhaloSpin` — specific angular momentum [Jx, Jy, Jz] — **on-disk unit: (kpc/h)(km/s)**
+### `SubhaloSpin` - specific angular momentum [Jx, Jy, Jz] - **on-disk unit: (kpc/h)(km/s)**
 
-**This is specific angular momentum (J/M), not the dimensionless spin parameter λ.**
+**This is specific angular momentum (J/M), not the dimensionless spin parameter lambda.**
 
 > SAGE's `read_tree_lhalo_hdf5.c` multiplies by 0.001 after reading. Write in **(kpc/h)(km/s)**; SAGE recovers (Mpc/h)(km/s) internally.
 
 | Halo finder | Typical source fields | Input units | On-disk conversion |
 | ----------- | --------------------- | ----------- | ------------------ |
 | AHF | `Lx`, `Ly`, `Lz` | (kpc/h)(km/s) | Direct copy (`source * 1`) |
-| Rockstar | `Jx`, `Jy`, `Jz` | M☉/h × Mpc/h × km/s | `source / Mvir * 1e3` (divide by mass → (Mpc/h)(km/s), then × 1000) |
-| FOF+Subfind (binary LHaloTree) | `Spin` (shape N×3) | (Mpc/h)(km/s) | `source * 1e3` |
-| FOF+Subfind (Gadget HDF5) | `SubhaloSpin` (shape N×3) | (kpc/h)(km/s) | Direct copy (`source * 1`) |
+| Rockstar | `Jx`, `Jy`, `Jz` | Msun/h x Mpc/h x km/s | `source / Mvir * 1e3` (divide by mass -> (Mpc/h)(km/s), then x 1000) |
+| FOF+Subfind (binary LHaloTree) | `Spin` (shape Nx3) | (Mpc/h)(km/s) | `source * 1e3` |
+| FOF+Subfind (Gadget HDF5) | `SubhaloSpin` (shape Nx3) | (kpc/h)(km/s) | Direct copy (`source * 1`) |
 
 Note: Rockstar outputs total angular momentum, not specific. Divide by `Mvir` in
-M☉/h to get specific angular momentum in (Mpc/h)(km/s), then multiply by 1000 for
+Msun/h to get specific angular momentum in (Mpc/h)(km/s), then multiply by 1000 for
 the required on-disk (kpc/h)(km/s) storage. Verify units carefully.
 
 ---
