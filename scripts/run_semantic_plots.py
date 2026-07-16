@@ -28,7 +28,9 @@ from validation.semantic import generate_all_plots  # noqa: E402
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(
+        description="CLI wrapper for the seven semantic validation plots."
+    )
     parser.add_argument("--file", required=True, help="Converted SAGE LHaloTree output file")
     parser.add_argument(
         "--output-format",

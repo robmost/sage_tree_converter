@@ -67,7 +67,9 @@ def cmd_hdf5_output(args: argparse.Namespace) -> None:
 
     scales = [float(line) for line in Path(args.scales_file).read_text().split() if line.strip()]
     with h5py.File(args.output_file, "r") as f:
-        snaps = sorted(set(f["Tree0"]["SnapNum"][:].tolist()))
+        tree0: h5py.Group = f["Tree0"]  # type: ignore[assignment]
+        snap_ds: h5py.Dataset = tree0["SnapNum"]  # type: ignore[assignment]
+        snaps = sorted(set(snap_ds[:].tolist()))
     missing = [s for s in snaps if s >= len(scales)]
     if missing:
         sys.exit(
@@ -78,7 +80,9 @@ def cmd_hdf5_output(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(
+        description="Build the FileWithSnapList file for a SAGE dry run."
+    )
     sub = parser.add_subparsers(dest="mode", required=True)
 
     p_ascii = sub.add_parser("ascii", help="scan an ASCII catalogue for scale factors")

@@ -114,7 +114,9 @@ def _count_gadget4_hdf5(input_path: Path) -> tuple[int, int, bool]:
             _fail(f"no HDF5 files found under {input_path}")
         input_path = candidates[0]
     with h5py.File(input_path, "r") as f:
-        lengths = f["TreeTable"]["Length"][:]
+        tree_table: h5py.Group = f["TreeTable"]  # type: ignore[assignment]
+        length_ds: h5py.Dataset = tree_table["Length"]  # type: ignore[assignment]
+        lengths = length_ds[:]
     return int(lengths.size), int(lengths.sum()), True
 
 
@@ -169,7 +171,7 @@ def _gb(n_bytes: float) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description="Pre-G1 output-size and memory estimates.")
     parser.add_argument("--input", required=True, help="Input file or dataset directory")
     parser.add_argument("--format", required=True, choices=sorted(COUNTERS), dest="format_id")
     args = parser.parse_args()
