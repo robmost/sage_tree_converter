@@ -370,7 +370,7 @@ I'll run a test conversion on ~100 trees and validate the output structurally.
        - exists  -> proceed to step 2
        - missing -> author driver -> proceed to step 2
   2. Test conversion (~100 trees)
-  3. Syntactic validation (6 checks)
+  3. Syntactic validation (6 checks; 5 for binary output)
   4. Functional validation
        - SAGE binary set -> run SAGE dry-run
        - not set         -> skip

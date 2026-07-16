@@ -135,9 +135,10 @@ The following errors have occurred in past sessions and are explicitly forbidden
    `FirstProgenitor`/`NextProgenitor` linked-list pattern.
 6. **Do not** rely on a single global `plt.style.use()` call to cover all figures.
    Each `_plot_*` function must call `plt.style.use("reference/sage_validation.mplstyle")` (project root)
-   at its own start, because matplotlib resets style state between figures in
-   non-interactive (Agg) mode. The style must also be applied before the global call
-   in the main script, but that alone is not sufficient.
+   at its own start. This is defence in depth: it keeps every plot function
+   self-contained and correctly styled even when called in isolation or after
+   other code has changed rcParams. The global call in the main script is still
+   applied first, but is not sufficient on its own.
 7. **Do not** use `roots[0]` to select the root halo for evolution plot traversal.
    Always use the most massive root: `roots[np.argmax(tree["Group_M_Crit200"][roots])]`.
    Using the first root produces flat-zero merger rates for any format that combines
