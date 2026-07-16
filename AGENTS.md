@@ -144,11 +144,11 @@ If anything looks off or you have questions, just reopen this session. You're al
 | Stage | Entry Condition |
 | ----- | --------------- |
 | Stage 1 | Input files are present in `input/` |
-| Stage 2 | G1 passed; `assets/proposed_mapping_<format_id>.json` exists; output format and file count confirmed. Stage 2 always runs with `n_output_files=1`. |
-| Stage 3 | G2 passed; all Stage 2 validations pass. Use the `n_output_files` value confirmed at G1. |
-| Stage 4 | G3 passed; user has approved the semantic validation plots |
+| Stage 2 | G1 recorded in `assets/session_state.json`; `assets/proposed_mapping_<format_id>.json` exists; `output_format` and `n_output_files` set in the state file. Stage 2 always runs with `n_output_files=1`. |
+| Stage 3 | G2 recorded in the state file; all Stage 2 validations pass. Use the `n_output_files` value from the state file. |
+| Stage 4 | G3 recorded in the state file; user has approved the semantic validation plots |
 
-Do not begin a stage until its entry condition is satisfied.
+Do not begin a stage until its entry condition is satisfied. Gate state is checked against `assets/session_state.json` (Section 17), not conversational memory - after a context loss or resumed session, run `$PYTHON_BIN scripts/session_state.py show` to recover where the workflow stands.
 
 ---
 
@@ -422,3 +422,24 @@ Users may supply format details, schema corrections, output format preferences, 
 3. **Acknowledge prior information at the relevant gate.** If the user mentioned an output format or schema corrections before Stage 1, reference that explicitly at G1 (e.g., "You mentioned `hdf5` earlier - confirming that as your choice here."). Do not silently skip the question.
 4. **Handle skip requests gracefully.** If the user asks to skip a stage, briefly explain that the sequential order is required for validation integrity, then proceed normally. Do not repeat the explanation on subsequent turns.
 5. **Driver existence is the only exception.** If the user states that a compatible driver already exists in `conversion-engine/drivers/`, the LLM may verify this without authoring a new one. Syntactic and functional validation must still run.
+
+---
+
+## 17. Session State File
+
+The workflow's durable state lives in `assets/session_state.json`, maintained via `scripts/session_state.py`. It is the source of truth for gate state and G1 choices; conversational memory is not. Update it at these points, immediately:
+
+| When | Command |
+| ---- | ------- |
+| Format identified (Stage 1) | `$PYTHON_BIN scripts/session_state.py init --format-id <format_id>` |
+| G1 reply parsed | `set output_format <hdf5\|binary>`, `set n_output_files <N>`, then `gate G1` |
+| `<base>` derived (start of Stage 2) | `set base <base>` |
+| G2 passed | `gate G2` |
+| G3 passed | `gate G3` |
+| Stage 4 archive step | The state file is moved into the audit directory with the other session artefacts. |
+
+Rules:
+
+- Record a gate **only after** the user's positive reply, never before. The script enforces gate order (G1 -> G2 -> G3) and refuses out-of-order records.
+- If `assets/session_state.json` already exists at session start, a previous session is in progress: run `show`, summarise the recorded state to the user, and ask whether to resume it or start over (`init --force` abandons it).
+- Read `base`, `output_format`, and `n_output_files` from the state file in Stages 3 and 4 rather than re-deriving them.

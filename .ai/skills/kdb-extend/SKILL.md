@@ -152,6 +152,7 @@ mv assets/test_sage_params.par     "$AUDIT_DIR/" 2>/dev/null || true
 mv assets/sage_stdout.log          "$AUDIT_DIR/" 2>/dev/null || true
 mv assets/sage_test_output         "$AUDIT_DIR/" 2>/dev/null || true
 mv assets/semantic_validation      "$AUDIT_DIR/" 2>/dev/null || true
+mv assets/session_state.json       "$AUDIT_DIR/" 2>/dev/null || true
 ```
 
 Move any snapshot list or other support files used during functional validation. These are
