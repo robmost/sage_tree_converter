@@ -23,6 +23,8 @@ The LLM may only write to the directories marked **Write** for the current stage
 
 * Stage 3 (full conversion) writes `output/<base>_STC.0.hdf5` (HDF5) or `output/<base>_STC.0` (binary) here. Stages 1 and 2 must not write to `output/`.
 
+This table is the canonical rule for every CLI. Under Claude Code it is additionally enforced mechanically: a PreToolUse hook (`scripts/check_write_boundary.py`, registered in `.claude/settings.json`) blocks Write/Edit calls outside the stage's writable directories whenever `assets/session_state.json` shows an active session. Other CLIs enforce it at the instruction level only.
+
 ---
 
 ## 2. Skill Directory
