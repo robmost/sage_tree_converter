@@ -1,69 +1,71 @@
 ---
 name: auditor
-description: Independently verifies the semantic validation plots and plotting
-             code against the mandatory checklist. Use after semantic-validation
-             generates the seven plots, before presenting results to the user.
-             Operates independently - does not rely on the main agent's assessment.
+description: Runs the independent audit of the semantic validation plots by
+             spawning a fresh headless CLI subprocess. Use after
+             semantic-validation generates the seven plots, before presenting
+             results to the user at G3.
 ---
 
 # Auditor
 
 ## Role
 
-The auditor is an independent verification role. When operating as the auditor:
+The auditor is an **independent process**, not a role the main agent plays.
+Independence comes from process isolation: a fresh headless CLI invocation
+that has never seen this session's context, receives only file paths, and
+inspects the rendered PNG plots directly. Its mandate, checklist (10 items),
+and report format live in one canonical file:
 
-- Read the saved plot files in `assets/semantic_validation/` directly.
-- Read the plotting code that generated them directly.
-- **Do not** accept any summary or assessment from the main agent about what the
-  plots contain or whether the code is correct.
-- Operate as if you have not seen the main agent's work; verify only what you can
-  observe directly in the files.
+- **`.ai/agents/auditor.md`** - the complete auditor prompt (CLI-agnostic).
+
+The code-structure checks that older versions of this checklist performed
+(style application, save_figure usage, field selection, O(N) walking) are now
+deterministic unit tests in `tests/test_semantic_plots.py`. They run in CI and
+via `make test`; do not re-perform them by hand during a session.
 
 ## Instructions
 
-## Path Convention
+### 1. Spawn the auditor subprocess
 
-- **`.ai/skills/auditor/references/<file>`** - files in this skill's own `references/` subfolder.
-
-### 1. Load and run the checklist
-
-Read `.ai/skills/auditor/references/auditor_checklist.md` in full. For each of the 10 items, produce
-an explicit **PASS** or **FAIL** judgment. No item may be left blank or marked as
-"N/A" unless the checklist itself permits it.
-
-### 2. Write the verdict to `assets/auditor_report.md`
-
-The report must contain:
-1. A header: `# Auditor Report` and the date/time of the audit.
-2. A checklist table with one row per item: item number, description, PASS/FAIL,
-   and a one-line reason for any FAIL.
-3. A one-line overall verdict at the bottom:
-   - `Overall: PASS - all 10 items passed.`
-   - `Overall: FAIL - N items failed: <list of item numbers>.`
-
-Format:
-
-```markdown
-# Auditor Report
-
-Generated: <ISO 8601 datetime>
-
-| # | Item | Result | Note |
-| - | ---- | ------ | ---- |
-| 1 | mplstyle applied before first figure | PASS | |
-| 2 | ... | FAIL | plt.savefig() called at line 47 of semantic_plots.py |
-...
-
-Overall: FAIL - 1 item failed: #2.
+```bash
+bash scripts/run_auditor.sh assets/semantic_validation assets/auditor_report.md
 ```
 
-### 3. On any FAIL
+The wrapper:
+1. Verifies all seven plots exist as non-empty PDF **and** PNG files
+   (exit 1 and no LLM spawned otherwise - fix plot generation first).
+2. Picks the CLI from `AUDITOR_CLI` in `.env`, else the first of
+   `claude` / `codex` / `agy` on PATH.
+3. Runs it headless and read-only with the canonical prompt plus the PNG
+   paths, capturing stdout to `assets/auditor_report.md`.
+4. Treats an empty report as a hard failure (exit 2).
 
-- Specify the **exact file and line number** that caused the failure.
-- Do not issue an overall PASS until every item in the checklist passes.
-- Return the report path (`assets/auditor_report.md`) to the main agent. The main
-  agent reads this file and acts on any failures before presenting results to the user.
+Do not pass the subprocess any summary of the session, the conversion, or the
+plots. The prompt file and the PNG paths are its complete input.
 
-### 4. Re-audit after fixes
+### 2. Read the report and act on failures
 
-If the main agent fixes a failure and asks the auditor to re-check, the auditor must re-read the affected files directly and re-run only the failed items. A full re-audit of all 10 items is required if more than 3 items failed in the previous round.
+Read `assets/auditor_report.md`. For every FAIL item:
+
+1. Diagnose the cause in the conversion (driver bug, unit error, pointer
+   reconstruction error) - diagnosis and fixes are the main agent's job; the
+   auditor never proposes them.
+2. Fix, re-run the full conversion if needed, regenerate all seven plots.
+3. Re-run the audit from step 1. **Every re-audit runs all 10 items** - there
+   is no partial re-audit.
+
+Do not present results to the user until the report's overall verdict is PASS,
+or two full fix cycles have failed (then follow the error handling policy in
+AGENTS.md Section 6 and ask the user for guidance).
+
+### 3. Fallback: in-context audit (last resort only)
+
+If `run_auditor.sh` exits 2 because no CLI can be spawned (no binary on PATH,
+no credentials inside the container, no network):
+
+1. Read `.ai/agents/auditor.md` and apply its checklist yourself by reading
+   the PNG files directly, judging each item from the images alone.
+2. Write the same report format to `assets/auditor_report.md`, with the mode
+   line set to `Audit mode: in-context fallback`.
+3. The G3 prompt must state that the fallback mode ran (see AGENTS.md
+   Section 3). Never describe a fallback audit as independent.

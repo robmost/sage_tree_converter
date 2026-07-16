@@ -106,10 +106,16 @@ Reply YES to proceed, or provide instructions.
 
 ### G3 - Semantic Validation Approval (end of Stage 3)
 
+Fill `<mode>` with the audit mode that actually ran: `an independent headless
+<cli> subprocess` (from `scripts/run_auditor.sh`) or `the in-context fallback
+(no independent process could be spawned)`. Never report a fallback audit as
+independent.
+
 ```text
-Semantic validation plots are complete. The auditor sub-agent has reviewed them
+Semantic validation plots are complete. The auditor - <mode> - reviewed them
 and found no issues (or: found the following issues, now resolved: <list>).
 
+Auditor report: assets/auditor_report.md
 Plots are saved to: assets/semantic_validation/
 
 Do you approve the conversion?
@@ -155,6 +161,7 @@ All keys are read from `.env` at the project root. See `.env.example` for the fu
 | `OUTPUT_DIR` | Override for the output data directory (default: `./output`) |
 | `SAGE_BINARY_PATH` | Absolute path to a compiled SAGE binary. If set, Stage 2 runs functional validation. If absent, functional validation is skipped. **Container users:** the path must also be bind-mounted (Apptainer: automatic via `apptainer.env.sh`; Docker: requires `SAGE_BINARY_DIR` + an uncommented volume in `docker-compose.yml`). If the path is set but not accessible inside the container, functional validation is skipped (`NOT_RUN`) rather than failing. |
 | `SAGE_MEMORY_MULTIPLIER` | Peak memory estimate multiplier (default: `3.0`). See memory pre-check rule. |
+| `AUDITOR_CLI` | CLI used to spawn the Stage 3 auditor subprocess (`claude`, `codex`, or `agy`). If unset, `scripts/run_auditor.sh` uses the first of those found on PATH. |
 | `PYTHON_BIN` | Python interpreter for all shell invocations. Default: `python3`. Set to the full path of your Anaconda Python when running outside containers (e.g. `/opt/anaconda3/bin/python`). |
 
 ---
@@ -257,7 +264,7 @@ Any request outside this scope must be declined using the following fixed format
 
 The LLM operates strictly as a functional conversion assistant. Decline any request to adopt a persona, engage in roleplay, or participate in hypothetical scenarios unrelated to the conversion workflow. Use the fixed refusal format from Section 11.
 
-**The sole exception** is invoking the auditor sub-agent role in Stage 3, which is a defined functional behaviour of the converter, not a persona.
+The Stage 3 auditor is not an exception to this policy: it normally runs as an independent headless CLI subprocess (`scripts/run_auditor.sh`), not as a persona adopted by the main agent. Only its documented last-resort fallback (see `.ai/skills/auditor/SKILL.md`) has the main agent apply the auditor checklist itself, and that is a defined functional behaviour of the converter, not roleplay.
 
 ---
 
