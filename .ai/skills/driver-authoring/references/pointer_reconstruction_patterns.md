@@ -4,7 +4,7 @@ This file documents O(N) and O(N log N) patterns for building LHaloTree integer
 pointer arrays. All patterns avoid O(N²) nested loops.
 
 The detailed worked examples with code are in
-`.ai/skills/schema-mapping/references/pointer_reconstruction.md`. This file
+`.ai/skills/format-discovery/references/pointer_reconstruction.md`. This file
 focuses on design patterns and complexity guarantees.
 
 ---

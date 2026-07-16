@@ -55,7 +55,7 @@ I am treating this as NO MATCH. Please confirm or provide the missing identifier
 
 Wait for the user's response. If the user supplies the missing identifier and all three
 criteria now agree, proceed with Step 3 (full match path). If the user cannot confirm
-or the mismatch remains, proceed with Step 4 (no-match path, invoke web-discovery).
+or the mismatch remains, proceed with Step 4 (no-match path, invoke format-discovery).
 
 See `.ai/skills/kdb-lookup/references/matching_criteria.md` for the full match definition and edge cases.
 
@@ -82,7 +82,7 @@ cp format-database/<format_id>.json assets/proposed_mapping_<format_id>.json
 This satisfies the Stage 2 entry condition (AGENTS.md §4) and ensures the confirmed
 mapping is available for Stage 4 archiving.
 
-### 4. On no match: report and hand off to web-discovery
+### 4. On no match: report and hand off to format-discovery
 
 If no full match is found after scanning all entries in `format-database/`:
 
@@ -92,8 +92,8 @@ No matching KDB entry found for the identified format:
   tree_tool:   <value>
   file_format: <value>
 
-Proceeding to web discovery. I will now invoke the web-discovery skill
-to search for external documentation on this format.
+Proceeding to format discovery. I will now invoke the format-discovery skill
+to search for external documentation and map the format.
 ```
 
-Then invoke the `web-discovery` skill.
+Then invoke the `format-discovery` skill.

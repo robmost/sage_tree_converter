@@ -35,7 +35,7 @@ All skills are located at `.ai/skills/`. Each skill is a subfolder containing a 
 
 | Stage | Skills to read |
 | ----- | -------------- |
-| Stage 1 (Discovery) | `kdb-lookup/`, then `web-discovery/` and `schema-mapping/` if no KDB match |
+| Stage 1 (Discovery) | `kdb-lookup/`, then `format-discovery/` if no KDB match |
 | Stage 2 (Test Engine) | `driver-authoring/` (if new driver needed), `syntactic-validation/`, `functional-validation/` |
 | Stage 3 (Full Engine) | `semantic-validation/`, `auditor/` |
 | Stage 4 (KDB Update) | `kdb-extend/` (new format) or `kdb-update/` (existing format) |
@@ -344,7 +344,7 @@ I'll identify your input format and map its fields to the SAGE LHaloTree schema.
   1. Inspect input files
   2. KDB lookup
        - match    -> load schema mapping
-       - no match -> web discovery + schema mapping
+       - no match -> format discovery (web search + schema mapping)
   3. Estimate output size + suggest file count
   4. [G1] Confirm mapping + select output format + file count
 ```
