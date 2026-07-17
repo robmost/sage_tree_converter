@@ -18,5 +18,8 @@ jobs:
       - name: Install package with dev tooling
         run: pip install -e ".[dev]"
 
+      - name: Point the Makefile at the CI interpreter
+        run: echo "PYTHON_BIN=$(which python)" > .env
+
       - name: Lint, typecheck, and test
         run: make check
