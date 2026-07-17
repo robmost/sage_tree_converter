@@ -28,6 +28,7 @@ import re
 import struct
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 HDF5_BYTES_PER_HALO = 120
 BINARY_BYTES_PER_HALO = 104
@@ -35,7 +36,7 @@ TARGET_BYTES_PER_FILE = 8_000_000_000
 KDB_DIR = Path("format-database")
 
 
-def _fail(msg: str) -> None:
+def _fail(msg: str) -> NoReturn:
     sys.exit(f"ERROR: {msg}")
 
 
@@ -140,14 +141,32 @@ def _input_size_bytes(input_path: Path) -> int:
 
 
 def _memory_multiplier(format_id: str) -> tuple[float, str]:
+    """Resolve the peak-memory multiplier for gate-critical estimates.
+
+    Precedence: SAGE_MEMORY_MULTIPLIER env var, then the KDB entry's
+    memory_multiplier key, then the 3.0 default. A value that is present but
+    invalid (non-numeric or <= 0) is a hard error, never a silent fallback.
+    """
     env = os.environ.get("SAGE_MEMORY_MULTIPLIER")
-    if env:
-        return float(env), "SAGE_MEMORY_MULTIPLIER"
+    if env is not None and env.strip():
+        try:
+            value = float(env)
+        except ValueError:
+            _fail(f"SAGE_MEMORY_MULTIPLIER is not a number: {env!r}")
+        if value <= 0:
+            _fail(f"SAGE_MEMORY_MULTIPLIER must be > 0, got {value}.")
+        return value, "SAGE_MEMORY_MULTIPLIER"
     kdb_entry = KDB_DIR / f"{format_id}.json"
     if kdb_entry.is_file():
-        value = json.loads(kdb_entry.read_text()).get("memory_multiplier")
-        if value:
-            return float(value), f"{kdb_entry}"
+        entry = json.loads(kdb_entry.read_text())
+        if "memory_multiplier" in entry:
+            value = entry["memory_multiplier"]
+            if isinstance(value, bool) or not isinstance(value, int | float) or value <= 0:
+                _fail(
+                    f"invalid memory_multiplier in {kdb_entry}: {value!r} "
+                    "(must be a number > 0)."
+                )
+            return float(value), str(kdb_entry)
     return 3.0, "default"
 
 

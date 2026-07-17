@@ -59,6 +59,10 @@ if [ -z "${AUDITOR_CLI:-}" ] || ! command -v "$AUDITOR_CLI" >/dev/null 2>&1; the
     exit 2
 fi
 
+# The report is written via shell redirection below; make sure its directory
+# exists so a missing directory does not masquerade as a spawn failure.
+mkdir -p "$(dirname "$REPORT_PATH")"
+
 # --- Build the self-contained prompt -----------------------------------------
 PROMPT="$(cat "$PROMPT_FILE"; echo; for name in $PLOTS; do echo "- $PLOTS_DIR/$name.png"; done)"
 export PROMPT  # the agy branch expands it inside a `script`-spawned shell

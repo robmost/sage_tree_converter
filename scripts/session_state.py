@@ -86,12 +86,17 @@ def cmd_set(args: argparse.Namespace) -> None:
 def cmd_gate(args: argparse.Namespace) -> None:
     state = _load()
     passed = state.setdefault("gates_passed", {})
-    expected = GATES[len(passed)] if len(passed) < len(GATES) else None
+    # The next gate is the first missing one in order, so a corrupted or
+    # hand-edited file (e.g. containing only "G2") cannot skip a gate.
+    missing = [g for g in GATES if g not in passed]
+    if not missing:
+        sys.exit("ERROR: all gates are already recorded; nothing to record.")
+    expected = missing[0]
     if args.gate != expected:
-        done = ", ".join(passed) or "none"
+        done = ", ".join(g for g in GATES if g in passed) or "none"
         sys.exit(
             f"ERROR: cannot record {args.gate}: gates passed so far: {done}. "
-            f"Next gate must be {expected or 'nothing - all gates passed'}."
+            f"Next gate must be {expected}."
         )
     passed[args.gate] = _now()
     _save(state)

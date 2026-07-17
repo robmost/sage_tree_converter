@@ -59,13 +59,20 @@ def _plot_function_names() -> list[str]:
 def test_no_direct_savefig_or_close_in_semantic():
     # All saving/closing must go through plot_utils.save_figure(). AST-based so
     # that docstrings and comments mentioning the calls do not trip the check.
-    offenders = [
-        node.func.attr
-        for node in ast.walk(ast.parse(SEMANTIC_SOURCE))
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr in ("savefig", "close")
-    ]
+    # Any .savefig() call is a violation; for close() only plt.close() is,
+    # so closing file handles or other resources stays allowed.
+    offenders = []
+    for node in ast.walk(ast.parse(SEMANTIC_SOURCE)):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+            continue
+        if node.func.attr == "savefig":
+            offenders.append("savefig")
+        elif (
+            node.func.attr == "close"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "plt"
+        ):
+            offenders.append("plt.close")
     assert offenders == []
 
 
