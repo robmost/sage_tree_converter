@@ -1,10 +1,10 @@
 # O(N) Pointer Reconstruction Patterns
 
 This file documents O(N) and O(N log N) patterns for building LHaloTree integer
-pointer arrays. All patterns avoid O(N²) nested loops.
+pointer arrays. All patterns avoid O(N^2) nested loops.
 
 The detailed worked examples with code are in
-`.ai/skills/schema-mapping/references/pointer_reconstruction.md`. This file
+`.ai/skills/format-discovery/references/pointer_reconstruction.md`. This file
 focuses on design patterns and complexity guarantees.
 
 ---
@@ -16,11 +16,11 @@ focuses on design patterns and complexity guarantees.
 **Design:**
 
 1. Build a dictionary `{halo_id: flat_index}` in one pass over the halo array. O(N).
-2. For each halo, look up its link ID in the dictionary. O(1) per halo → O(N) total.
+2. For each halo, look up its link ID in the dictionary. O(1) per halo -> O(N) total.
 3. Non-existent IDs (no link) map to -1 via `dict.get(id, -1)`.
 
 **Complexity:** O(N) time, O(N) space.
-**Antipattern to avoid:** `for i in range(N): for j in range(N): if id[j] == link_id[i]` — this is O(N²).
+**Antipattern to avoid:** `for i in range(N): for j in range(N): if id[j] == link_id[i]` - this is O(N^2).
 
 ---
 
@@ -36,7 +36,7 @@ then process each group.
 3. Process each group independently in O(group_size) time.
 
 **Complexity:** O(N log N) time, O(N) space.
-**Antipattern to avoid:** For each unique group ID, scan the full halo list to find members — O(N × num_groups) ≈ O(N²) in the worst case.
+**Antipattern to avoid:** For each unique group ID, scan the full halo list to find members - O(N x num_groups) ~ O(N^2) in the worst case.
 
 ---
 
@@ -92,7 +92,7 @@ already integer indices into the per-tree array.
 
 **Invariant (read this first):** SAGE walks a FOF group's satellites by starting at
 `Halo[FirstHaloInFOFGroup].NextHaloInFOFGroup` and following the chain. The **true FOF
-central must head the chain** — *not merely the most massive member*. A stripped central
+central must head the chain** - *not merely the most massive member*. A stripped central
 can be lighter than one of its satellites; if you head the chain by mass alone, SAGE skips
 every halo listed before the central and undercounts z=0 satellites. This is a universal
 LHaloTree requirement, so every driver that builds FOF chains must enforce it, using
@@ -122,11 +122,11 @@ places the central first within each `(snap, group)` group, then `descending sor
 
 **Complexity:** O(N log N) (dominated by the per-group sort), O(N) space.
 
-### Flyby merging (Consistent-Trees / union-find forests) — OPT-IN
+### Flyby merging (Consistent-Trees / union-find forests) - OPT-IN
 
 A forest can contain several independent z=0 FOF centrals. SAGE's native Consistent-Trees
 reader applies `fix_flybys`, which demotes every non-dominant z=0 central to a satellite of
-the most massive one. This is a **modelling choice, not a correctness fix** — it materially
+the most massive one. This is a **modelling choice, not a correctness fix** - it materially
 changes the z=0 population (e.g. ~55k halos flip Type-0 -> Type-1 in micro-uchuu), and some
 readers (MIMIC) deliberately keep flyby groups independent. Expose it as opt-in via
 `sim_params["merge_flybys"]` (default off) and apply it with

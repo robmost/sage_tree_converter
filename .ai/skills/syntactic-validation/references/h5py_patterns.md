@@ -1,6 +1,6 @@
 # h5py Code Patterns for Syntactic Validation
 
-Common h5py patterns used in `run_syntactic_checks.py` and manual validation.
+Common h5py patterns used in `run_syntactic_checks.py` and when diagnosing a reported FAIL.
 
 ## Opening a file safely
 

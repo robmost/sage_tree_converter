@@ -1,18 +1,18 @@
 {
-  "_comment": "Template for a KDB schema mapping entry. Copy this file to format-database/<format_id>.json and fill in every field. Remove this _comment key in the real entry. The field_map must contain an entry for every mandatory SAGE field listed here. A KDB entry that omits a mandatory field is considered incomplete.",
+  "_comment": "Template for a KDB schema mapping entry. Copy this file to format-database/<format_id>.json and fill in every field. Remove this _comment key in the real entry. The field_map must contain an entry for every mandatory SAGE field listed here. A KDB entry that omits a mandatory field is considered incomplete. Set memory_multiplier to the format-aware peak-memory factor used by scripts/estimate_output.py: 3.0 for binary/HDF5 inputs, 12-15 for ASCII inputs.",
   "format_id": "<halo_finder>_<tree_tool>_<file_format>",
   "description": "<human-readable description of the input format>",
   "halo_finder": "<AHF | Rockstar | FOF+Subfind (Gadget-2) | FOF+Subfind (Gadget-4)>",
   "tree_tool": "<MergerTree | Consistent Trees | LHaloTree | Gadget-4 built-in>",
   "file_format": "<ascii | binary-gadget1 | binary-gadget2 | hdf5>",
   "driver_module": "<format_id>.py",
+  "memory_multiplier": 3.0,
   "references": [
     "<URL to official documentation>",
     "<paper citation, e.g. Author et al. (YYYY), DOI>"
   ],
   "field_map": {
-    "_comment": "One entry per mandatory SAGE LHaloTree field (see reference/sage_lhalotree_hdf5_schema.md for HDF5, reference/sage_lhalotree_binary_schema.md for binary). Field key names here are the writer-facing names used by both hdf5_writer and binary_writer — they must match exactly. Pointer fields are reconstructed via pointer_logic, not copied directly — set conversion_expr to 'see pointer_logic' for those.",
-
+    "_comment": "One entry per mandatory SAGE LHaloTree field (see reference/sage_lhalotree_hdf5_schema.md for HDF5, reference/sage_lhalotree_binary_schema.md for binary). Field key names here are the writer-facing names used by both hdf5_writer and binary_writer - they must match exactly. Pointer fields are reconstructed via pointer_logic, not copied directly - set conversion_expr to 'see pointer_logic' for those.",
     "Descendant": {
       "source_field": "derived",
       "source_units": "halo ID or snapshot-relative index (format-dependent)",
@@ -53,7 +53,6 @@
       "conversion_expr": "see pointer_logic",
       "notes": "Spatial pointer. Next satellite in the FOF group chain. See pointer_logic.NextHaloInFOFGroup."
     },
-
     "SubhaloLen": {
       "source_field": "<source column/dataset name for particle count>",
       "source_units": "particles",
@@ -124,7 +123,7 @@
       "target_units": "(kpc/h)(km/s)",
       "scale_factor": "<e.g. 1 if source is already in (kpc/h)(km/s); 1000 if source is in (Mpc/h)(km/s)>",
       "conversion_expr": "<e.g. source_field * 1000 if source is in (Mpc/h)(km/s)>",
-      "notes": "Specific angular momentum 3-vector [Jx, Jy, Jz] — angular momentum per unit mass, NOT the dimensionless spin parameter lambda. On-disk values must be in (kpc/h)(km/s) for both output formats: the HDF5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing. Output shape: (N, 3)."
+      "notes": "Specific angular momentum 3-vector [Jx, Jy, Jz] - angular momentum per unit mass, NOT the dimensionless spin parameter lambda. On-disk values must be in (kpc/h)(km/s) for both output formats: the HDF5 reader multiplies by 0.001 post-read; binary_writer divides by 1000 before packing. Output shape: (N, 3)."
     },
     "SubhaloIDMostBound": {
       "source_field": "<source column/dataset name for most-bound particle ID, or null>",

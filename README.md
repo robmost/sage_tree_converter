@@ -1,8 +1,5 @@
 # SAGE Universal Merger Tree Converter
 
-> [!NOTE]
-> **Gemini CLI was deprecated by Google on May 19, 2026** (EOL: June 18, 2026). This project now uses [Antigravity CLI](https://antigravity.google) (`agy`) as its Google-provided LLM entry point. See the [official announcement](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/), the [migration guide](https://antigravity.google/docs/gcli-migration), and the [community migration article](https://medium.com/google-cloud/migrating-to-antigravity-cli-a841c6964f37) for details.
-
 A toolkit for converting N-body simulation merger trees from various formats into SAGE-compatible LHaloTree files. It operates in two modes: **agent workflow** (LLM-orchestrated, for new or unknown formats) and **direct conversion** (script-based, for pre-registered formats).
 
 ## Overview
@@ -20,7 +17,7 @@ The converter translates merger tree outputs from common halo finders and tree-b
 | Multiple jobs per session | No | Yes (TOML batch config) |
 | Parallel jobs | No | Yes (`--workers N`) |
 | KDB registration | Yes (Stage 4) | No |
-| Human-in-the-loop gates | Yes (G1-G4) | No |
+| Human-in-the-loop gates | Yes (gates G1-G3, close-out G4) | No |
 
 **Agent workflow** is for formats that are new or unknown to the KDB. The LLM CLI (Claude Code, Antigravity CLI, or Codex) orchestrates a four-stage, human-in-the-loop gated pipeline: it discovers the format schema, maps fields, authors a new driver if needed, validates the output (syntactic and semantic, plus functional when a SAGE binary is available), and registers the result in the KDB. One conversion per session; validation gates cannot be skipped.
 
@@ -90,8 +87,8 @@ flowchart LR
     subgraph s4["Stage 4: KDB Update"]
         direction TB
         o{"New format?"}
-        o -- "Yes" --> p["kdb-extend<br/>(Add driver + JSON)"]
-        o -- "No" --> q["kdb-update<br/>(Patch entry)"]
+        o -- "Yes" --> p["kdb-register Path A<br/>(Add driver + JSON)"]
+        o -- "No" --> q["kdb-register Path B<br/>(Patch entry)"]
         p & q --> r["Archive audit files"]
         r --> g4[["G4 - Session closed"]]
     end
@@ -102,6 +99,10 @@ flowchart LR
 ```
 
 **Stage preambles.** At the start of each stage the converter outputs a brief summary and step diagram of that stage's steps. These are informational only and do not require a response.
+
+**Auditor.** The Stage 3 audit runs as an independent headless CLI subprocess (`scripts/run_auditor.sh`): a fresh `claude` / `codex` / `agy` process that has not seen the session inspects the rendered plots against a 10-item adversarial checklist (`.ai/agents/auditor.md`) and writes `assets/auditor_report.md`. Set `AUDITOR_CLI` in `.env` to pick the CLI.
+
+**Session state.** Gate progress and the G1 choices are recorded in `assets/session_state.json` (via `scripts/session_state.py`), so an interrupted or resumed session can recover exactly where it stood.
 
 ### **Gate legend**
 
@@ -118,6 +119,9 @@ flowchart LR
 - Claude Code CLI, Antigravity CLI (`agy`), or Codex CLI (agent workflow only)
 - An Anthropic or OpenAI API key; Antigravity CLI authenticates via OAuth (no API key required).
 
+> [!NOTE]
+> Gemini CLI was deprecated by Google on May 19, 2026 (EOL: June 18, 2026); Antigravity CLI (`agy`) is its replacement and this project's Google-provided LLM entry point. See the [migration guide](https://antigravity.google/docs/gcli-migration).
+
 ### Setup
 
 ```bash
@@ -128,6 +132,7 @@ cp .env.example .env
 #    ANTHROPIC_API_KEY=...
 #    SAGE_BINARY_PATH=...   # optional: enables Stage 2 functional validation
 #    PYTHON_BIN=...         # optional: override if running outside containers
+#    AUDITOR_CLI=...        # optional: CLI for the Stage 3 auditor subprocess (claude/codex/agy)
 
 # 3. Place your merger tree files in a named subdirectory of input/:
 #      input/<dataset_name>/   (e.g. input/gadget4-dust/ or input/bolshoi/)
@@ -366,25 +371,16 @@ Both scripts exit with code `0` on full pass and `1` on any failure. `--n-snapsh
 
 ### Semantic validation
 
-Semantic validation has no standalone CLI script. It renders seven output-only
-physical-plausibility plots of the converted file (no input/output comparison). Invoke the
-`generate_all_plots()` function from `conversion-engine/validation/semantic.py`:
+Semantic validation renders seven output-only physical-plausibility plots of the
+converted file (no input/output comparison):
 
-```python
-import sys
-sys.path.insert(0, "conversion-engine")
-import matplotlib.pyplot as plt
-from validation.semantic import generate_all_plots
-
-plt.style.use("reference/sage_validation.mplstyle")
-
-generate_all_plots(
-    output_path="output/<base>_STC.0.hdf5",   # or _STC.0 for binary
-    output_format="lhalo_hdf5",                # or lhalo_binary
-)
+```bash
+$PYTHON_BIN scripts/run_semantic_plots.py \
+    --file output/<base>_STC.0.hdf5 \
+    --output-format lhalo_hdf5   # or: --file output/<base>_STC.0 --output-format lhalo_binary
 ```
 
-Plots are written to `assets/semantic_validation/`.
+Plots are written to `assets/semantic_validation/` as PDFs plus PNG siblings.
 
 ### Functional validation (optional)
 
@@ -396,35 +392,36 @@ Set `SAGE_BINARY_PATH` in `.env` and run SAGE directly on the test output using 
 
 ```text
 .
-├── .ai/skills/              # Skill definitions (kdb-lookup, driver-authoring, validation, ...)
-├── AGENTS.md                # Master agent orchestration document
-├── assets/                  # Agent workflow working area for Stages 1-3
-├── audits/                  # Archived audit files from completed sessions
-├── runner/
-│   ├── batch_runner.py      # Direct conversion batch runner (reads TOML config)
-│   └── conversion_config.toml  # Template: declare one or more conversion jobs
-├── container/               # Container definitions (Docker and Apptainer)
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   ├── apptainer.def
-│   └── apptainer.env.sh
-├── conversion-engine/
-│   ├── main_driver.py       # Single-job direct conversion entry point
-│   ├── errors.py            # Shared exception types (ConversionError)
-│   ├── drivers/             # Format-specific conversion modules
-│   ├── utils/               # HDF5/binary writers, SplitWriter, shared schema
-│   └── validation/          # Syntactic, functional, and semantic validation
-├── conversation-examples/   # Few-shot examples for the agent workflow KDB
-├── format-database/         # KDB: JSON schema mappings per input format
-├── input/                   # Source merger trees, organised as input/<dataset_name>/
-├── output/                  # Stage 3 writes converted files here
-├── reference/               # Static schema and style references
-├── scripts/                 # Developer helper scripts (setup-dev.sh)
-├── tests/                   # Unit tests (pytest); pure, no input datasets needed
-├── .githooks/               # Git hooks (commit-msg: reject non-ASCII and Co-authored-by)
-├── .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
-├── Makefile                 # Shortcuts: make lint / fmt / typecheck / test / check / convert
-└── pyproject.toml           # Ruff + basedpyright + pytest configuration; sage-convert entry point; Python deps
+|-- .ai/skills/              # Skill definitions (kdb-lookup, format-discovery, driver-authoring, validation, kdb-register, ...)
+|-- .ai/agents/              # Canonical agent prompts (auditor.md, CLI-agnostic)
+|-- AGENTS.md                # Master agent orchestration document
+|-- assets/                  # Agent workflow working area for Stages 1-3
+|-- audits/                  # Archived audit files from completed sessions
+|-- runner/
+|   |-- batch_runner.py      # Direct conversion batch runner (reads TOML config)
+|   `-- conversion_config.toml  # Template: declare one or more conversion jobs
+|-- container/               # Container definitions (Docker and Apptainer)
+|   |-- Dockerfile
+|   |-- docker-compose.yml
+|   |-- apptainer.def
+|   `-- apptainer.env.sh
+|-- conversion-engine/
+|   |-- main_driver.py       # Single-job direct conversion entry point
+|   |-- errors.py            # Shared exception types (ConversionError)
+|   |-- drivers/             # Format-specific conversion modules
+|   |-- utils/               # HDF5/binary writers, SplitWriter, shared schema
+|   `-- validation/          # Syntactic, functional, and semantic validation
+|-- conversation-examples/   # Few-shot examples for the agent workflow KDB
+|-- format-database/         # KDB: JSON schema mappings per input format
+|-- input/                   # Source merger trees, organised as input/<dataset_name>/
+|-- output/                  # Stage 3 writes converted files here
+|-- reference/               # Static schema and style references
+|-- scripts/                 # Workflow scripts (estimate_output, extract_snaplist, run_semantic_plots, run_auditor, session_state, archive_session) + dev setup
+|-- tests/                   # Unit tests (pytest); pure, no input datasets needed
+|-- .githooks/               # Git hooks (commit-msg: reject non-ASCII and Co-authored-by)
+|-- .pre-commit-config.yaml  # Pre-commit hooks: ruff check + format on every commit
+|-- Makefile                 # Shortcuts: make lint / fmt / typecheck / test / check / convert
+`-- pyproject.toml           # Ruff + basedpyright + pytest configuration; sage-convert entry point; Python deps
 ```
 
 ## Unit Conventions

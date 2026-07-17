@@ -10,7 +10,7 @@ description: Guides drafting or adapting a format-specific conversion driver for
 
 ## Stage Preamble
 
-The Stage 2 preamble is output from AGENTS.md section 15 at stage entry. Do not re-output it here - proceed directly to driver authoring.
+If the Stage 2 preamble has not already been output this session, output it now, verbatim, from AGENTS.md Section 15. Never re-output a preamble that has already been shown, and never paraphrase it.
 
 ## Instructions
 
@@ -75,17 +75,17 @@ The driver must write a valid SAGE LHaloTree output file at `output_path`.
 
 ```text
 output.hdf5
-├── Header/
-│   ├── [attr] ParticleMass        - float64
-│   ├── [attr] NtreesPerFile       - int32
-│   ├── [attr] NhalosPerFile       - int32
-│   ├── [attr] NumberOfOutputFiles - int32
-│   └── TreeNHalos                 - 1D int32 dataset, length = NtreesPerFile
-└── Tree0/
-    └── <field>   - one 1D or 2D dataset per field
+|-- Header/
+|   |-- [attr] ParticleMass        - float64
+|   |-- [attr] NtreesPerFile       - int32
+|   |-- [attr] NhalosPerFile       - int32
+|   |-- [attr] NumberOfOutputFiles - int32
+|   `-- TreeNHalos                 - 1D int32 dataset, length = NtreesPerFile
+`-- Tree0/
+    `-- <field>   - one 1D or 2D dataset per field
 ...
-└── Tree<N-1>/
-    └── <field>
+`-- Tree<N-1>/
+    `-- <field>
 ```
 
 All mandatory fields from `reference/sage_lhalotree_hdf5_schema.md` (project root) must be written
@@ -178,7 +178,7 @@ available, (3) else fail or warn loudly.
 
 Write the draft driver to `assets/drivers/<format_id>.py`.
 **Do not write to `conversion-engine/drivers/` at this stage.**
-The driver is moved to `conversion-engine/drivers/` only in Stage 4 via `kdb-extend`.
+The driver is moved to `conversion-engine/drivers/` only in Stage 4 via `kdb-register` (Path A).
 
 ### 5. Error handling
 
@@ -273,7 +273,7 @@ image dependencies and is not part of a conversion session.
 ### 9. Run the Stage 2 test conversion
 
 The driver lives in `assets/drivers/` and is not yet registered in
-`conversion-engine/main_driver.py` (registration happens in Stage 4 via `kdb-extend`).
+`conversion-engine/main_driver.py` (registration happens in Stage 4 via `kdb-register`, Path A).
 Do **not** attempt to invoke it through `main_driver.py`. Instead, invoke it directly
 by prepending `conversion-engine/` to `sys.path` (so `from utils import ...` resolves)
 and calling `convert()` as a library function:

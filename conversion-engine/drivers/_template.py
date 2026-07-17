@@ -10,7 +10,7 @@ HOW TO USE THIS TEMPLATE
 4. Ensure 'convert' works for both full conversion (n_trees=None) and
    test-mode (n_trees=N).
 5. Write the driver to 'assets/drivers/<format_id>.py' first (Stage 2).
-   The kdb-extend skill moves it to 'conversion-engine/drivers/' in Stage 4.
+   The kdb-register skill (Path A) moves it to 'conversion-engine/drivers/' in Stage 4.
 
 INTERFACE CONTRACT
 ==================

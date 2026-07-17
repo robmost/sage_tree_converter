@@ -1,7 +1,7 @@
 # O(N) Tree-Walking Patterns
 
 All traversal of merger tree structure must use the patterns in this file.
-Every pattern here is O(N) or O(depth) per tree. O(N²) patterns are forbidden.
+Every pattern here is O(N) or O(depth) per tree. O(N^2) patterns are forbidden.
 
 ---
 
@@ -47,7 +47,7 @@ def count_progenitors_per_snapshot(tree_halos, Descendant, SnapNum,
     return counts  # {snapshot: n_progenitors}
 ```
 
-Total cost: O(N) per tree — one pass over all halos.
+Total cost: O(N) per tree - one pass over all halos.
 
 ---
 
@@ -65,7 +65,7 @@ def all_progenitors(i, FirstProgenitor, NextProgenitor):
 ```
 
 The chain follows `FirstProgenitor` then `NextProgenitor` until sentinel `-1`.
-This is O(k) where k is the number of progenitors — never O(N).
+This is O(k) where k is the number of progenitors - never O(N).
 
 ---
 
@@ -106,16 +106,16 @@ main branch), so the total cost across all trees is O(N).
 
 ---
 
-## Antipatterns — do not use
+## Antipatterns - do not use
 
 ```python
-# BAD: O(N²) — for each halo, search all halos for progenitors
+# BAD: O(N^2) - for each halo, search all halos for progenitors
 for i in range(N):
     progenitors_of_i = [j for j in range(N) if Descendant[j] == i]
 ```
 
 ```python
-# BAD: O(N²) — nested loop over snapshots × halos
+# BAD: O(N^2) - nested loop over snapshots x halos
 for snap in snapshots:
     halos_at_snap = [h for h in range(N) if SnapNum[h] == snap]
 ```
@@ -123,7 +123,7 @@ for snap in snapshots:
 Use `defaultdict` or `numpy` grouping instead:
 
 ```python
-# GOOD: O(N) — group by snapshot in one pass
+# GOOD: O(N) - group by snapshot in one pass
 from collections import defaultdict
 halos_by_snap = defaultdict(list)
 for h in range(N):

@@ -5,9 +5,10 @@
   "tree_tool": "Consistent Trees",
   "file_format": "ascii",
   "driver_module": "rockstar_consistent_trees_ascii.py",
+  "memory_multiplier": 12.0,
   "references": [
-    "Behroozi et al. (2013), ApJ 762, 109 — Consistent Trees https://doi.org/10.1088/0004-637X/762/2/109",
-    "Behroozi et al. (2012), ApJ 756, 2 — Rockstar https://doi.org/10.1088/0004-637X/756/1/2",
+    "Behroozi et al. (2013), ApJ 762, 109 - Consistent Trees https://doi.org/10.1088/0004-637X/762/2/109",
+    "Behroozi et al. (2012), ApJ 756, 2 - Rockstar https://doi.org/10.1088/0004-637X/756/1/2",
     "https://bitbucket.org/pbehroozi/consistent-trees"
   ],
   "field_map": {
@@ -57,7 +58,7 @@
       "target_units": "particles",
       "scale_factor": null,
       "conversion_expr": "round(mvir / particle_mass_msun_per_h)",
-      "notes": "Consistent Trees does not output particle counts. Estimated as round(mvir / m_particle) where m_particle is the simulation particle mass in Msun/h. m_particle must be supplied via driver config or computed from Omega_M, box size, and N_particles. For BolshoiP (250 Mpc/h, 2048^3 particles, Omega_M=0.307115) m_particle ≈ 1.55e8 Msun/h."
+      "notes": "Consistent Trees does not output particle counts. Estimated as round(mvir / m_particle) where m_particle is the simulation particle mass in Msun/h. m_particle must be supplied via driver config or computed from Omega_M, box size, and N_particles. For BolshoiP (250 Mpc/h, 2048^3 particles, Omega_M=0.307115) m_particle ~ 1.55e8 Msun/h."
     },
     "Group_M_Crit200": {
       "source_field": "M200c",
@@ -113,7 +114,7 @@
       "target_units": "km/s",
       "scale_factor": 1,
       "conversion_expr": "vmax",
-      "notes": "Column 16. Rockstar vmax is max(sqrt(GM(<r>)/r)) — matches the SAGE definition exactly."
+      "notes": "Column 16. Rockstar vmax is max(sqrt(GM(<r>)/r)) - matches the SAGE definition exactly."
     },
     "SubhaloSpin": {
       "source_field": "Jx, Jy, Jz",
@@ -149,12 +150,12 @@
     }
   },
   "pointer_logic": {
-    "description": "Consistent Trees encodes links via global 64-bit halo IDs (id, desc_id, upid) and pre-computed depth-first index fields (Depth_first_ID, Next_coprogenitor_depthfirst_ID). Within each '#tree <root_id>' block halos are nominally stored in depth-first order, but file order is not guaranteed to be strict DFI order in all cases. The combined forest array must therefore be sorted by DFI unconditionally — including single-tree forests — before pointer reconstruction. The driver operates in two modes depending on whether forests.list and locations.dat are present in the input directory. In FOREST MODE (ancillary files present), all available trees belonging to the same Consistent Trees forest are concatenated, DFI-sorted, and passed to pointer reconstruction as one array; this resolves upid references that cross #tree block boundaries, which are common when satellite halos at a given snapshot belong to a host whose descendant tree is separate. Forests are visited in forests.list first-appearance order. In TREE MODE (ancillary files absent, e.g. single-shard Bolshoi runs), each #tree block is processed independently (original behaviour).",
-    "Descendant": "Build a dict mapping global id → combined-array index covering all halos in the current output unit (forest or single tree). For each halo, look up desc_id in this dict. If desc_id == -1 or not found, set Descendant = -1. Descendants are always within the same #tree block, so cross-unit lookups are never needed.",
-    "FirstProgenitor": "The combined forest array (or single-tree block) is sorted by DFI before reconstruction, ensuring strict depth-first order throughout. The first (most massive) progenitor of halo at index i is at index i+1 provided i+1 < n and halos[i+1].desc_id == halos[i].id. Otherwise FirstProgenitor[i] = -1. The DFI sort is applied unconditionally — even for single-tree forests — because file order is not guaranteed to be strict DFI order, and the i+1 rule is only valid under strict DFI ordering.",
-    "NextProgenitor": "Next_coprogenitor_depthfirst_ID is the globally-unique DFI of the next sibling progenitor within the forest. DFIs are globally unique within a forest but are NOT contiguous across #tree blocks, so the subtraction shortcut 'local = Next_coprogenitor_depthfirst_ID - tree_base_dfi' is incorrect and must not be used. Build an explicit dfi→index dict covering all halos in the combined forest array (sorted by DFI) and look up each halo's Next_coprogenitor_depthfirst_ID. If -1 or not found, set NextProgenitor = -1.",
-    "FirstHaloInFOFGroup": "upid is the global halo ID of the ultimate host central at the same snapshot. Build an id→index dict covering all halos in the combined output unit (forest in forest mode, single tree in tree mode). For each halo: if upid == -1 set FirstHaloInFOFGroup = self-index; else look up upid in the dict using iterative path-compression (handles sub-sub-halos). If upid is not found (genuine cross-forest or cross-file reference), treat the halo as its own central. In forest mode, the combined array covers the full forest, so nearly all cross-tree upid references within the same forest resolve correctly.",
-    "NextHaloInFOFGroup": "Group all halos in the combined array by (snap_num, FirstHaloInFOFGroup_index). Within each group sort by mvir descending and build a singly-linked list: most-massive → next → ... → -1. The central (highest mvir in the group) has NextHaloInFOFGroup pointing to the first satellite; the last satellite has NextHaloInFOFGroup = -1."
+    "description": "Consistent Trees encodes links via global 64-bit halo IDs (id, desc_id, upid) and pre-computed depth-first index fields (Depth_first_ID, Next_coprogenitor_depthfirst_ID). Within each '#tree <root_id>' block halos are nominally stored in depth-first order, but file order is not guaranteed to be strict DFI order in all cases. The combined forest array must therefore be sorted by DFI unconditionally - including single-tree forests - before pointer reconstruction. The driver operates in two modes depending on whether forests.list and locations.dat are present in the input directory. In FOREST MODE (ancillary files present), all available trees belonging to the same Consistent Trees forest are concatenated, DFI-sorted, and passed to pointer reconstruction as one array; this resolves upid references that cross #tree block boundaries, which are common when satellite halos at a given snapshot belong to a host whose descendant tree is separate. Forests are visited in forests.list first-appearance order. In TREE MODE (ancillary files absent, e.g. single-shard Bolshoi runs), each #tree block is processed independently (original behaviour).",
+    "Descendant": "Build a dict mapping global id -> combined-array index covering all halos in the current output unit (forest or single tree). For each halo, look up desc_id in this dict. If desc_id == -1 or not found, set Descendant = -1. Descendants are always within the same #tree block, so cross-unit lookups are never needed.",
+    "FirstProgenitor": "The combined forest array (or single-tree block) is sorted by DFI before reconstruction, ensuring strict depth-first order throughout. The first (most massive) progenitor of halo at index i is at index i+1 provided i+1 < n and halos[i+1].desc_id == halos[i].id. Otherwise FirstProgenitor[i] = -1. The DFI sort is applied unconditionally - even for single-tree forests - because file order is not guaranteed to be strict DFI order, and the i+1 rule is only valid under strict DFI ordering.",
+    "NextProgenitor": "Next_coprogenitor_depthfirst_ID is the globally-unique DFI of the next sibling progenitor within the forest. DFIs are globally unique within a forest but are NOT contiguous across #tree blocks, so the subtraction shortcut 'local = Next_coprogenitor_depthfirst_ID - tree_base_dfi' is incorrect and must not be used. Build an explicit dfi->index dict covering all halos in the combined forest array (sorted by DFI) and look up each halo's Next_coprogenitor_depthfirst_ID. If -1 or not found, set NextProgenitor = -1.",
+    "FirstHaloInFOFGroup": "upid is the global halo ID of the ultimate host central at the same snapshot. Build an id->index dict covering all halos in the combined output unit (forest in forest mode, single tree in tree mode). For each halo: if upid == -1 set FirstHaloInFOFGroup = self-index; else look up upid in the dict using iterative path-compression (handles sub-sub-halos). If upid is not found (genuine cross-forest or cross-file reference), treat the halo as its own central. In forest mode, the combined array covers the full forest, so nearly all cross-tree upid references within the same forest resolve correctly.",
+    "NextHaloInFOFGroup": "Group all halos in the combined array by (snap_num, FirstHaloInFOFGroup_index). Within each group sort by mvir descending and build a singly-linked list: most-massive -> next -> ... -> -1. The central (highest mvir in the group) has NextHaloInFOFGroup pointing to the first satellite; the last satellite has NextHaloInFOFGroup = -1."
   },
   "simulation_params": {
     "box_size_mpc_per_h": 250.0,
@@ -162,7 +163,7 @@
     "omega_l": 0.692885,
     "h0": 0.68,
     "n_particles": 2048,
-    "particle_mass_note": "The driver computes particle mass from the file header (Omega_M, box_size) assuming n_side=2048 (BolshoiP default). For simulations with different N_particles, supply the correct value via --sim-config (key: n_particles_per_side or particle_mass_msun_per_h) at conversion time; otherwise SubhaloLen will be incorrect. Example: BolshoiP (2048^3, 250 Mpc/h, Omega_M=0.307115, h=0.68): m_particle ≈ 1.55e8 Msun/h. Example: Shin-Uchuu (6400^3, 140 Mpc/h, Omega_M=0.30890, h=0.67740): m_particle = 8.97e5 Msun/h (user-confirmed); n_snapshots=70 (snap_idx 0–69, verified 2026-05-07). Formula: Omega_M * 2.775e11 * (box_size)^3 / n_particles^3 [Msun/h]. Example: micro-uchuu (640^3, 100 Mpc/h, Omega_M=0.30890, h=0.67740, n_snapshots=50): m_particle ≈ 3.27e8 Msun/h (user-confirmed 2026-05-14)."
+    "particle_mass_note": "The driver computes particle mass from the file header (Omega_M, box_size) assuming n_side=2048 (BolshoiP default). For simulations with different N_particles, supply the correct value via --sim-config (key: n_particles_per_side or particle_mass_msun_per_h) at conversion time; otherwise SubhaloLen will be incorrect. Example: BolshoiP (2048^3, 250 Mpc/h, Omega_M=0.307115, h=0.68): m_particle ~ 1.55e8 Msun/h. Example: Shin-Uchuu (6400^3, 140 Mpc/h, Omega_M=0.30890, h=0.67740): m_particle = 8.97e5 Msun/h (user-confirmed); n_snapshots=70 (snap_idx 0-69, verified 2026-05-07). Formula: Omega_M * 2.775e11 * (box_size)^3 / n_particles^3 [Msun/h]. Example: micro-uchuu (640^3, 100 Mpc/h, Omega_M=0.30890, h=0.67740, n_snapshots=50): m_particle ~ 3.27e8 Msun/h (user-confirmed 2026-05-14)."
   },
   "known_caveats": [
     "SubhaloLen is not provided by Consistent Trees. It is estimated as round(mvir / m_particle) where m_particle is the simulation dark matter particle mass in Msun/h. This is an approximation: it ignores unbound particles and substructure. The true particle count may differ by a few percent.",

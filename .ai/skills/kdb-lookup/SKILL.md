@@ -12,31 +12,20 @@ description: Searches the format-database/ KDB for a schema mapping that matches
 
 ## Stage Preamble
 
-Output the following to the user verbatim before any other action:
-
-```
-Stage 1 — Discovery
-I'll identify your input format and map its fields to the SAGE LHaloTree schema.
-
-  1. Inspect input files
-  2. KDB lookup
-       - match    -> load schema mapping
-       - no match -> web discovery + schema mapping
-  3. [G1] Confirm mapping + select output format
-```
+If the Stage 1 preamble has not already been output this session, output it now, verbatim, from AGENTS.md Section 15. Never re-output a preamble that has already been shown, and never paraphrase it.
 
 ## Path Convention
 
-- **`.ai/skills/kdb-lookup/references/<file>`** — files in this skill's own `references/` subfolder.
-- **`format-database/`** — the project-root format database directory.
+- **`.ai/skills/kdb-lookup/references/<file>`** - files in this skill's own `references/` subfolder.
+- **`format-database/`** - the project-root format database directory.
 
 ### 1. Inspect the input files
 
 Before searching the KDB, identify the file type. Apply the file inspection rule: read only the minimum needed.
 
-- **ASCII files:** `head -n 30 <file>` — record the comment character, column headers, and first data rows.
-- **HDF5 files:** `h5dump -n <file>` — record the group and dataset structure only. Do not read dataset values unless a small sample is needed to identify a field (`h5dump -d <dataset> --start="[0]" --count="[5]"`).
-- **Binary files:** `xxd <file> | head -4` — record the first 64 bytes (magic bytes and header fields).
+- **ASCII files:** `head -n 30 <file>` - record the comment character, column headers, and first data rows.
+- **HDF5 files:** `h5dump -n <file>` - record the group and dataset structure only. Do not read dataset values unless a small sample is needed to identify a field (`h5dump -d <dataset> --start="[0]" --count="[5]"`).
+- **Binary files:** `xxd <file> | head -4` - record the first 64 bytes (magic bytes and header fields).
 
 From the inspection, determine:
 - The halo finder (e.g. AHF, Rockstar, FOF+Subfind)
@@ -58,15 +47,15 @@ If a **partial match** is found (two of three agree), flag it explicitly to the 
 
 ```text
 Partial match found: format-database/<entry>.json
-  halo_finder: <value> — MATCH / MISMATCH
-  tree_tool:   <value> — MATCH / MISMATCH
-  file_format: <value> — MATCH / MISMATCH
+  halo_finder: <value> - MATCH / MISMATCH
+  tree_tool:   <value> - MATCH / MISMATCH
+  file_format: <value> - MATCH / MISMATCH
 I am treating this as NO MATCH. Please confirm or provide the missing identifier.
 ```
 
 Wait for the user's response. If the user supplies the missing identifier and all three
 criteria now agree, proceed with Step 3 (full match path). If the user cannot confirm
-or the mismatch remains, proceed with Step 4 (no-match path, invoke web-discovery).
+or the mismatch remains, proceed with Step 4 (no-match path, invoke format-discovery).
 
 See `.ai/skills/kdb-lookup/references/matching_criteria.md` for the full match definition and edge cases.
 
@@ -74,25 +63,30 @@ See `.ai/skills/kdb-lookup/references/matching_criteria.md` for the full match d
 
 If a full match is found:
 
-1. Present the matched entry's `format_id`, `description`, `driver_module`, and all `known_caveats`.
-2. Present the `field_map` as a readable table: SAGE field → source field → units → conversion expression.
-3. Present the `pointer_logic` section.
-4. State clearly: "This is the KDB match for your input format."
-5. Ask the user to confirm (Gate G1 prompt from `AGENTS.md`).
+1. Initialise the session state file (AGENTS.md Section 17):
+   `$PYTHON_BIN scripts/session_state.py init --format-id <format_id>`, then
+   `$PYTHON_BIN scripts/session_state.py set mapping_source kdb_match`.
+2. Present the matched entry's `format_id`, `description`, `driver_module`, and all `known_caveats`.
+3. Present the `field_map` as a readable table: SAGE field -> source field -> units -> conversion expression.
+4. Present the `pointer_logic` section.
+5. State clearly: "This is the KDB match for your input format."
+6. Compute the output-size and memory estimates required before G1 (AGENTS.md Section 3, "Before presenting G1").
+7. Ask the user to confirm (Gate G1 prompt from `AGENTS.md`).
 
 Do not proceed to Stage 2 until the user confirms.
 
-After the user confirms (G1 passed), copy the matched KDB entry to
-`assets/proposed_mapping_<format_id>.json`:
+After the user confirms (G1 passed), record the choices in the state file
+(`set output_format`, `set n_output_files`, `gate G1` - AGENTS.md Section 17)
+and copy the matched KDB entry to `assets/proposed_mapping_<format_id>.json`:
 
 ```bash
 cp format-database/<format_id>.json assets/proposed_mapping_<format_id>.json
 ```
 
-This satisfies the Stage 2 entry condition (AGENTS.md §4) and ensures the confirmed
+This satisfies the Stage 2 entry condition (AGENTS.md Section 4) and ensures the confirmed
 mapping is available for Stage 4 archiving.
 
-### 4. On no match: report and hand off to web-discovery
+### 4. On no match: report and hand off to format-discovery
 
 If no full match is found after scanning all entries in `format-database/`:
 
@@ -102,8 +96,8 @@ No matching KDB entry found for the identified format:
   tree_tool:   <value>
   file_format: <value>
 
-Proceeding to web discovery. I will now invoke the web-discovery skill
-to search for external documentation on this format.
+Proceeding to format discovery. I will now invoke the format-discovery skill
+to search for external documentation and map the format.
 ```
 
-Then invoke the `web-discovery` skill.
+Then invoke the `format-discovery` skill.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-run_binary_checks.py — Syntactic validation for SAGE LHaloTree binary files.
+run_binary_checks.py - Syntactic validation for SAGE LHaloTree binary files.
 Implements five structural checks on a converted lhalo_binary output file.
 
 Usage:

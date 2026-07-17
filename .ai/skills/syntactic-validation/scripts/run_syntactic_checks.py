@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-run_syntactic_checks.py — Syntactic validation for SAGE LHaloTree HDF5 files.
+run_syntactic_checks.py - Syntactic validation for SAGE LHaloTree HDF5 files.
 Thin wrapper around conversion-engine/validation/syntactic.py::run_checks.
 
 Usage:
@@ -17,12 +17,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "conversion-engine"
 from validation.syntactic import run_checks
 
 CHECK_LABELS = {
-    "file_integrity":             "Check 1 — File integrity",
-    "schema_compliance":          "Check 2 — Schema compliance",
-    "temporal_pointer_integrity": "Check 3 — Pointer integrity — temporal",
-    "spatial_pointer_integrity":  "Check 4 — Pointer integrity — spatial",
-    "snapshot_consistency":       "Check 5 — Snapshot consistency",
-    "property_consistency":       "Check 6 — Property consistency",
+    "file_integrity":             "Check 1 - File integrity",
+    "schema_compliance":          "Check 2 - Schema compliance",
+    "temporal_pointer_integrity": "Check 3 - Pointer integrity - temporal",
+    "spatial_pointer_integrity":  "Check 4 - Pointer integrity - spatial",
+    "snapshot_consistency":       "Check 5 - Snapshot consistency",
+    "property_consistency":       "Check 6 - Property consistency",
 }
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-main_driver.py — Entry point for all SAGE merger tree conversions.
+main_driver.py - Entry point for all SAGE merger tree conversions.
 
 Usage:
     Test run (100 trees):
@@ -13,7 +13,7 @@ Usage:
             --output output/<base>_STC.0.hdf5 [--format <format_id>] \
             [--output-format {lhalo_hdf5,lhalo_binary}] [--sim-config <path.json>]
 
-    <base> is the dataset directory name inside input/ (see AGENTS.md §13):
+    <base> is the dataset directory name inside input/ (see AGENTS.md Section 13):
     - Directory input: base = Path(input_path).name
     - File input:      base = Path(input_path).parent.name
     Files placed directly in input/ (not in a subdirectory) are not supported.
@@ -35,7 +35,7 @@ from pathlib import Path
 from errors import ConversionError
 
 # ---------------------------------------------------------------------------
-# Format registry — maps format_id to the driver module filename (no .py).
+# Format registry - maps format_id to the driver module filename (no .py).
 # ---------------------------------------------------------------------------
 FORMAT_REGISTRY: dict[str, str] = {
     "subfind_lhalotree_binary": "subfind_lhalotree_binary",
@@ -147,7 +147,7 @@ def convert_one(
             f"Valid values: {sorted(_VALID_OUTPUT_FORMATS)}"
         )
 
-    log.info("SAGE merger tree converter starting — %s", datetime.now().isoformat())
+    log.info("SAGE merger tree converter starting - %s", datetime.now().isoformat())
     log.info("Input : %s", input_path)
     log.info("Output: %s", output_path)
     log.info("Output format: %s", output_format)
@@ -166,7 +166,7 @@ def convert_one(
                 f"Auto-detection is not supported for directory inputs. "
                 f"Specify --format (or format_id) explicitly for {input_path!r}."
             )
-        log.info("format_id not supplied; attempting auto-detection …")
+        log.info("format_id not supplied; attempting auto-detection ...")
         resolved_format = _auto_detect_format(input_path)
         if resolved_format is None:
             raise RuntimeError(

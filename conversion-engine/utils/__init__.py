@@ -1,1 +1,1 @@
-# utils package — shared utilities for all conversion drivers.
+# utils package - shared utilities for all conversion drivers.

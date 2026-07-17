@@ -33,8 +33,8 @@ at the end of Stage 2 and extended at the end of Stage 3. Dynamic fields are sho
 | - | ---------------------------- | ------ | -------------------------------- |
 | 1 | File integrity               | PASS / FAIL | <reason if FAIL>            |
 | 2 | Schema compliance            | PASS / FAIL | <reason if FAIL>            |
-| 3 | Pointer integrity — temporal | PASS / FAIL | <reason if FAIL>            |
-| 4 | Pointer integrity — spatial  | PASS / FAIL | <reason if FAIL>            |
+| 3 | Pointer integrity - temporal | PASS / FAIL | <reason if FAIL>            |
+| 4 | Pointer integrity - spatial  | PASS / FAIL | <reason if FAIL>            |
 | 5 | Snapshot consistency         | PASS / FAIL | <reason if FAIL>            |
 | 6 | Property consistency         | PASS / FAIL | <reason if FAIL>            |
 
@@ -53,8 +53,8 @@ at the end of Stage 2 and extended at the end of Stage 3. Dynamic fields are sho
 
 ### Errors Encountered and Resolutions
 
-- <Error 1 description> → <Resolution applied>
-- <Error 2 description> → <Resolution applied>
+- <Error 1 description> -> <Resolution applied>
+- <Error 2 description> -> <Resolution applied>
 - _(none)_ if no errors occurred
 
 ---
@@ -73,7 +73,9 @@ at the end of Stage 2 and extended at the end of Stage 3. Dynamic fields are sho
 | `assets/semantic_validation/lifespan_dist.pdf`    | PASS / FAIL |
 | `assets/semantic_validation/spatial_dist.pdf`     | PASS / FAIL |
 
-### Auditor Sub-agent Verdict
+### Auditor Verdict
+
+**Audit mode:** headless subprocess (claude / codex / agy) OR in-context fallback
 
 **Overall verdict:** PASS / FAIL
 

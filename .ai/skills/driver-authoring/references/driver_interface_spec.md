@@ -44,29 +44,29 @@ exactly:
 
 ```text
 output.hdf5
-├── Header/
-│   ├── [attr] ParticleMass         - float64, 10^10 M_sun/h
-│   ├── [attr] NtreesPerFile        - int32
-│   ├── [attr] NhalosPerFile        - int32
-│   ├── [attr] NumberOfOutputFiles  - int32
-│   └── TreeNHalos                  - 1D int32 dataset, length = NtreesPerFile
-└── Tree0/
-    ├── Descendant             - int32 (N,)
-    ├── FirstProgenitor        - int32 (N,)
-    ├── NextProgenitor         - int32 (N,)
-    ├── FirstHaloInFOFGroup    - int32 (N,)
-    ├── NextHaloInFOFGroup     - int32 (N,)
-    ├── SubhaloLen             - int32 (N,)
-    ├── Group_M_Crit200        - float32 (N,)
-    ├── SubhaloVMax            - float32 (N,)
-    ├── SubhaloIDMostBound     - int64 (N,)
-    ├── SnapNum                - int32 (N,)
-    ├── SubhaloPos             - float32 (N, 3)  [kpc/h on disk]
-    ├── SubhaloVel             - float32 (N, 3)
-    └── SubhaloSpin            - float32 (N, 3)  [(kpc/h)(km/s) on disk]
+|-- Header/
+|   |-- [attr] ParticleMass         - float64, 10^10 M_sun/h
+|   |-- [attr] NtreesPerFile        - int32
+|   |-- [attr] NhalosPerFile        - int32
+|   |-- [attr] NumberOfOutputFiles  - int32
+|   `-- TreeNHalos                  - 1D int32 dataset, length = NtreesPerFile
+`-- Tree0/
+    |-- Descendant             - int32 (N,)
+    |-- FirstProgenitor        - int32 (N,)
+    |-- NextProgenitor         - int32 (N,)
+    |-- FirstHaloInFOFGroup    - int32 (N,)
+    |-- NextHaloInFOFGroup     - int32 (N,)
+    |-- SubhaloLen             - int32 (N,)
+    |-- Group_M_Crit200        - float32 (N,)
+    |-- SubhaloVMax            - float32 (N,)
+    |-- SubhaloIDMostBound     - int64 (N,)
+    |-- SnapNum                - int32 (N,)
+    |-- SubhaloPos             - float32 (N, 3)  [kpc/h on disk]
+    |-- SubhaloVel             - float32 (N, 3)
+    `-- SubhaloSpin            - float32 (N, 3)  [(kpc/h)(km/s) on disk]
 ...
-└── Tree<NtreesPerFile-1>/
-    └── <same fields>
+`-- Tree<NtreesPerFile-1>/
+    `-- <same fields>
 ```
 
 Optional fields (`Group_M_Mean200`, `Group_M_TopHat200`, `SubhaloVelDisp`, `FileNr`)

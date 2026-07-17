@@ -18,6 +18,10 @@ import matplotlib.pyplot as plt
 def save_figure(fig: Any, output_path: str, dpi: int = 150) -> None:
     """Save a matplotlib figure to output_path and close it.
 
+    A PNG sibling (same basename, .png extension) is written next to every
+    non-PNG output. The auditor may run under a CLI whose file reader has no
+    PDF support, so the PNG is the portable copy it inspects.
+
     Parameters
     ----------
     fig : matplotlib.figure.Figure
@@ -29,8 +33,13 @@ def save_figure(fig: Any, output_path: str, dpi: int = 150) -> None:
     """
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
-    plt.close(fig)
     print(f"Saved: {output_path}")
+    root, ext = os.path.splitext(output_path)
+    if ext.lower() != ".png":
+        png_path = root + ".png"
+        fig.savefig(png_path, dpi=dpi, bbox_inches="tight")
+        print(f"Saved: {png_path}")
+    plt.close(fig)
 
 
 def make_mass_bin_figure(

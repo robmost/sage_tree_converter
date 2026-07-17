@@ -33,7 +33,7 @@ File naming convention: `<format_id>_example_<DDMMYYYY>.json`
 | `input_description` | string | One or two sentences describing the input files: halo finder, tree tool, file format, simulation code, number of trees/halos if known |
 | `mapping_source` | enum | How the schema mapping was obtained: `kdb_match` (found in KDB), `web_discovery` (found via web search), `user_provided` (user supplied the mapping directly) |
 | `output_format` | enum | The SAGE output format chosen at G1: `lhalo_hdf5` or `lhalo_binary` |
-| `n_output_files` | integer | Number of output files chosen at G1 (≥ 1). Session-level; does not affect KDB entries. |
+| `n_output_files` | integer | Number of output files chosen at G1 (>= 1). Session-level; does not affect KDB entries. |
 | `issues_encountered` | list of strings | Each entry is a distinct issue that caused a conversion failure or required a workaround. Use plain language. Order matches `resolutions`. |
 | `resolutions` | list of strings | Each entry resolves the corresponding issue in `issues_encountered`. Must be the same length. If no issues, use `[]`. |
 | `kdb_action` | enum | What was done to the KDB: `new_driver` (new format added), `updated_entry` (existing entry corrected), `no_change` (no KDB modification) |
@@ -41,7 +41,7 @@ File naming convention: `<format_id>_example_<DDMMYYYY>.json`
 
 ---
 
-## Example — New Format Discovery
+## Example - New Format Discovery
 
 ```json
 {
@@ -52,8 +52,8 @@ File naming convention: `<format_id>_example_<DDMMYYYY>.json`
   "output_format": "lhalo_hdf5",
   "n_output_files": 1,
   "issues_encountered": [
-    "AHF mass field is in M_sun/h, not 10^10 M_sun/h — required scaling by 1e-10",
-    "Progenitor links use global halo IDs across snapshots, not tree-local indices — required O(N) hash map reconstruction"
+    "AHF mass field is in M_sun/h, not 10^10 M_sun/h - required scaling by 1e-10",
+    "Progenitor links use global halo IDs across snapshots, not tree-local indices - required O(N) hash map reconstruction"
   ],
   "resolutions": [
     "Applied mass_conversion_factor = 1e-10 in driver Group_M_Crit200 mapping",
@@ -71,4 +71,4 @@ File naming convention: `<format_id>_example_<DDMMYYYY>.json`
 - `issues_encountered` and `resolutions` must have the same length. Each resolution must directly address the corresponding issue by index.
 - If the same issue occurred multiple times (e.g. a unit error in two different fields), create one entry per occurrence, not a combined entry.
 - Do not include issues that were identified and resolved before the first conversion attempt (e.g. obvious typos in the parameter file). Only include issues that caused a test run to fail.
-- The conversation example is written once at the end of Stage 4. Do not update it after it is written unless the kdb-update skill is invoked in a later session.
+- The conversation example is written once at the end of Stage 4. Do not update it after it is written unless the kdb-register skill (Path B) is invoked in a later session.

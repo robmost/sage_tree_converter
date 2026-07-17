@@ -11,7 +11,7 @@ description: Runs a SAGE dry run on a converted test file to validate functional
 
 ## Path Convention
 
-- **`.ai/skills/functional-validation/references/<file>`** — files in this skill's own `references/` subfolder.
+- **`.ai/skills/functional-validation/references/<file>`** - files in this skill's own `references/` subfolder.
 
 This skill is invoked in Stage 2, after syntactic validation passes.
 
@@ -35,72 +35,42 @@ Do not treat this as a FAIL.
 
 **Running inside Docker or Apptainer:** if `SAGE_BINARY_PATH` is set but the binary
 is not accessible inside the container, functional validation is also reported as
-`NOT RUN` (not `FAIL`). To enable it, bind-mount the SAGE binary directory — see
-`README.md` §SAGE Binary for Functional Validation.
+`NOT RUN` (not `FAIL`). To enable it, bind-mount the SAGE binary directory - see
+`README.md` Section SAGE Binary for Functional Validation.
 
 ### 2. Extract the snapshot scale-factor list
 
 **This step is mandatory.** SAGE rejects an empty `FileWithSnapList` with a fatal
 error. Do not skip this step even if a snap list file appears to be unavailable.
 
-Run a streaming scan of the input data file to collect all unique `(snap_idx, scale_factor)` pairs and write them to `assets/<dataset>_snaplist.txt`, one scale factor per line ordered by snap_idx ascending:
+Use the checked-in script - do not write an ad-hoc scan:
 
-```bash
-$PYTHON_BIN - <<'EOF'
-import sys
-snap_to_scale = {}
-with open("<input_dat_file>", "r") as fh:
-    for raw in fh:
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        parts = line.split()
-        if len(parts) < 32:
-            continue
-        try:
-            scale = float(parts[0])   # column 0 = scale factor
-            snap  = int(float(parts[31]))  # column 31 = snap_idx
-        except ValueError:
-            continue
-        snap_to_scale.setdefault(snap, scale)
-snaps = sorted(snap_to_scale)
-print(f"Found {len(snaps)} snapshots: {snaps[0]}–{snaps[-1]}", file=sys.stderr)
-with open("assets/<dataset>_snaplist.txt", "w") as out:
-    for s in snaps:
-        out.write(f"{snap_to_scale[s]:.8f}\n")
-EOF
-```
-
-Column indices above apply to Rockstar/Consistent Trees ASCII. For other formats:
-
-- **Other ASCII formats (AHF, plain Consistent Trees variants):** identify the
-  scale-factor and snap-index columns from the driver's column map and adjust
-  `parts[0]` and `parts[31]` accordingly.
-- **Binary LHaloTree input (e.g., Subfind/Millennium):** there are no ASCII columns.
-  Extract `SnapNum` values from tree 0 of the converted output, then pair each unique
-  snapshot index with its scale factor from simulation metadata (e.g., a `snaplist.txt`
-  or `snap_times.txt` file in the input directory, or a cosmological parameter file):
+- **ASCII inputs** (Rockstar/Consistent Trees and similar column formats):
 
   ```bash
-  $PYTHON_BIN - <<'EOF'
-  import h5py, sys
-  snap_to_scale = {}
-  # Load scale factors from the simulation's own snap list
-  with open("<sim_dir>/snap_times.txt") as sf:
-      scales = [float(l) for l in sf if l.strip()]
-  with h5py.File("assets/test_<base>_STC.0.hdf5", "r") as f:
-      snaps = set(f["Tree0"]["SnapNum"][:].tolist())
-  for s in sorted(snaps):
-      snap_to_scale[s] = scales[s]
-  with open("assets/<dataset>_snaplist.txt", "w") as out:
-      for s in sorted(snap_to_scale):
-          out.write(f"{snap_to_scale[s]:.8f}\n")
-  EOF
+  $PYTHON_BIN scripts/extract_snaplist.py ascii \
+      --input <input_dat_file> \
+      --out assets/<dataset>_snaplist.txt
   ```
 
-  If no external snap list exists, check the input directory for `snap_times.txt`,
-  `output_list.txt`, or a Gadget parameter file with `TimeOfFirstSnapshot` /
-  `TimeBetSnapshot` entries. If none are found, flag this to the user before continuing.
+  The defaults (`--scale-col 0 --snap-col 31`) match Rockstar/Consistent Trees.
+  For other ASCII formats (e.g. AHF), identify the scale-factor and snap-index
+  columns from the driver's column map and pass `--scale-col` / `--snap-col`.
+
+- **Binary LHaloTree input** (e.g. Subfind/Millennium - no ASCII columns): pair
+  the converted output's `SnapNum` values with the simulation's own scale list
+  (`snap_times.txt`, `output_list.txt`, or similar in the input directory):
+
+  ```bash
+  $PYTHON_BIN scripts/extract_snaplist.py hdf5-output \
+      --output-file assets/test_<base>_STC.0.hdf5 \
+      --scales-file <sim_dir>/snap_times.txt \
+      --out assets/<dataset>_snaplist.txt
+  ```
+
+  If no external scale list exists, check the input directory for a Gadget
+  parameter file with `TimeOfFirstSnapshot` / `TimeBetSnapshot` entries. If
+  none are found, flag this to the user before continuing.
 
 ### 3. Generate a minimal SAGE parameter file
 
@@ -113,7 +83,7 @@ simulation. **Use the correct `TreeType` for the output format:**
 | `lhalo_hdf5` | `TreeType = lhalo_hdf5` | `.hdf5` (set `TreeExtension = .hdf5`) |
 | `lhalo_binary` | `TreeType = lhalo_binary` | none (leave `TreeExtension` unset or empty) |
 
-**Stage 2 output naming (mandatory).** See AGENTS.md §13 for the canonical `<base>` derivation rule and the input directory enforcement guard. The test conversion must have been run with the path below; if the conversion was run with a different path, re-run it with the correct path before proceeding.
+**Stage 2 output naming (mandatory).** See AGENTS.md Section 13 for the canonical `<base>` derivation rule and the input directory enforcement guard. The test conversion must have been run with the path below; if the conversion was run with a different path, re-run it with the correct path before proceeding.
 
 | Output format | CLI flags |
 | ------------- | --------- |
@@ -127,8 +97,8 @@ Set `FirstFile = 0` and `LastFile = 0` for a single-file run.
 **Binary particle_mass requirement.** For `lhalo_binary`, the binary file contains no
 particle mass field. SAGE reads `PartMass` from the parameter file instead. Ensure the
 `PartMass` line in `assets/test_sage_params.par` is set to the correct value in
-units of 10¹⁰ M☉/h (same value used by the driver). The value comes from
-`--sim-config` (key: `particle_mass_msun_per_h`, converted to 10¹⁰ M☉/h) or the
+units of 10^10 Msun/h (same value used by the driver). The value comes from
+`--sim-config` (key: `particle_mass_msun_per_h`, converted to 10^10 Msun/h) or the
 driver's auto-detection/default.
 
 Create the output directory:
@@ -160,16 +130,23 @@ Capture both stdout and any log file SAGE produces (look for files matching
    - A pointer error (invalid index, cross-snapshot pointer)
    - A SAGE parameter file error (wrong path, wrong tree type)
 4. Fix the driver in `assets/drivers/<format_id>.py` or the parameter file.
-5. Re-run the conversion:
-   ```bash
-   $PYTHON_BIN conversion-engine/main_driver.py \
-       --input <...> \
-       --output assets/test_<base>_STC.0[.hdf5] \
-       --output-format [lhalo_hdf5|lhalo_binary] \
-       --n-trees 100
-   ```
+5. Re-run the test conversion. **Use the invocation that matches where the
+   driver lives:**
+   - **Draft driver in `assets/drivers/`** (new format, not yet registered in
+     `FORMAT_REGISTRY`): invoke `convert()` as a library function exactly as in
+     `driver-authoring` SKILL.md Section 9. Do not go through `main_driver.py` -
+     it cannot resolve an unregistered format.
+   - **Registered driver in `conversion-engine/drivers/`:**
+     ```bash
+     $PYTHON_BIN conversion-engine/main_driver.py \
+         --input <...> \
+         --output assets/test_<base>_STC.0[.hdf5] \
+         --format <format_id> \
+         --output-format [lhalo_hdf5|lhalo_binary] \
+         --n-trees 100
+     ```
 6. Re-run syntactic validation (all six checks).
-7. If syntactic validation passes, re-run SAGE from step 3.
+7. If syntactic validation passes, re-run SAGE (step 4).
 8. Repeat until SAGE exits with status 0.
 
 ### 6. PASS condition
