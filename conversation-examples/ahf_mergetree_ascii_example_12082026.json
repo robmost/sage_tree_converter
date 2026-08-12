@@ -1,0 +1,20 @@
+{
+  "format_id": "ahf_mergetree_ascii",
+  "session_date": "12082026",
+  "input_description": "AHF halo finder output with bundled MergerTree tool, ASCII format. 384^3 particle, 100 Mpc/h box dark-matter-only simulation. 129 snapshots, 5,766,243 halos, 151,996 trees.",
+  "mapping_source": "kdb_match",
+  "output_format": "lhalo_hdf5",
+  "n_output_files": 1,
+  "issues_encountered": [
+    "estimate_output.py's AHF snapshot-key regex grabbed the first digit run in the filename ('100' from '100Mpc_384_dmonly'), which is identical across all snapshot files, so max() ties and picked the alphabetically-first (near-empty, z=16.982) snapshot as 'latest', reporting n_trees_total=0",
+    "The registered driver's AHF_croco glob ('*.AHF_croco') matched 0 files because this dataset's MergerTree run used a different output prefix ('MTREE.code.<sim>.snap_NNN_croco', not '<sim>.AHF_croco'), silently producing 5,545,396 near-singleton trees with no real progenitor linkage instead of an error",
+    "No external snapshot scale-factor list existed for functional validation, and AHF_halos rows have no scale-factor/snap-index columns, so neither extract_snaplist.py mode (ascii column-scan or hdf5-output external-list) applied directly"
+  ],
+  "resolutions": [
+    "Manually confirmed the true latest snapshot (snap_128, 84,716 halos) via wc -l and reported the corrected trees estimate to the user at G1; the bug is in scripts/estimate_output.py (read-only during the session) and was not fixed in this session",
+    "Patched a copy of the driver in assets/drivers/ahf_mergetree_ascii.py, widening the glob to '*_croco' (matches the '_croco' suffix regardless of prefix). Confirmed via syntactic, functional, and semantic validation, then promoted to conversion-engine/drivers/ahf_mergetree_ascii.py in Stage 4",
+    "Built the snaplist directly from each .AHF_halos filename's embedded redshift (e.g. 'z0.000'), computing scale=1/(1+z) per snapshot and writing assets/<base>_snaplist.txt"
+  ],
+  "kdb_action": "updated_entry",
+  "outcome": "success"
+}

@@ -223,7 +223,10 @@ def _prepare_trees(input_path: str, n_trees: int | None) -> _PreparedTrees:
     """
     input_dir = Path(input_path)
     halos_files = sorted(glob(str(input_dir / "*.AHF_halos")), key=_snap_from_filename)
-    croco_files = sorted(glob(str(input_dir / "*.AHF_croco")), key=_snap_from_filename)
+    # AHF MergerTree names croco files after the run's output prefix, not always
+    # ".AHF_croco" (e.g. "<prefix>.snap_NNN_croco"). Match on the "_croco" suffix
+    # the tool always uses rather than assuming the ".AHF_" segment is present.
+    croco_files = sorted(glob(str(input_dir / "*_croco")), key=_snap_from_filename)
 
     if not halos_files:
         raise ValueError(f"No .AHF_halos files found in {input_dir}")
