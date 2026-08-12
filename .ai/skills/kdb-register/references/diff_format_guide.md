@@ -19,9 +19,18 @@ NEW:
   <key.path>[+]:  <new_value>  (<one-line reason>)
   ...
 
+DRIVER:
+  <file>:<line>  <old_code> -> <new_code>  (<one-line reason>)
+  ...
+
 UNCHANGED:
   <list of top-level keys that were not touched>
 ```
+
+The `DRIVER` section covers changes to the driver *code* rather than the KDB
+JSON. A code fix has no JSON key path, so it is listed by file and line and
+confirmed separately at B2 - it is the one part of the diff that is applied by
+copying a file rather than editing JSON.
 
 ---
 
@@ -52,6 +61,9 @@ NEW:
   caveats[+]:  "SubhaloSpin is zero for satellite halos in AHF v1.0.x"  (observed during semantic validation)
   field_map.SubhaloVMax.source_field[+]:  "Vmax"  (discovered during schema mapping; was absent from original entry)
 
+DRIVER:
+  drivers/ahf_mergertree_ascii.py:226  glob "*.AHF_croco" -> "*_croco"  (MergerTree's output prefix is run-configurable; the narrow glob matched 0 files and silently produced singleton trees)
+
 UNCHANGED:
   halo_finder, tree_tool, file_format, field_map.SnapNum, field_map.Descendant,
   field_map.FirstProgenitor, field_map.NextProgenitor, field_map.FirstHaloInFOFGroup,
@@ -63,7 +75,7 @@ UNCHANGED:
 
 ## Rules
 
-1. Always show CORRECTED, NEW, and UNCHANGED sections - even if empty. Use `(none)` for empty sections.
+1. Always show CORRECTED, NEW, DRIVER, and UNCHANGED sections - even if empty. Use `(none)` for empty sections.
 2. The reason for each CORRECTED or NEW item must be one line. If the reason is a test failure, cite the check number (e.g. "syntactic check 3 failed - pointer out of range").
 3. Old values in CORRECTED must be the exact value from the current KDB file, not a paraphrase.
 4. New values must be the exact value that will be written.

@@ -27,6 +27,8 @@ The LLM may only write to the directories marked **Write** for the current stage
 
 This table is the canonical rule for every CLI. Under Claude Code it is additionally enforced mechanically: a PreToolUse hook (`scripts/check_write_boundary.py`, registered in `.claude/settings.json`) blocks Write/Edit calls outside the stage's writable directories whenever `assets/session_state.json` shows an active session. Other CLIs enforce it at the instruction level only.
 
+**Write only the artefacts the skills name.** `assets/` is the session's scratch directory, not a general-purpose dump. Do not redirect a subprocess's stdout or stderr into `assets/` in order to read it back - the CLI already captures command output, so such files are redundant and end up archived as noise at Stage 4. The hook enforces *directories*, not filenames, so this one is on the agent.
+
 ---
 
 ## 2. Skill Directory

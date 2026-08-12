@@ -18,7 +18,8 @@ two paths; pick exactly one, then run the shared closing steps:
   a new driver in `assets/drivers/`): add the driver and schema mapping JSON
   to the KDB.
 - **Path B - existing format** (the session started from a KDB match): patch
-  the existing entry only where the session proved it incomplete or wrong. If
+  the existing entry only where the session proved it incomplete or wrong, and
+  promote any driver fix the session needed to complete the conversion. If
   nothing was wrong, no KDB change is made.
 
 **Prerequisite for both paths:** Stage 3 completed successfully (G3 recorded
@@ -101,6 +102,7 @@ The diff must cover:
 
 - **Corrected fields**: fields that existed but had wrong values (e.g. incorrect unit scaling factor, wrong field name, incorrect pointer type)
 - **New fields**: fields that were missing from the existing entry (e.g. newly discovered caveats, additional optional field mappings)
+- **Driver changes**: fixes the session had to make to the driver *code* to complete the conversion (see B4). These have no JSON key path, so list them by file and line.
 - **Unchanged fields**: list these briefly so the user can confirm no regressions
 
 Example output format:
@@ -116,13 +118,16 @@ CORRECTED:
 NEW:
   caveats[+]:  "SubhaloSpin values are zero for satellite halos in this format version"
 
+DRIVER:
+  drivers/<format_id>.py:226  glob "*.AHF_croco" -> "*_croco"  (narrow glob matched 0 files on this dataset's naming)
+
 UNCHANGED:
   halo_finder, tree_tool, file_format, field_map.SnapNum, field_map.Descendant, ...
 ```
 
-If the session found **no errors** in the existing entry, state that, skip B2
-and B3, and continue with the Shared Closing Steps (`kdb_action` is
-`"no_change"` and no conversation example is written).
+If the session found **no errors** in the existing entry and did not patch the
+driver, state that, skip B2 to B4, and continue with the Shared Closing Steps
+(`kdb_action` is `"no_change"` and no conversation example is written).
 
 ### B2. Confirm with the user
 
@@ -131,8 +136,11 @@ The above diff summarises the changes to format-database/<format_id>.json.
 Please confirm:
   - Which corrected fields should be applied?  (type "all" or list by name)
   - Which new fields should be added?           (type "all" or list by name)
+  - Should the driver fix be promoted to conversion-engine/drivers/?  (yes/no)
   - Are there any changes in the diff that should NOT be written?
 ```
+
+Omit the driver line when the `DRIVER` section is `(none)`.
 
 Do not write any changes until the user responds. If the user selects a subset, apply only the confirmed subset.
 
@@ -160,6 +168,25 @@ After writing, validate:
 ```bash
 $PYTHON_BIN -c "import json; json.load(open('format-database/<format_id>.json'))"
 ```
+
+### B4. Promote a driver fix
+
+Skip this step unless the session had to patch the driver code itself (the
+`DRIVER` section of the B1 diff) and the user confirmed the promotion at B2.
+
+A session that hits a driver bug fixes it in `assets/drivers/<format_id>.py`
+(`conversion-engine/` is read only until Stage 4), so the patched driver that
+passed Stages 2 and 3 lives there, not in the registry. Promote it verbatim:
+
+```bash
+cp assets/drivers/<format_id>.py conversion-engine/drivers/<format_id>.py
+diff assets/drivers/<format_id>.py conversion-engine/drivers/<format_id>.py
+```
+
+Do not edit the driver while promoting it - the `assets/` copy is the audited
+version, and any change made here is a change no validation has seen. No
+`FORMAT_REGISTRY` edit is needed: the format is already registered, which is
+what made this Path B. Leave the `assets/` copy in place; S2 archives it.
 
 Then continue with the **Shared Closing Steps**.
 
@@ -203,18 +230,19 @@ $PYTHON_BIN -c "import json; json.load(open('conversation-examples/<format_id>_e
 
 ### S2. Archive the session files
 
-Read `dataset_name`, `base`, and `format_id` from `assets/session_state.json`
-(`dataset_name` is a human-readable label, often equal to `base` - confirm
-with the user if uncertain), then run:
+Read `dataset_name` from `assets/session_state.json` (a human-readable label,
+often equal to `base` - confirm with the user if uncertain), then run:
 
 ```bash
-bash scripts/archive_session.sh <dataset_name> <base> <format_id>
+bash scripts/archive_session.sh <dataset_name>
 ```
 
-The script moves the Stage 2 test outputs and all session artefacts (including
-`assets/session_state.json`) into `audits/<dataset_name>_audit-files_<HHMM-DDMMYYYY>/`
-and prints its contents. The Stage 3 full conversion output in `output/` is the
-final deliverable and is **not** moved. If the script reports an empty audit
+The script sweeps everything in `assets/` - the Stage 2 test outputs, every
+session artefact including `assets/session_state.json`, and any driver draft -
+into `audits/<dataset_name>_audit-files_<HHMM-DDMMYYYY>/`, then prints its
+contents. Only `.gitkeep` and the `drivers/` package scaffolding are left
+behind. The Stage 3 full conversion output in `output/` is the final
+deliverable and is **not** moved. If the script reports an empty audit
 directory, investigate before closing the session.
 
 ### S3. Completion

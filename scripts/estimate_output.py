@@ -79,8 +79,14 @@ def _count_ahf_ascii(input_path: Path) -> tuple[int, int, bool]:
             return sum(1 for line in fh if line and line[0] not in "#\n")
 
     def _snap_key(fp: Path) -> int:
-        m = re.search(r"(\d+)", fp.name)
-        return int(m.group(1)) if m else -1
+        # Anchor on the "snap_" token, as the driver does. Matching the first
+        # digit run instead would key on a name prefix such as "100Mpc_384",
+        # which is identical across snapshots - every file would tie and the
+        # "latest" pick would be arbitrary.
+        m = re.search(r"snap_(\d+)", fp.name)
+        if not m:
+            _fail(f"cannot extract a snapshot index from AHF filename: {fp.name}")
+        return int(m.group(1))
 
     n_halos = sum(_data_lines(fp) for fp in files)
     n_trees = _data_lines(max(files, key=_snap_key))
