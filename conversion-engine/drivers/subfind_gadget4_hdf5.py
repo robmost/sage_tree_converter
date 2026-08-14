@@ -243,15 +243,12 @@ def _process_tree(arrs: dict[str, np.ndarray], start: int, n: int) -> dict:
     group_nr = arrs["GroupNr"][sl].astype(np.int64)
     sub_len = arrs["SubhaloLen"][sl].astype(np.int32)
     sub_nr = arrs["SubhaloNr"][sl].astype(np.int64)
+    # Group_M_Crit200 is a FOF *group* property: Gadget-4 stores it on the group's
+    # central (SubRankInGr==0) and leaves satellites at 0. That is also the LHaloTree
+    # convention (cf. subfind_lhalotree_binary.py, which passes M_Crit200 through
+    # unchanged), and it is what SAGE expects: get_virial_mass() reads this field only
+    # for centrals and falls through to Len x PartMass for satellites. Copy it as-is.
     mass = arrs["Group_M_Crit200"][sl].astype(np.float32)
-    # Gadget-4 sets Group_M_Crit200 only on FOF centrals (SubRankInGr==0); broadcast
-    # to all satellites in same (SnapNum, GroupNr) so the output field is semantically
-    # correct. SAGE ignores this field for satellites (uses LenxPartMass instead).
-    unique_key = snap.astype(np.int64) * 10_000_000 + group_nr
-    keys, inverse = np.unique(unique_key, return_inverse=True)
-    per_key_max = np.zeros(keys.shape[0], dtype=np.float32)
-    np.maximum.at(per_key_max, inverse, mass)
-    mass = per_key_max[inverse]
     pos = arrs["SubhaloPos"][sl].astype(np.float32) * _POS_SPIN_SCALE
     vel = arrs["SubhaloVel"][sl].astype(np.float32)
     vdisp = arrs["SubhaloVelDisp"][sl].astype(np.float32)

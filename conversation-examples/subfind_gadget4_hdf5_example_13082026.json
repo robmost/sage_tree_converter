@@ -1,0 +1,18 @@
+{
+  "format_id": "subfind_gadget4_hdf5",
+  "session_date": "13082026",
+  "input_description": "Gadget-4 built-in merger tree (FOF+Subfind with SUBFIND_HBT active), single merged HDF5 file trees.hdf5 (1.1 GB) plus outputs.txt. Dark-matter simulation of 512^3 particles in a 35 Mpc/h box, 128 snapshots, h=0.6688, Omega_m=0.321, OmegaLambda=0.679. 194957 trees, 8327501 halos.",
+  "mapping_source": "kdb_match",
+  "output_format": "lhalo_hdf5",
+  "n_output_files": 1,
+  "issues_encountered": [
+    "The registered driver broadcast each FOF central's Group_M_Crit200 onto every satellite in the same (SnapNum, GroupNr) group. The semantic-validation HMF plot selects halos with Group_M_Crit200 > 0 to obtain one entry per FOF group, so after the broadcast a massive group contributed one count per subhalo instead: at snapshot 127 the log10 M ~ 3.4 bin held 3632 halos against a true 5, and the mass function fell to a minimum then rose again. Auditor item 6 (HMF shape) returned FAIL on the first audit.",
+    "scripts/extract_snaplist.py hdf5-output mode produced only 81 of the 128 scale factors needed for the SAGE dry run. It samples Tree0 alone and emits just the snapshots present there, and the 100-tree test slice reaches back only to snapshot 47. SAGE indexes its scale-factor array by SnapNum, which reaches 127 in this output, so the trimmed list would have been a range mismatch."
+  ],
+  "resolutions": [
+    "Removed the broadcast block (np.unique / np.maximum.at / per_key_max reindex) from assets/drivers/subfind_gadget4_hdf5.py so Group_M_Crit200 is copied through unchanged, leaving satellites at 0. This is the convention of the raw Gadget-4 input and of native LHaloTree data (subfind_lhalotree_binary.py passes M_Crit200 through rename-only), and it is SAGE-neutral because get_virial_mass() reads the field only for centrals and falls through to Len x PartMass for satellites - so the Stage 2 functional PASS was unaffected. Re-ran the full conversion, re-ran all six syntactic checks (PASS) and regenerated all seven plots; the re-audit passed all 10 items with a monotonically falling HMF. The fix was promoted to conversion-engine/drivers/ in Stage 4.",
+    "Used the simulation's own input/gadget4-dust/outputs.txt directly as FileWithSnapList - 128 scale factors, one per line, indexed by SnapNum. Verified index-aligned against /TreeTimes/Time in the input HDF5 (idx 0 = 0.0078125, idx 127 = 1.0; agreement to ~1e-5, the difference between requested and achieved output times). SAGE then exited 0 with a clean log."
+  ],
+  "kdb_action": "updated_entry",
+  "outcome": "success"
+}
